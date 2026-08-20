@@ -6,123 +6,202 @@
 
 <PageTitle>@(IsEditMode ? "Auftrag bearbeiten" : "Auftrag erstellen")</PageTitle>
 
-<h1>@(IsEditMode ? "Auftrag bearbeiten" : "Neuen Auftrag erstellen")</h1>
-
 @if (isLoading)
 {
-    <p>Lade Daten...</p>
+    <section class="panel">
+        <p class="muted">Lade Daten...</p>
+    </section>
 }
 else if (!string.IsNullOrWhiteSpace(loadError))
 {
-    <p>@loadError</p>
+    <section class="panel">
+        <p class="text-danger">@loadError</p>
+    </section>
 }
 else
 {
-    <EditForm Model="model" OnValidSubmit="SaveAsync">
-        <DataAnnotationsValidator />
-        <ValidationSummary />
-
-        @if (!string.IsNullOrWhiteSpace(saveError))
-        {
-            <p style="color:darkred;">@saveError</p>
-        }
-
-        <div style="display:grid;gap:1rem;max-width:800px;">
-            <div>
-                <label for="requester">Auftraggeber</label><br />
-                <InputSelect id="requester" @bind-Value="model.RequesterId" class="form-control">
-                    <option value="">Bitte auswählen</option>
-                    @foreach (var user in requesters)
-                    {
-                        <option value="@user.Id">@user.DisplayName (@user.City)</option>
-                    }
-                </InputSelect>
-                <ValidationMessage For="() => model.RequesterId" />
-            </div>
-
-            <div>
-                <label for="category">Kategorie</label><br />
-                <InputSelect id="category" @bind-Value="model.CategoryId" class="form-control">
-                    <option value="0">Bitte auswählen</option>
-                    @foreach (var category in categories)
-                    {
-                        <option value="@category.Id">@category.Name</option>
-                    }
-                </InputSelect>
-                <ValidationMessage For="() => model.CategoryId" />
-            </div>
-
-            <div>
-                <label for="title">Titel</label><br />
-                <InputText id="title" @bind-Value="model.Title" class="form-control" />
-                <ValidationMessage For="() => model.Title" />
-            </div>
-
-            <div>
-                <label for="description">Beschreibung</label><br />
-                <InputTextArea id="description" @bind-Value="model.Description" class="form-control" rows="6" />
-                <ValidationMessage For="() => model.Description" />
-            </div>
-
-            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;">
-                <div>
-                    <label for="budgetMin">Budget von</label><br />
-                    <InputNumber id="budgetMin" @bind-Value="model.BudgetMin" class="form-control" />
-                    <ValidationMessage For="() => model.BudgetMin" />
-                </div>
-
-                <div>
-                    <label for="budgetMax">Budget bis</label><br />
-                    <InputNumber id="budgetMax" @bind-Value="model.BudgetMax" class="form-control" />
-                    <ValidationMessage For="() => model.BudgetMax" />
-                </div>
-            </div>
-
-            <div>
-                <label for="compensation">Vergütung</label><br />
-                <InputSelect id="compensation" @bind-Value="model.CompensationType" class="form-control">
-                    @foreach (var compensationType in Enum.GetValues<CompensationType>())
-                    {
-                        <option value="@compensationType">@compensationType</option>
-                    }
-                </InputSelect>
-            </div>
-
-            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;">
-                <div>
-                    <label for="postalCode">PLZ</label><br />
-                    <InputText id="postalCode" @bind-Value="model.PostalCode" class="form-control" />
-                    <ValidationMessage For="() => model.PostalCode" />
-                </div>
-
-                <div>
-                    <label for="city">Ort</label><br />
-                    <InputText id="city" @bind-Value="model.City" class="form-control" />
-                    <ValidationMessage For="() => model.City" />
-                </div>
-            </div>
-
-            <div>
-                <label for="preferredDate">Wunschtermin</label><br />
-                <InputDate id="preferredDate" @bind-Value="model.PreferredDateLocal" class="form-control" />
-            </div>
-
-            <div>
-                <label for="status">Status</label><br />
-                <InputSelect id="status" @bind-Value="model.Status" class="form-control">
-                    @foreach (var status in Enum.GetValues<ListingStatus>())
-                    {
-                        <option value="@status">@status</option>
-                    }
-                </InputSelect>
-            </div>
-
-            <div style="display:flex;gap:1rem;">
-                <button type="submit">Speichern</button>
-                <a href="/auftraege">Abbrechen</a>
-            </div>
+    <section class="editor-header">
+        <div>
+            <div class="eyebrow">Auftragsverwaltung</div>
+            <h2>@(IsEditMode ? "Bestehenden Auftrag bearbeiten" : "Neuen Auftrag anlegen")</h2>
+            <p class="muted">Erfasse alle wichtigen Angaben für Sichtbarkeit, Vergütung und Region.</p>
         </div>
-    </EditForm>
+
+        <div class="editor-badges">
+            <span class="badge-soft">@model.Status</span>
+            <span class="badge-soft">@model.CompensationType</span>
+        </div>
+    </section>
+
+    <section class="editor-grid">
+        <article class="panel panel-form">
+            <EditForm Model="model" OnValidSubmit="SaveAsync">
+                <DataAnnotationsValidator />
+                <ValidationSummary />
+
+                @if (!string.IsNullOrWhiteSpace(saveError))
+                {
+                    <div class="alert-error">@saveError</div>
+                }
+
+                <div class="form-section">
+                    <div class="section-heading">
+                        <div class="eyebrow">Grunddaten</div>
+                        <h3>Auftragsdetails</h3>
+                    </div>
+
+                    <div class="form-grid">
+                        <div class="field">
+                            <label for="requester">Auftraggeber</label>
+                            <InputSelect id="requester" @bind-Value="model.RequesterId" class="field-input">
+                                <option value="">Bitte auswählen</option>
+                                @foreach (var user in requesters)
+                                {
+                                    <option value="@user.Id">@user.DisplayName (@user.City)</option>
+                                }
+                            </InputSelect>
+                            <ValidationMessage For="() => model.RequesterId" />
+                        </div>
+
+                        <div class="field">
+                            <label for="category">Kategorie</label>
+                            <InputSelect id="category" @bind-Value="model.CategoryId" class="field-input">
+                                <option value="0">Bitte auswählen</option>
+                                @foreach (var category in categories)
+                                {
+                                    <option value="@category.Id">@category.Name</option>
+                                }
+                            </InputSelect>
+                            <ValidationMessage For="() => model.CategoryId" />
+                        </div>
+
+                        <div class="field field-full">
+                            <label for="title">Titel</label>
+                            <InputText id="title" @bind-Value="model.Title" class="field-input" />
+                            <ValidationMessage For="() => model.Title" />
+                        </div>
+
+                        <div class="field field-full">
+                            <label for="description">Beschreibung</label>
+                            <InputTextArea id="description" @bind-Value="model.Description" class="field-input field-textarea" rows="7" />
+                            <ValidationMessage For="() => model.Description" />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <div class="section-heading">
+                        <div class="eyebrow">Vergütung</div>
+                        <h3>Konditionen</h3>
+                    </div>
+
+                    <div class="form-grid">
+                        <div class="field">
+                            <label for="budgetMin">Budget von</label>
+                            <InputNumber id="budgetMin" @bind-Value="model.BudgetMin" class="field-input" />
+                            <ValidationMessage For="() => model.BudgetMin" />
+                        </div>
+
+                        <div class="field">
+                            <label for="budgetMax">Budget bis</label>
+                            <InputNumber id="budgetMax" @bind-Value="model.BudgetMax" class="field-input" />
+                            <ValidationMessage For="() => model.BudgetMax" />
+                        </div>
+
+                        <div class="field">
+                            <label for="compensation">Vergütung</label>
+                            <InputSelect id="compensation" @bind-Value="model.CompensationType" class="field-input">
+                                @foreach (var compensationType in Enum.GetValues<CompensationType>())
+                                {
+                                    <option value="@compensationType">@compensationType</option>
+                                }
+                            </InputSelect>
+                        </div>
+
+                        <div class="field">
+                            <label for="status">Status</label>
+                            <InputSelect id="status" @bind-Value="model.Status" class="field-input">
+                                @foreach (var status in Enum.GetValues<ListingStatus>())
+                                {
+                                    <option value="@status">@status</option>
+                                }
+                            </InputSelect>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <div class="section-heading">
+                        <div class="eyebrow">Standort</div>
+                        <h3>Region & Termin</h3>
+                    </div>
+
+                    <div class="form-grid">
+                        <div class="field">
+                            <label for="postalCode">PLZ</label>
+                            <InputText id="postalCode" @bind-Value="model.PostalCode" class="field-input" />
+                            <ValidationMessage For="() => model.PostalCode" />
+                        </div>
+
+                        <div class="field">
+                            <label for="city">Ort</label>
+                            <InputText id="city" @bind-Value="model.City" class="field-input" />
+                            <ValidationMessage For="() => model.City" />
+                        </div>
+
+                        <div class="field">
+                            <label for="preferredDate">Wunschtermin</label>
+                            <InputDate id="preferredDate" @bind-Value="model.PreferredDateLocal" class="field-input" />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Speichern</button>
+                    <a href="/auftraege" class="btn btn-secondary">Abbrechen</a>
+                </div>
+            </EditForm>
+        </article>
+
+        <aside class="panel panel-side">
+            <div class="section-heading">
+                <div class="eyebrow">Preview</div>
+                <h3>Auftragsvorschau</h3>
+            </div>
+
+            <div class="preview-card">
+                <div class="preview-title">
+                    @(string.IsNullOrWhiteSpace(model.Title) ? "Noch kein Titel" : model.Title)
+                </div>
+
+                <div class="preview-tags">
+                    <span class="badge-soft">@model.CompensationType</span>
+                    <span class="badge-soft">@model.Status</span>
+                </div>
+
+                <p class="preview-text">
+                    @(string.IsNullOrWhiteSpace(model.Description)
+                        ? "Die Beschreibung erscheint hier als Vorschau."
+                        : model.Description)
+                </p>
+
+                <div class="preview-meta">
+                    <div>
+                        <span>Standort</span>
+                        <strong>@($"{model.PostalCode} {model.City}".Trim())</strong>
+                    </div>
+                    <div>
+                        <span>Budget</span>
+                        <strong>@($"{model.BudgetMin?.ToString("0")} - {model.BudgetMax?.ToString("0")} €")</strong>
+                    </div>
+                    <div>
+                        <span>Termin</span>
+                        <strong>@(model.PreferredDateLocal?.ToString("dd.MM.yyyy") ?? "Offen")</strong>
+                    </div>
+                </div>
+            </div>
+        </aside>
+    </section>
 }
 
 @code {

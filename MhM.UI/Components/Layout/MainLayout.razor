@@ -1,21 +1,70 @@
 ﻿@inherits LayoutComponentBase
 
-<div class="container">
-    <header style="display:flex;justify-content:space-between;align-items:center;padding:1rem 0;border-bottom:1px solid #ddd;">
-        <div>
-            <strong>Menschen helfen Menschen</strong>
+<div class="app-shell">
+    <aside class="sidebar">
+        <div class="sidebar-brand">
+            <div class="sidebar-brand-icon">MhM</div>
+            <div>
+                <div class="sidebar-brand-title">Menschen helfen Menschen</div>
+                <div class="sidebar-brand-subtitle">Regional Dashboard</div>
+            </div>
         </div>
-        <nav style="display:flex;gap:1rem;flex-wrap:wrap;">
-            <NavLink href="/" Match="NavLinkMatch.All">Start</NavLink>
-            <NavLink href="/auftraege">Aufträge</NavLink>
-            <NavLink href="/auftraege/neu">Auftrag erstellen</NavLink>
-            <NavLink href="/helfer">Helfer</NavLink>
-        </nav>
-    </header>
 
-    <main style="padding:2rem 0;">
-        @Body
-    </main>
+        <nav class="sidebar-nav">
+            <div class="sidebar-nav-title">Plattform</div>
+
+            <NavLink href="/" Match="NavLinkMatch.All" class="sidebar-link">
+                <span class="sidebar-link-icon">⌂</span>
+                <span>Dashboard</span>
+            </NavLink>
+
+            <NavLink href="/auftraege" class="sidebar-link">
+                <span class="sidebar-link-icon">▣</span>
+                <span>Aufträge</span>
+            </NavLink>
+
+            <NavLink href="/auftraege/neu" class="sidebar-link">
+                <span class="sidebar-link-icon">＋</span>
+                <span>Neuer Auftrag</span>
+            </NavLink>
+
+            <NavLink href="/helfer" class="sidebar-link">
+                <span class="sidebar-link-icon">◌</span>
+                <span>Helfer</span>
+            </NavLink>
+        </nav>
+
+        <div class="sidebar-card">
+            <div class="sidebar-card-label">MVP</div>
+            <h3>Schnell Hilfe finden</h3>
+            <p>Nachbarschaftshilfe, Kleinaufträge, Tausch und Bezahlung in einer Oberfläche.</p>
+            <a class="btn btn-light" href="/auftraege/neu">Auftrag erstellen</a>
+        </div>
+    </aside>
+
+    <div class="content-area">
+        <header class="topbar">
+            <div>
+                <div class="eyebrow">Community Platform</div>
+                <h1 class="topbar-title">MhM Control Center</h1>
+            </div>
+
+            <div class="topbar-actions">
+                <a class="btn btn-primary" href="/auftraege/neu">+ Auftrag</a>
+                <div class="user-pill">
+                    <div class="user-pill-avatar">AG</div>
+                    <div>
+                        <strong>Workspace</strong>
+                        <div class="muted">Blazor .NET 10</div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main class="page-content">
+            @Body
+        </main>
+    </div>
 </div>
 
 <div id="blazor-error-ui" data-nosnippet>
