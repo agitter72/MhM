@@ -1,18 +1,19 @@
 @page "/helfer"
 @using Microsoft.EntityFrameworkCore
 @inject MhMDbContext Db
+@inject UiLocalizer T
 
-<PageTitle>Helfer</PageTitle>
+<PageTitle>@T["Helpers.PageTitle"]</PageTitle>
 
-<h1>Helfer in der Region</h1>
+<h1>@T["Helpers.Headline"]</h1>
 
 @if (items is null)
 {
-    <p>Lade Daten...</p>
+    <p>@T["General.Loading"]</p>
 }
 else if (items.Count == 0)
 {
-    <p>Keine Helferprofile vorhanden.</p>
+    <p>@T["Helpers.Empty"]</p>
 }
 else
 {
@@ -21,12 +22,12 @@ else
         {
             <article style="border:1px solid #ddd;padding:1rem;border-radius:8px;">
                 <h2>@item.Title</h2>
-                <p><strong>Name:</strong> @item.User.DisplayName</p>
+                <p><strong>@T["Helpers.Name"]:</strong> @item.User.DisplayName</p>
                 <p>@item.Description</p>
-                <p><strong>Skills:</strong> @item.Skills</p>
-                <p><strong>Radius:</strong> @item.RadiusKm km</p>
-                <p><strong>Stundensatz:</strong> @(item.HourlyRate?.ToString("0.00")) €</p>
-                <p><strong>Tausch möglich:</strong> @(item.OffersBarter ? "Ja" : "Nein")</p>
+                <p><strong>@T["Helpers.Skills"]:</strong> @item.Skills</p>
+                <p><strong>@T["Helpers.Radius"]:</strong> @item.RadiusKm km</p>
+                <p><strong>@T["Helpers.HourlyRate"]:</strong> @(item.HourlyRate?.ToString("N2")) €</p>
+                <p><strong>@T["Helpers.Barter"]:</strong> @(item.OffersBarter ? T["General.Yes"] : T["General.No"])</p>
             </article>
         }
     </div>

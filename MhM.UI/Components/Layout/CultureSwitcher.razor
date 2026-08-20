@@ -1,0 +1,23 @@
+@inject NavigationManager Navigation
+
+<div class="lang-switcher">
+    <a class="btn @(IsCurrent("de-DE") ? "btn-primary" : "btn-secondary")" href="@BuildHref("de-DE")">DE</a>
+    <a class="btn @(IsCurrent("en-US") ? "btn-primary" : "btn-secondary")" href="@BuildHref("en-US")">EN</a>
+</div>
+
+@code {
+    private string CurrentPath
+    {
+        get
+        {
+            var relative = Navigation.ToBaseRelativePath(Navigation.Uri);
+            return string.IsNullOrWhiteSpace(relative) ? "/" : $"/{relative}";
+        }
+    }
+
+    private string BuildHref(string culture)
+        => $"/culture/set?culture={Uri.EscapeDataString(culture)}&redirectUri={Uri.EscapeDataString(CurrentPath)}";
+
+    private bool IsCurrent(string culture)
+        => System.Globalization.CultureInfo.CurrentUICulture.Name.Equals(culture, StringComparison.OrdinalIgnoreCase);
+}

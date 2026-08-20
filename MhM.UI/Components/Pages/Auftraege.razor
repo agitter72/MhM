@@ -1,21 +1,22 @@
 @page "/auftraege"
 @using Microsoft.EntityFrameworkCore
 @inject MhMDbContext Db
+@inject UiLocalizer T
 
-<PageTitle>Aufträge</PageTitle>
+<PageTitle>@T["Listings.PageTitle"]</PageTitle>
 
 <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;">
-    <h1>Offene Aufträge</h1>
-    <a href="/auftraege/neu">Neuen Auftrag erstellen</a>
+    <h1>@T["Listings.Headline"]</h1>
+    <a href="/auftraege/neu">@T["Listings.New"]</a>
 </div>
 
 @if (items is null)
 {
-    <p>Lade Daten...</p>
+    <p>@T["General.Loading"]</p>
 }
 else if (items.Count == 0)
 {
-    <p>Keine offenen Aufträge vorhanden.</p>
+    <p>@T["Listings.Empty"]</p>
 }
 else
 {
@@ -25,16 +26,16 @@ else
             <article style="border:1px solid #ddd;padding:1rem;border-radius:8px;">
                 <div style="display:flex;justify-content:space-between;align-items:start;gap:1rem;flex-wrap:wrap;">
                     <h2>@item.Title</h2>
-                    <a href="@($"/auftraege/{item.Id}/bearbeiten")">Bearbeiten</a>
+                    <a href="@($"/auftraege/{item.Id}/bearbeiten")">@T["General.Edit"]</a>
                 </div>
 
                 <p>@item.Description</p>
-                <p><strong>Kategorie:</strong> @item.Category.Name</p>
-                <p><strong>Auftraggeber:</strong> @item.Requester.DisplayName</p>
-                <p><strong>Ort:</strong> @item.PostalCode @item.City</p>
-                <p><strong>Vergütung:</strong> @item.CompensationType</p>
-                <p><strong>Status:</strong> @item.Status</p>
-                <p><strong>Budget:</strong> @(item.BudgetMin?.ToString("0.00")) € - @(item.BudgetMax?.ToString("0.00")) €</p>
+                <p><strong>@T["Listings.Category"]:</strong> @item.Category.Name</p>
+                <p><strong>@T["Listings.Requester"]:</strong> @item.Requester.DisplayName</p>
+                <p><strong>@T["Listings.Location"]:</strong> @item.PostalCode @item.City</p>
+                <p><strong>@T["Listings.Compensation"]:</strong> @T.Enum(item.CompensationType)</p>
+                <p><strong>@T["Listings.Status"]:</strong> @T.Enum(item.Status)</p>
+                <p><strong>@T["Listings.Budget"]:</strong> @(item.BudgetMin?.ToString("N2")) € - @(item.BudgetMax?.ToString("N2")) €</p>
             </article>
         }
     </div>
