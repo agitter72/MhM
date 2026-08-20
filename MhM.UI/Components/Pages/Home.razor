@@ -1,56 +1,54 @@
 ﻿@page "/"
+@inject UiLocalizer T
 
-<PageTitle>Menschen helfen Menschen</PageTitle>
+<PageTitle>@T["Home.PageTitle"]</PageTitle>
 
 <section class="hero-grid">
     <article class="hero-card hero-card-featured">
-        <div class="eyebrow">Nachbarschaftshilfe neu gedacht</div>
-        <h2>Regionale Hilfe für Alltag, Haus und Garten.</h2>
-        <p>
-            Menschen, Familien und Helfer werden direkt miteinander verbunden.
-            Kleinaufträge, Tauschgeschäfte und bezahlte Unterstützung in einer modernen Plattform.
-        </p>
+        <div class="eyebrow">@T["Home.Eyebrow"]</div>
+        <h2>@T["Home.Headline"]</h2>
+        <p>@T["Home.Description"]</p>
 
         <div class="hero-actions">
-            <a class="btn btn-primary" href="/auftraege/neu">Auftrag erstellen</a>
-            <a class="btn btn-secondary" href="/helfer">Helfer finden</a>
+            <a class="btn btn-primary" href="/auftraege/neu">@T["Layout.CreateListing"]</a>
+            <a class="btn btn-secondary" href="/helfer">@T["Home.FindHelpers"]</a>
         </div>
 
         <div class="stat-grid">
             <div class="stat-card">
-                <span>Offene Aufträge</span>
+                <span>@T["Home.OpenListings"]</span>
                 <strong>128</strong>
             </div>
             <div class="stat-card">
-                <span>Aktive Helfer</span>
+                <span>@T["Home.ActiveHelpers"]</span>
                 <strong>64</strong>
             </div>
             <div class="stat-card">
-                <span>Tauschangebote</span>
+                <span>@T["Home.BarterOffers"]</span>
                 <strong>37</strong>
             </div>
         </div>
     </article>
 
     <article class="hero-card hero-card-accent">
-        <div class="eyebrow">Live Fokus</div>
-        <h3>Top-Kategorien</h3>
+        <div class="eyebrow">@T["Home.LiveFocus"]</div>
+        <h3>@T["Home.TopCategories"]</h3>
 
         <div class="mini-list">
             <div class="mini-list-item">
-                <span>Garten & Außenbereich</span>
+                <span>@T["Home.CategoryGarden"]</span>
                 <strong>34</strong>
             </div>
             <div class="mini-list-item">
-                <span>Computer & Technik</span>
+                <span>@T["Home.CategoryTech"]</span>
                 <strong>21</strong>
             </div>
             <div class="mini-list-item">
-                <span>Haushalt & Reinigung</span>
+                <span>@T["Home.CategoryHousehold"]</span>
                 <strong>18</strong>
             </div>
             <div class="mini-list-item">
-                <span>Seniorenhilfe</span>
+                <span>@T["Home.CategorySenior"]</span>
                 <strong>15</strong>
             </div>
         </div>
@@ -61,34 +59,34 @@
     <article class="panel">
         <div class="panel-header">
             <div>
-                <div class="eyebrow">Core Features</div>
-                <h3>Plattform-Module</h3>
+                <div class="eyebrow">@T["Home.CoreFeatures"]</div>
+                <h3>@T["Home.PlatformModules"]</h3>
             </div>
         </div>
 
         <div class="feature-grid">
             <div class="feature-card">
                 <div class="feature-icon">👤</div>
-                <h4>Profile</h4>
-                <p>Registrierung für Suchende, Helfer und regionale Anbieter.</p>
+                <h4>@T["Home.Profiles"]</h4>
+                <p>@T["Home.ProfilesText"]</p>
             </div>
 
             <div class="feature-card">
                 <div class="feature-icon">🗂</div>
-                <h4>Aufträge</h4>
-                <p>Kleinaufträge einfach anlegen, verwalten und veröffentlichen.</p>
+                <h4>@T["Home.Listings"]</h4>
+                <p>@T["Home.ListingsText"]</p>
             </div>
 
             <div class="feature-card">
                 <div class="feature-icon">💬</div>
-                <h4>Chat</h4>
-                <p>Direkte Abstimmung für Rückfragen, Termine und Details.</p>
+                <h4>@T["Home.Chat"]</h4>
+                <p>@T["Home.ChatText"]</p>
             </div>
 
             <div class="feature-card">
                 <div class="feature-icon">★</div>
-                <h4>Bewertungen</h4>
-                <p>Vertrauen durch Feedback und regionale Reputation.</p>
+                <h4>@T["Home.Reviews"]</h4>
+                <p>@T["Home.ReviewsText"]</p>
             </div>
         </div>
     </article>
@@ -96,27 +94,27 @@
     <article class="panel">
         <div class="panel-header">
             <div>
-                <div class="eyebrow">Business Model</div>
-                <h3>Erlösquellen</h3>
+                <div class="eyebrow">@T["Home.BusinessModel"]</div>
+                <h3>@T["Home.RevenueStreams"]</h3>
             </div>
         </div>
 
         <div class="timeline-list">
             <div class="timeline-item">
-                <strong>Premiumprofile</strong>
-                <span>Sichtbarkeit für Helfer und Unternehmen</span>
+                <strong>@T["Home.PremiumProfiles"]</strong>
+                <span>@T["Home.PremiumProfilesText"]</span>
             </div>
             <div class="timeline-item">
-                <strong>Hervorgehobene Anzeigen</strong>
-                <span>Mehr Reichweite für dringende Aufträge</span>
+                <strong>@T["Home.FeaturedAds"]</strong>
+                <span>@T["Home.FeaturedAdsText"]</span>
             </div>
             <div class="timeline-item">
-                <strong>Vermittlungsgebühren</strong>
-                <span>Optionale Provision auf erfolgreiche Aufträge</span>
+                <strong>@T["Home.Fees"]</strong>
+                <span>@T["Home.FeesText"]</span>
             </div>
             <div class="timeline-item">
-                <strong>Verifizierungen & Werbung</strong>
-                <span>Zusatzumsätze für regionale Präsenz</span>
+                <strong>@T["Home.VerificationAds"]</strong>
+                <span>@T["Home.VerificationAdsText"]</span>
             </div>
         </div>
     </article>

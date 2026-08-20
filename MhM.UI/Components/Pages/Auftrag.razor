@@ -3,13 +3,14 @@
 @using Microsoft.EntityFrameworkCore
 @inject MhMDbContext Db
 @inject NavigationManager Navigation
+@inject UiLocalizer T
 
-<PageTitle>@(IsEditMode ? "Auftrag bearbeiten" : "Auftrag erstellen")</PageTitle>
+<PageTitle>@(IsEditMode ? T["TaskEdit.PageTitle.Edit"] : T["TaskEdit.PageTitle.New"])</PageTitle>
 
 @if (isLoading)
 {
     <section class="panel">
-        <p class="muted">Lade Daten...</p>
+        <p class="muted">@T["General.Loading"]</p>
     </section>
 }
 else if (!string.IsNullOrWhiteSpace(loadError))
@@ -22,14 +23,14 @@ else
 {
     <section class="editor-header">
         <div>
-            <div class="eyebrow">Auftragsverwaltung</div>
-            <h2>@(IsEditMode ? "Bestehenden Auftrag bearbeiten" : "Neuen Auftrag anlegen")</h2>
-            <p class="muted">Erfasse alle wichtigen Angaben für Sichtbarkeit, Vergütung und Region.</p>
+            <div class="eyebrow">@T["TaskEdit.HeaderEyebrow"]</div>
+            <h2>@(IsEditMode ? T["TaskEdit.HeaderEdit"] : T["TaskEdit.HeaderNew"])</h2>
+            <p class="muted">@T["TaskEdit.HeaderText"]</p>
         </div>
 
         <div class="editor-badges">
-            <span class="badge-soft">@model.Status</span>
-            <span class="badge-soft">@model.CompensationType</span>
+            <span class="badge-soft">@T.Enum(model.Status)</span>
+            <span class="badge-soft">@T.Enum(model.CompensationType)</span>
         </div>
     </section>
 
@@ -46,15 +47,15 @@ else
 
                 <div class="form-section">
                     <div class="section-heading">
-                        <div class="eyebrow">Grunddaten</div>
-                        <h3>Auftragsdetails</h3>
+                        <div class="eyebrow">@T["TaskEdit.BasicData"]</div>
+                        <h3>@T["TaskEdit.Details"]</h3>
                     </div>
 
                     <div class="form-grid">
                         <div class="field">
-                            <label for="requester">Auftraggeber</label>
+                            <label for="requester">@T["TaskEdit.Requester"]</label>
                             <InputSelect id="requester" @bind-Value="model.RequesterId" class="field-input">
-                                <option value="">Bitte auswählen</option>
+                                <option value="">@T["General.Select"]</option>
                                 @foreach (var user in requesters)
                                 {
                                     <option value="@user.Id">@user.DisplayName (@user.City)</option>
@@ -64,9 +65,9 @@ else
                         </div>
 
                         <div class="field">
-                            <label for="category">Kategorie</label>
+                            <label for="category">@T["TaskEdit.Category"]</label>
                             <InputSelect id="category" @bind-Value="model.CategoryId" class="field-input">
-                                <option value="0">Bitte auswählen</option>
+                                <option value="0">@T["General.Select"]</option>
                                 @foreach (var category in categories)
                                 {
                                     <option value="@category.Id">@category.Name</option>
@@ -76,13 +77,13 @@ else
                         </div>
 
                         <div class="field field-full">
-                            <label for="title">Titel</label>
+                            <label for="title">@T["TaskEdit.Title"]</label>
                             <InputText id="title" @bind-Value="model.Title" class="field-input" />
                             <ValidationMessage For="() => model.Title" />
                         </div>
 
                         <div class="field field-full">
-                            <label for="description">Beschreibung</label>
+                            <label for="description">@T["TaskEdit.Description"]</label>
                             <InputTextArea id="description" @bind-Value="model.Description" class="field-input field-textarea" rows="7" />
                             <ValidationMessage For="() => model.Description" />
                         </div>
@@ -91,39 +92,39 @@ else
 
                 <div class="form-section">
                     <div class="section-heading">
-                        <div class="eyebrow">Vergütung</div>
-                        <h3>Konditionen</h3>
+                        <div class="eyebrow">@T["TaskEdit.CompensationSection"]</div>
+                        <h3>@T["TaskEdit.Terms"]</h3>
                     </div>
 
                     <div class="form-grid">
                         <div class="field">
-                            <label for="budgetMin">Budget von</label>
+                            <label for="budgetMin">@T["TaskEdit.BudgetFrom"]</label>
                             <InputNumber id="budgetMin" @bind-Value="model.BudgetMin" class="field-input" />
                             <ValidationMessage For="() => model.BudgetMin" />
                         </div>
 
                         <div class="field">
-                            <label for="budgetMax">Budget bis</label>
+                            <label for="budgetMax">@T["TaskEdit.BudgetTo"]</label>
                             <InputNumber id="budgetMax" @bind-Value="model.BudgetMax" class="field-input" />
                             <ValidationMessage For="() => model.BudgetMax" />
                         </div>
 
                         <div class="field">
-                            <label for="compensation">Vergütung</label>
+                            <label for="compensation">@T["TaskEdit.Compensation"]</label>
                             <InputSelect id="compensation" @bind-Value="model.CompensationType" class="field-input">
                                 @foreach (var compensationType in Enum.GetValues<CompensationType>())
                                 {
-                                    <option value="@compensationType">@compensationType</option>
+                                    <option value="@compensationType">@T.Enum(compensationType)</option>
                                 }
                             </InputSelect>
                         </div>
 
                         <div class="field">
-                            <label for="status">Status</label>
+                            <label for="status">@T["TaskEdit.Status"]</label>
                             <InputSelect id="status" @bind-Value="model.Status" class="field-input">
                                 @foreach (var status in Enum.GetValues<ListingStatus>())
                                 {
-                                    <option value="@status">@status</option>
+                                    <option value="@status">@T.Enum(status)</option>
                                 }
                             </InputSelect>
                         </div>
@@ -132,71 +133,71 @@ else
 
                 <div class="form-section">
                     <div class="section-heading">
-                        <div class="eyebrow">Standort</div>
-                        <h3>Region & Termin</h3>
+                        <div class="eyebrow">@T["TaskEdit.LocationSection"]</div>
+                        <h3>@T["TaskEdit.RegionDate"]</h3>
                     </div>
 
                     <div class="form-grid">
                         <div class="field">
-                            <label for="postalCode">PLZ</label>
+                            <label for="postalCode">@T["TaskEdit.PostalCode"]</label>
                             <InputText id="postalCode" @bind-Value="model.PostalCode" class="field-input" />
                             <ValidationMessage For="() => model.PostalCode" />
                         </div>
 
                         <div class="field">
-                            <label for="city">Ort</label>
+                            <label for="city">@T["TaskEdit.City"]</label>
                             <InputText id="city" @bind-Value="model.City" class="field-input" />
                             <ValidationMessage For="() => model.City" />
                         </div>
 
                         <div class="field">
-                            <label for="preferredDate">Wunschtermin</label>
+                            <label for="preferredDate">@T["TaskEdit.PreferredDate"]</label>
                             <InputDate id="preferredDate" @bind-Value="model.PreferredDateLocal" class="field-input" />
                         </div>
                     </div>
                 </div>
 
                 <div class="form-actions">
-                    <button type="submit" class="btn btn-primary">Speichern</button>
-                    <a href="/auftraege" class="btn btn-secondary">Abbrechen</a>
+                    <button type="submit" class="btn btn-primary">@T["General.Save"]</button>
+                    <a href="/auftraege" class="btn btn-secondary">@T["General.Cancel"]</a>
                 </div>
             </EditForm>
         </article>
 
         <aside class="panel panel-side">
             <div class="section-heading">
-                <div class="eyebrow">Preview</div>
-                <h3>Auftragsvorschau</h3>
+                <div class="eyebrow">@T["TaskEdit.Preview"]</div>
+                <h3>@T["TaskEdit.PreviewTitle"]</h3>
             </div>
 
             <div class="preview-card">
                 <div class="preview-title">
-                    @(string.IsNullOrWhiteSpace(model.Title) ? "Noch kein Titel" : model.Title)
+                    @(string.IsNullOrWhiteSpace(model.Title) ? T["TaskEdit.NoTitle"] : model.Title)
                 </div>
 
                 <div class="preview-tags">
-                    <span class="badge-soft">@model.CompensationType</span>
-                    <span class="badge-soft">@model.Status</span>
+                    <span class="badge-soft">@T.Enum(model.CompensationType)</span>
+                    <span class="badge-soft">@T.Enum(model.Status)</span>
                 </div>
 
                 <p class="preview-text">
                     @(string.IsNullOrWhiteSpace(model.Description)
-                        ? "Die Beschreibung erscheint hier als Vorschau."
+                        ? T["TaskEdit.NoDescription"]
                         : model.Description)
                 </p>
 
                 <div class="preview-meta">
                     <div>
-                        <span>Standort</span>
+                        <span>@T["General.Location"]</span>
                         <strong>@($"{model.PostalCode} {model.City}".Trim())</strong>
                     </div>
                     <div>
-                        <span>Budget</span>
+                        <span>@T["General.Budget"]</span>
                         <strong>@($"{model.BudgetMin?.ToString("0")} - {model.BudgetMax?.ToString("0")} €")</strong>
                     </div>
                     <div>
-                        <span>Termin</span>
-                        <strong>@(model.PreferredDateLocal?.ToString("dd.MM.yyyy") ?? "Offen")</strong>
+                        <span>@T["General.Date"]</span>
+                        <strong>@(model.PreferredDateLocal?.ToString("d") ?? T["General.Open"])</strong>
                     </div>
                 </div>
             </div>
@@ -237,7 +238,7 @@ else
 
             if (listing is null)
             {
-                loadError = "Der Auftrag wurde nicht gefunden.";
+                loadError = T["TaskEdit.LoadError"];
                 isLoading = false;
                 return;
             }
@@ -280,7 +281,7 @@ else
 
         if (model.BudgetMin.HasValue && model.BudgetMax.HasValue && model.BudgetMin > model.BudgetMax)
         {
-            saveError = "Das Mindestbudget darf nicht größer als das Maximalbudget sein.";
+            saveError = T["TaskEdit.BudgetRangeError"];
             return;
         }
 
