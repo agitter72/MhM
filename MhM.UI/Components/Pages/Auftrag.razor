@@ -1,0 +1,279 @@
+@page "/auftraege/neu"
+@page "/auftraege/{Id:guid}/bearbeiten"
+@using Microsoft.EntityFrameworkCore
+@inject MhMDbContext Db
+@inject NavigationManager Navigation
+
+<PageTitle>@(IsEditMode ? "Auftrag bearbeiten" : "Auftrag erstellen")</PageTitle>
+
+<h1>@(IsEditMode ? "Auftrag bearbeiten" : "Neuen Auftrag erstellen")</h1>
+
+@if (isLoading)
+{
+    <p>Lade Daten...</p>
+}
+else if (!string.IsNullOrWhiteSpace(loadError))
+{
+    <p>@loadError</p>
+}
+else
+{
+    <EditForm Model="model" OnValidSubmit="SaveAsync">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        @if (!string.IsNullOrWhiteSpace(saveError))
+        {
+            <p style="color:darkred;">@saveError</p>
+        }
+
+        <div style="display:grid;gap:1rem;max-width:800px;">
+            <div>
+                <label for="requester">Auftraggeber</label><br />
+                <InputSelect id="requester" @bind-Value="model.RequesterId" class="form-control">
+                    <option value="">Bitte auswählen</option>
+                    @foreach (var user in requesters)
+                    {
+                        <option value="@user.Id">@user.DisplayName (@user.City)</option>
+                    }
+                </InputSelect>
+                <ValidationMessage For="() => model.RequesterId" />
+            </div>
+
+            <div>
+                <label for="category">Kategorie</label><br />
+                <InputSelect id="category" @bind-Value="model.CategoryId" class="form-control">
+                    <option value="0">Bitte auswählen</option>
+                    @foreach (var category in categories)
+                    {
+                        <option value="@category.Id">@category.Name</option>
+                    }
+                </InputSelect>
+                <ValidationMessage For="() => model.CategoryId" />
+            </div>
+
+            <div>
+                <label for="title">Titel</label><br />
+                <InputText id="title" @bind-Value="model.Title" class="form-control" />
+                <ValidationMessage For="() => model.Title" />
+            </div>
+
+            <div>
+                <label for="description">Beschreibung</label><br />
+                <InputTextArea id="description" @bind-Value="model.Description" class="form-control" rows="6" />
+                <ValidationMessage For="() => model.Description" />
+            </div>
+
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;">
+                <div>
+                    <label for="budgetMin">Budget von</label><br />
+                    <InputNumber id="budgetMin" @bind-Value="model.BudgetMin" class="form-control" />
+                    <ValidationMessage For="() => model.BudgetMin" />
+                </div>
+
+                <div>
+                    <label for="budgetMax">Budget bis</label><br />
+                    <InputNumber id="budgetMax" @bind-Value="model.BudgetMax" class="form-control" />
+                    <ValidationMessage For="() => model.BudgetMax" />
+                </div>
+            </div>
+
+            <div>
+                <label for="compensation">Vergütung</label><br />
+                <InputSelect id="compensation" @bind-Value="model.CompensationType" class="form-control">
+                    @foreach (var compensationType in Enum.GetValues<CompensationType>())
+                    {
+                        <option value="@compensationType">@compensationType</option>
+                    }
+                </InputSelect>
+            </div>
+
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;">
+                <div>
+                    <label for="postalCode">PLZ</label><br />
+                    <InputText id="postalCode" @bind-Value="model.PostalCode" class="form-control" />
+                    <ValidationMessage For="() => model.PostalCode" />
+                </div>
+
+                <div>
+                    <label for="city">Ort</label><br />
+                    <InputText id="city" @bind-Value="model.City" class="form-control" />
+                    <ValidationMessage For="() => model.City" />
+                </div>
+            </div>
+
+            <div>
+                <label for="preferredDate">Wunschtermin</label><br />
+                <InputDate id="preferredDate" @bind-Value="model.PreferredDateLocal" class="form-control" />
+            </div>
+
+            <div>
+                <label for="status">Status</label><br />
+                <InputSelect id="status" @bind-Value="model.Status" class="form-control">
+                    @foreach (var status in Enum.GetValues<ListingStatus>())
+                    {
+                        <option value="@status">@status</option>
+                    }
+                </InputSelect>
+            </div>
+
+            <div style="display:flex;gap:1rem;">
+                <button type="submit">Speichern</button>
+                <a href="/auftraege">Abbrechen</a>
+            </div>
+        </div>
+    </EditForm>
+}
+
+@code {
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    private readonly ListingFormModel model = new();
+    private List<Category> categories = [];
+    private List<AppUser> requesters = [];
+    private bool isLoading = true;
+    private string? loadError;
+    private string? saveError;
+
+    private bool IsEditMode => Id.HasValue;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        isLoading = true;
+        loadError = null;
+        saveError = null;
+
+        categories = await Db.Categories
+            .OrderBy(x => x.Name)
+            .ToListAsync();
+
+        requesters = await Db.Users
+            .OrderBy(x => x.DisplayName)
+            .ToListAsync();
+
+        if (IsEditMode)
+        {
+            var listing = await Db.Listings.FirstOrDefaultAsync(x => x.Id == Id.Value);
+
+            if (listing is null)
+            {
+                loadError = "Der Auftrag wurde nicht gefunden.";
+                isLoading = false;
+                return;
+            }
+
+            model.Id = listing.Id;
+            model.RequesterId = listing.RequesterId;
+            model.CategoryId = listing.CategoryId;
+            model.Title = listing.Title;
+            model.Description = listing.Description;
+            model.BudgetMin = listing.BudgetMin;
+            model.BudgetMax = listing.BudgetMax;
+            model.CompensationType = listing.CompensationType;
+            model.PostalCode = listing.PostalCode;
+            model.City = listing.City;
+            model.Status = listing.Status;
+            model.PreferredDateLocal = listing.PreferredDateUtc?.ToLocalTime();
+        }
+        else
+        {
+            model.Id = null;
+            model.RequesterId = requesters.FirstOrDefault()?.Id;
+            model.CategoryId = categories.FirstOrDefault()?.Id ?? 0;
+            model.Title = string.Empty;
+            model.Description = string.Empty;
+            model.BudgetMin = null;
+            model.BudgetMax = null;
+            model.CompensationType = CompensationType.Beides;
+            model.PostalCode = string.Empty;
+            model.City = string.Empty;
+            model.Status = ListingStatus.Offen;
+            model.PreferredDateLocal = DateTime.Today.AddDays(3);
+        }
+
+        isLoading = false;
+    }
+
+    private async Task SaveAsync()
+    {
+        saveError = null;
+
+        if (model.BudgetMin.HasValue && model.BudgetMax.HasValue && model.BudgetMin > model.BudgetMax)
+        {
+            saveError = "Das Mindestbudget darf nicht größer als das Maximalbudget sein.";
+            return;
+        }
+
+        Listing entity;
+
+        if (IsEditMode)
+        {
+            entity = await Db.Listings.FirstAsync(x => x.Id == Id!.Value);
+        }
+        else
+        {
+            entity = new Listing
+            {
+                CreatedUtc = DateTime.UtcNow
+            };
+
+            await Db.Listings.AddAsync(entity);
+        }
+
+        entity.RequesterId = model.RequesterId!.Value;
+        entity.CategoryId = model.CategoryId;
+        entity.Title = model.Title.Trim();
+        entity.Description = model.Description.Trim();
+        entity.BudgetMin = model.BudgetMin;
+        entity.BudgetMax = model.BudgetMax;
+        entity.CompensationType = model.CompensationType;
+        entity.PostalCode = model.PostalCode.Trim();
+        entity.City = model.City.Trim();
+        entity.Status = model.Status;
+        entity.PreferredDateUtc = model.PreferredDateLocal?.ToUniversalTime();
+
+        await Db.SaveChangesAsync();
+
+        Navigation.NavigateTo("/auftraege");
+    }
+
+    private sealed class ListingFormModel
+    {
+        public Guid? Id { get; set; }
+
+        [Required(ErrorMessage = "Bitte einen Auftraggeber auswählen.")]
+        public Guid? RequesterId { get; set; }
+
+        [Range(1, int.MaxValue, ErrorMessage = "Bitte eine Kategorie auswählen.")]
+        public int CategoryId { get; set; }
+
+        [Required(ErrorMessage = "Bitte einen Titel eingeben.")]
+        [StringLength(160, MinimumLength = 5, ErrorMessage = "Der Titel muss zwischen 5 und 160 Zeichen lang sein.")]
+        public string Title { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Bitte eine Beschreibung eingeben.")]
+        [StringLength(3000, MinimumLength = 20, ErrorMessage = "Die Beschreibung muss zwischen 20 und 3000 Zeichen lang sein.")]
+        public string Description { get; set; } = string.Empty;
+
+        [Range(typeof(decimal), "0", "999999", ErrorMessage = "Bitte ein gültiges Mindestbudget eingeben.")]
+        public decimal? BudgetMin { get; set; }
+
+        [Range(typeof(decimal), "0", "999999", ErrorMessage = "Bitte ein gültiges Maximalbudget eingeben.")]
+        public decimal? BudgetMax { get; set; }
+
+        public CompensationType CompensationType { get; set; } = CompensationType.Beides;
+
+        [Required(ErrorMessage = "Bitte eine PLZ eingeben.")]
+        [StringLength(20, ErrorMessage = "Die PLZ ist zu lang.")]
+        public string PostalCode { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Bitte einen Ort eingeben.")]
+        [StringLength(120, ErrorMessage = "Der Ort ist zu lang.")]
+        public string City { get; set; } = string.Empty;
+
+        public DateTime? PreferredDateLocal { get; set; }
+
+        public ListingStatus Status { get; set; } = ListingStatus.Offen;
+    }
+}

@@ -1,0 +1,25 @@
+﻿@inherits LayoutComponentBase
+
+<div class="container">
+    <header style="display:flex;justify-content:space-between;align-items:center;padding:1rem 0;border-bottom:1px solid #ddd;">
+        <div>
+            <strong>Menschen helfen Menschen</strong>
+        </div>
+        <nav style="display:flex;gap:1rem;flex-wrap:wrap;">
+            <NavLink href="/" Match="NavLinkMatch.All">Start</NavLink>
+            <NavLink href="/auftraege">Aufträge</NavLink>
+            <NavLink href="/auftraege/neu">Auftrag erstellen</NavLink>
+            <NavLink href="/helfer">Helfer</NavLink>
+        </nav>
+    </header>
+
+    <main style="padding:2rem 0;">
+        @Body
+    </main>
+</div>
+
+<div id="blazor-error-ui" data-nosnippet>
+    An unhandled error has occurred.
+    <a href="." class="reload">Reload</a>
+    <span class="dismiss">🗙</span>
+</div>
