@@ -54,13 +54,22 @@
                 <CultureSwitcher />
                 <a class="btn btn-primary" href="/auftraege/neu">+ @T["Nav.NewListing"]</a>
 
-                <div class="user-pill">
-                    <div class="user-pill-avatar">AG</div>
-                    <div>
-                        <strong>@T["Layout.Workspace"]</strong>
-                        <div class="muted">Blazor .NET 10</div>
-                    </div>
-                </div>
+                <AuthorizeView>
+                    <Authorized>
+                        <a class="btn btn-secondary" href="/account/logoff">Abmelden</a>
+                        <div class="user-pill">
+                            <div class="user-pill-avatar">👤</div>
+                            <div>
+                                <strong>@context.User.Identity?.Name</strong>
+                                <div class="muted">Angemeldet</div>
+                            </div>
+                        </div>
+                    </Authorized>
+                    <NotAuthorized>
+                        <a class="btn btn-secondary" href="/account/login">Anmelden</a>
+                        <a class="btn btn-light" href="/account/register">Registrieren</a>
+                    </NotAuthorized>
+                </AuthorizeView>
             </div>
         </header>
 

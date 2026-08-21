@@ -1,5 +1,5 @@
+using MhM.UI.Data.Models;
 using Microsoft.EntityFrameworkCore;
-using MhM.UI.Models;
 
 namespace MhM.UI.Data;
 

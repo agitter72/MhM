@@ -1,4 +1,4 @@
-namespace MhM.UI.Models;
+namespace MhM.UI.Data.Models;
 
 public enum UserRole
 {

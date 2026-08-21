@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.EntityFrameworkCore;
 using MhM.UI.Data;
 using MhM.UI.Localization;
-using MhM.UI.Models;
+using MhM.UI.Data.Models;
 
 namespace MhM.UI.Components.Pages;
 

@@ -1,0 +1,87 @@
+@page "/account/login"
+
+<PageTitle>Anmeldung</PageTitle>
+
+<section class="editor-header">
+    <div>
+        <div class="eyebrow">Konto</div>
+        <h2>Anmeldung</h2>
+        <p class="muted">Mit E-Mail und Passwort im System anmelden.</p>
+    </div>
+
+    <div class="editor-badges">
+        <span class="badge-soft">Sicherer Login</span>
+        <span class="badge-soft">Blazor App</span>
+    </div>
+</section>
+
+<section class="editor-grid">
+    <article class="panel panel-form">
+        <EditForm Model="model" OnValidSubmit="HandleLogin" FormName="LoginForm">
+            <DataAnnotationsValidator />
+
+            @if (!string.IsNullOrWhiteSpace(errorMessage))
+            {
+                <div class="alert-error">@errorMessage</div>
+            }
+
+            <div class="form-section">
+                <div class="section-heading">
+                    <div class="eyebrow">Zugangsdaten</div>
+                    <h3>Bei MhM anmelden</h3>
+                </div>
+
+                <div class="form-grid">
+                    <div class="field field-full">
+                        <label for="email">E-Mail</label>
+                        <InputText id="email" class="field-input" @bind-Value="model.Email" />
+                        <ValidationMessage For="() => model.Email" />
+                    </div>
+
+                    <div class="field field-full">
+                        <label for="password">Passwort</label>
+                        <InputText id="password" type="password" class="field-input" @bind-Value="model.Password" />
+                        <ValidationMessage For="() => model.Password" />
+                    </div>
+
+                    <div class="field field-full">
+                        <label>
+                            <InputCheckbox @bind-Value="model.RememberMe" />
+                            Angemeldet bleiben
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button class="btn btn-primary" type="submit" disabled="@isBusy">
+                    @(isBusy ? "Anmeldung läuft..." : "Anmelden")
+                </button>
+                <a class="btn btn-light" href="/account/register">Zur Registrierung</a>
+            </div>
+        </EditForm>
+    </article>
+
+    <aside class="panel panel-side">
+        <div class="eyebrow">Hinweis</div>
+        <h3 class="preview-title">Willkommen zurück</h3>
+        <p class="preview-text">
+            Nach der Anmeldung stehen persönliche Funktionen und geschützte Inhalte zur Verfügung.
+        </p>
+
+        <div class="preview-meta">
+            <div>
+                <strong>E-Mail</strong>
+                <span class="muted">Mit der registrierten Adresse anmelden.</span>
+            </div>
+            <div>
+                <strong>Sitzung</strong>
+                <span class="muted">Auf Wunsch angemeldet bleiben.</span>
+            </div>
+            <div>
+                <strong>Kein Konto?</strong>
+                <span class="muted">Über die Registrierung ein neues Konto anlegen.</span>
+            </div>
+        </div>
+    </aside>
+</section>

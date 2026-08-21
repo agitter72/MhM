@@ -1,10 +1,16 @@
+using MhM.UI.Data.Models;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
-using MhM.UI.Models;
 
 namespace MhM.UI.Data;
 
-public sealed class MhMDbContext(DbContextOptions<MhMDbContext> options) : DbContext(options)
+public class MhMDbContext : IdentityDbContext<ApplicationIdentityUser>
 {
+    public MhMDbContext(DbContextOptions<MhMDbContext> options)
+        : base(options)
+    {
+    }
+
     public DbSet<AppUser> Users => Set<AppUser>();
     public DbSet<HelperProfile> HelperProfiles => Set<HelperProfile>();
     public DbSet<Category> Categories => Set<Category>();
@@ -16,6 +22,8 @@ public sealed class MhMDbContext(DbContextOptions<MhMDbContext> options) : DbCon
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        base.OnModelCreating(modelBuilder);
+
         var users = modelBuilder.Entity<AppUser>();
         users.ToTable("Users");
         users.HasKey(x => x.Id);
@@ -123,5 +131,18 @@ public sealed class MhMDbContext(DbContextOptions<MhMDbContext> options) : DbCon
             .WithMany()
             .HasForeignKey(x => x.RevieweeId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        // Configure ApplicationIdentityUser
+        modelBuilder.Entity<ApplicationIdentityUser>(entity =>
+        {
+            entity.Property(u => u.FirstName)
+                .HasMaxLength(100);
+
+            entity.Property(u => u.LastName)
+                .HasMaxLength(100);
+
+            entity.HasIndex(u => u.Email)
+                .IsUnique();
+        });
     }
 }

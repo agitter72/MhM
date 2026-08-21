@@ -1,0 +1,128 @@
+@page "/account/register"
+
+<PageTitle>Registrierung</PageTitle>
+
+<section class="editor-header">
+    <div>
+        <div class="eyebrow">Konto</div>
+        <h2>Registrierung</h2>
+        <p class="muted">Neues Benutzerkonto für MhM anlegen.</p>
+    </div>
+
+    <div class="editor-badges">
+        <span class="badge-soft">Neues Konto</span>
+        <span class="badge-soft">Schnell startklar</span>
+    </div>
+</section>
+
+<section class="editor-grid">
+    <article class="panel panel-form">
+        <EditForm Model="model" OnValidSubmit="RegisterAsync" FormName="register-form">
+            <DataAnnotationsValidator />
+
+            @if (!string.IsNullOrWhiteSpace(errorMessage))
+            {
+                <div class="alert-error">@errorMessage</div>
+            }
+
+            <div class="form-section">
+                <div class="section-heading">
+                    <div class="eyebrow">Persönliche Daten</div>
+                    <h3>Basisinformationen</h3>
+                </div>
+
+                <div class="form-grid">
+                    <div class="field">
+                        <label for="firstName">Vorname</label>
+                        <InputText id="firstName" class="field-input" @bind-Value="model.FirstName" />
+                        <ValidationMessage For="() => model.FirstName" />
+                    </div>
+
+                    <div class="field">
+                        <label for="lastName">Nachname</label>
+                        <InputText id="lastName" class="field-input" @bind-Value="model.LastName" />
+                        <ValidationMessage For="() => model.LastName" />
+                    </div>
+
+                    <div class="field field-full">
+                        <label for="email">E-Mail</label>
+                        <InputText id="email" class="field-input" @bind-Value="model.Email" />
+                        <ValidationMessage For="() => model.Email" />
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <div class="section-heading">
+                    <div class="eyebrow">Standort</div>
+                    <h3>Adressdaten</h3>
+                </div>
+
+                <div class="form-grid">
+                    <div class="field">
+                        <label for="postalCode">PLZ</label>
+                        <InputText id="postalCode" class="field-input" @bind-Value="model.PostalCode" />
+                        <ValidationMessage For="() => model.PostalCode" />
+                    </div>
+
+                    <div class="field">
+                        <label for="city">Ort</label>
+                        <InputText id="city" class="field-input" @bind-Value="model.City" />
+                        <ValidationMessage For="() => model.City" />
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <div class="section-heading">
+                    <div class="eyebrow">Sicherheit</div>
+                    <h3>Zugangsdaten</h3>
+                </div>
+
+                <div class="form-grid">
+                    <div class="field field-full">
+                        <label for="password">Passwort</label>
+                        <InputText id="password" type="password" class="field-input" @bind-Value="model.Password" />
+                        <ValidationMessage For="() => model.Password" />
+                    </div>
+
+                    <div class="field field-full">
+                        <label for="confirmPassword">Passwort bestätigen</label>
+                        <InputText id="confirmPassword" type="password" class="field-input" @bind-Value="model.ConfirmPassword" />
+                        <ValidationMessage For="() => model.ConfirmPassword" />
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button class="btn btn-primary" type="submit" disabled="@isBusy">
+                    @(isBusy ? "Konto wird erstellt..." : "Konto erstellen")
+                </button>
+                <a class="btn btn-light" href="/account/login">Zur Anmeldung</a>
+            </div>
+        </EditForm>
+    </article>
+
+    <aside class="panel panel-side">
+        <div class="eyebrow">Vorteile</div>
+        <h3 class="preview-title">Direkt loslegen</h3>
+        <p class="preview-text">
+            Nach der Registrierung kann die Anmeldung sofort mit der hinterlegten E-Mail-Adresse erfolgen.
+        </p>
+
+        <div class="preview-meta">
+            <div>
+                <strong>Persönliches Profil</strong>
+                <span class="muted">Name und Standort werden direkt erfasst.</span>
+            </div>
+            <div>
+                <strong>Sicherer Zugang</strong>
+                <span class="muted">Das Passwort wird bei der Erstellung validiert.</span>
+            </div>
+            <div>
+                <strong>Schon registriert?</strong>
+                <span class="muted">Über die Anmeldung zum bestehenden Konto wechseln.</span>
+            </div>
+        </div>
+    </aside>
+</section>
