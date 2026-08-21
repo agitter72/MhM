@@ -1,7 +1,4 @@
 @page "/auftraege"
-@using Microsoft.EntityFrameworkCore
-@inject MhMDbContext Db
-@inject UiLocalizer T
 
 <PageTitle>@T["Listings.PageTitle"]</PageTitle>
 
@@ -39,18 +36,4 @@ else
             </article>
         }
     </div>
-}
-
-@code {
-    private List<Listing>? items;
-
-    protected override async Task OnInitializedAsync()
-    {
-        items = await Db.Listings
-            .Include(x => x.Category)
-            .Include(x => x.Requester)
-            .Where(x => x.Status == ListingStatus.Offen)
-            .OrderByDescending(x => x.CreatedUtc)
-            .ToListAsync();
-    }
 }

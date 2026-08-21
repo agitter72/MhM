@@ -1,7 +1,4 @@
 @page "/helfer"
-@using Microsoft.EntityFrameworkCore
-@inject MhMDbContext Db
-@inject UiLocalizer T
 
 <PageTitle>@T["Helpers.PageTitle"]</PageTitle>
 
@@ -31,17 +28,4 @@ else
             </article>
         }
     </div>
-}
-
-@code {
-    private List<HelperProfile>? items;
-
-    protected override async Task OnInitializedAsync()
-    {
-        items = await Db.HelperProfiles
-            .Include(x => x.User)
-            .OrderBy(x => x.User.City)
-            .ThenBy(x => x.User.DisplayName)
-            .ToListAsync();
-    }
 }
