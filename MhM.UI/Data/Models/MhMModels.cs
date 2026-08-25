@@ -86,6 +86,20 @@ public sealed class Listing
     public Category Category { get; set; } = default!;
     public ICollection<ListingApplication> Applications { get; set; } = [];
     public ICollection<Conversation> Conversations { get; set; } = [];
+    public ICollection<ListingImage> Images { get; set; } = [];   // NEU
+}
+
+// NEU
+public sealed class ListingImage
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid ListingId { get; set; }
+    public string FileName { get; set; } = string.Empty;
+    public string ContentType { get; set; } = string.Empty;
+    public byte[] Data { get; set; } = [];
+    public DateTime UploadedUtc { get; set; } = DateTime.UtcNow;
+
+    public Listing Listing { get; set; } = default!;
 }
 
 public sealed class ListingApplication

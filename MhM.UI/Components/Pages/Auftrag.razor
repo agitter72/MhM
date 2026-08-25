@@ -175,6 +175,69 @@ else
                     </div>
                 </div>
 
+                @* ── Bilder ──────────────────────────────────────────── *@
+                @if (IsEditMode)
+                {
+                    <div class="form-section">
+                        <div class="section-heading">
+                            <div class="eyebrow">Anhänge</div>
+                            <h3>Bilder zum Auftrag</h3>
+                        </div>
+
+                        @* Vorhandene Bilder *@
+                        @if (existingImages.Count > 0)
+                        {
+                            <div class="image-gallery">
+                                @foreach (var img in existingImages)
+                                {
+                                    <div class="image-thumb">
+                                        <img src="/api/listing-images/@img.Id"
+                                             alt="@img.FileName"
+                                             title="@img.FileName" />
+                                        <button type="button"
+                                                class="btn-icon btn-danger"
+                                                title="Bild löschen"
+                                                @onclick="() => DeleteImageAsync(img.Id)">✕</button>
+                                    </div>
+                                }
+                            </div>
+                        }
+
+                        @* Upload *@
+                        @if (existingImages.Count < maxImages)
+                        {
+                            <div class="field field-full">
+                                <label>
+                                    Bilder hinzufügen
+                                    <span class="muted">
+                                        (max. @maxImages Stück, je max. 5 MB – jpg, png, gif, bmp)
+                                    </span>
+                                </label>
+                                <InputFile OnChange="OnImagesSelectedAsync"
+                                           accept="image/jpeg,image/png,image/gif,image/bmp"
+                                           multiple
+                                           class="field-input" />
+                                @if (!string.IsNullOrWhiteSpace(imageUploadError))
+                                {
+                                    <div class="alert-error">@imageUploadError</div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <p class="muted">Maximale Anzahl von @maxImages Bildern erreicht.</p>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="form-section">
+                        <p class="muted">
+                            Bilder können nach dem Speichern des Auftrags hinzugefügt werden.
+                        </p>
+                    </div>
+                }
+
                 <div class="form-actions">
                     <button type="submit" class="btn btn-primary">@T["General.Save"]</button>
                     <a href="/auftraege" class="btn btn-secondary">@T["General.Cancel"]</a>

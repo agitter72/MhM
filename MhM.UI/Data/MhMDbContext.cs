@@ -15,6 +15,7 @@ public class MhMDbContext : IdentityDbContext<ApplicationIdentityUser>
     public DbSet<HelperProfile> HelperProfiles => Set<HelperProfile>();
     public DbSet<Category> Categories => Set<Category>();
     public DbSet<Listing> Listings => Set<Listing>();
+    public DbSet<ListingImage> ListingImages => Set<ListingImage>();   // NEU
     public DbSet<ListingApplication> ListingApplications => Set<ListingApplication>();
     public DbSet<Conversation> Conversations => Set<Conversation>();
     public DbSet<Message> Messages => Set<Message>();
@@ -70,6 +71,18 @@ public class MhMDbContext : IdentityDbContext<ApplicationIdentityUser>
             .WithMany(x => x.Listings)
             .HasForeignKey(x => x.CategoryId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        // NEU: ListingImages
+        var images = modelBuilder.Entity<ListingImage>();
+        images.ToTable("ListingImages");
+        images.HasKey(x => x.Id);
+        images.Property(x => x.FileName).HasMaxLength(260).IsRequired();
+        images.Property(x => x.ContentType).HasMaxLength(100).IsRequired();
+        images.Property(x => x.Data).IsRequired();
+        images.HasOne(x => x.Listing)
+            .WithMany(x => x.Images)
+            .HasForeignKey(x => x.ListingId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         var applications = modelBuilder.Entity<ListingApplication>();
         applications.ToTable("ListingApplications");
@@ -132,17 +145,11 @@ public class MhMDbContext : IdentityDbContext<ApplicationIdentityUser>
             .HasForeignKey(x => x.RevieweeId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        // Configure ApplicationIdentityUser
         modelBuilder.Entity<ApplicationIdentityUser>(entity =>
         {
-            entity.Property(u => u.FirstName)
-                .HasMaxLength(100);
-
-            entity.Property(u => u.LastName)
-                .HasMaxLength(100);
-
-            entity.HasIndex(u => u.Email)
-                .IsUnique();
+            entity.Property(u => u.FirstName).HasMaxLength(100);
+            entity.Property(u => u.LastName).HasMaxLength(100);
+            entity.HasIndex(u => u.Email).IsUnique();
         });
     }
 }

@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.EntityFrameworkCore;
 using MhM.UI.Data;
 using MhM.UI.Localization;
@@ -25,15 +26,26 @@ public partial class Auftrag
     [Inject]
     protected IGeocodingService Geocoding { get; set; } = default!;
 
+    [Inject]
+    protected IListingImageService ImageService { get; set; } = default!;
+
+    [Inject]
+    protected IConfiguration Configuration { get; set; } = default!;
+
     protected readonly ListingFormModel model = new();
     protected List<Category> categories = [];
     protected List<AppUser> requesters = [];
+    protected List<ListingImage> existingImages = [];
     protected bool isLoading = true;
     protected string? loadError;
     protected string? saveError;
+    protected string? imageUploadError;
 
     protected bool isResolvingCoordinates;
     protected string? geocodingError;
+
+    protected int maxImages =>
+        Configuration.GetSection("ListingImages").GetValue<int?>("MaxCount") ?? 20;
 
     protected bool IsEditMode => Id.HasValue;
     protected string CurrentFormName => IsEditMode ? "edit-listing-form" : "create-listing-form";
@@ -43,6 +55,7 @@ public partial class Auftrag
         isLoading = true;
         loadError = null;
         saveError = null;
+        imageUploadError = null;
 
         categories = await Db.Categories
             .OrderBy(x => x.Name)
@@ -77,6 +90,8 @@ public partial class Auftrag
             model.PreferredDateLocal = listing.PreferredDateUtc?.ToLocalTime();
             model.Latitude = listing.Latitude;
             model.Longitude = listing.Longitude;
+
+            existingImages = await ImageService.GetImagesAsync(Id!.Value);
         }
         else
         {
@@ -94,9 +109,38 @@ public partial class Auftrag
             model.PreferredDateLocal = DateTime.Today.AddDays(3);
             model.Latitude = null;
             model.Longitude = null;
+            existingImages = [];
         }
 
         isLoading = false;
+    }
+
+    protected async Task OnImagesSelectedAsync(InputFileChangeEventArgs e)
+    {
+        imageUploadError = null;
+        var remaining = maxImages - existingImages.Count;
+        var files = e.GetMultipleFiles(remaining);
+
+        foreach (var file in files)
+        {
+            using var stream = file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024);
+            var (success, error) = await ImageService.AddImageAsync(
+                Id!.Value, file.Name, file.ContentType, stream);
+
+            if (!success)
+            {
+                imageUploadError = error;
+                break;
+            }
+        }
+
+        existingImages = await ImageService.GetImagesAsync(Id!.Value);
+    }
+
+    protected async Task DeleteImageAsync(Guid imageId)
+    {
+        await ImageService.DeleteImageAsync(imageId);
+        existingImages = await ImageService.GetImagesAsync(Id!.Value);
     }
 
     protected async Task SaveAsync()
@@ -127,11 +171,7 @@ public partial class Auftrag
         }
         else
         {
-            entity = new Listing
-            {
-                CreatedUtc = DateTime.UtcNow
-            };
-
+            entity = new Listing { CreatedUtc = DateTime.UtcNow };
             await Db.Listings.AddAsync(entity);
         }
 

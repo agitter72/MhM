@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Localization;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using System.Globalization;
@@ -35,13 +36,22 @@ builder.Services.AddDbContext<MhMDbContext>(options =>
     var connectionString = builder.Configuration.GetConnectionString("MhM")
         ?? throw new InvalidOperationException("Connection string 'MhM' was not found.");
 
-    var sqlConnection = new Microsoft.Data.SqlClient.SqlConnection(connectionString)
+    SqlConnection sqlConnection = null;
+    if (connectionString.StartsWith("Server=tcp:"))
     {
-        AccessToken = new Azure.Identity.DefaultAzureCredential().GetToken(
-            new Azure.Core.TokenRequestContext(new[] { "https://database.windows.net/.default" })).Token
-    };
-
-    options.UseSqlServer(sqlConnection);
+        sqlConnection = new Microsoft.Data.SqlClient.SqlConnection(connectionString)
+        {
+            AccessToken = new Azure.Identity.DefaultAzureCredential().GetToken(
+                new Azure.Core.TokenRequestContext(new[] { "https://database.windows.net/.default" })).Token
+        };
+        options.UseSqlServer(sqlConnection);
+    }
+    else
+    {
+        options.UseSqlServer(
+            builder.Configuration.GetConnectionString("MhM")
+            ?? throw new InvalidOperationException("Connection string 'MhM' was not found."));
+    }
 });
 
 // Add ASP.NET Core Identity
@@ -98,6 +108,15 @@ builder.Services.AddHttpClient<IGeocodingService, GoogleGeocodingService>(client
 {
     client.BaseAddress = new Uri("https://maps.googleapis.com/maps/api/");
 });
+
+builder.Services.Configure<ListingImageSettings>(
+    builder.Configuration.GetSection("ListingImages"));
+builder.Services.AddScoped<IListingImageService, ListingImageService>(sp =>
+    new ListingImageService(
+        sp.GetRequiredService<MhMDbContext>(),
+        sp.GetRequiredService<IConfiguration>()
+          .GetSection("ListingImages")
+          .Get<ListingImageSettings>() ?? new ListingImageSettings()));
 
 var app = builder.Build();
 
@@ -179,7 +198,7 @@ app.MapPost("/account/logon", async (HttpContext context, UserManager<Applicatio
 
     var user = await userManager.FindByEmailAsync(form.Email);
 
-    if (user == null )
+    if (user == null)
     {
         context.Response.StatusCode = 401;
         await context.Response.WriteAsync("User not found");
@@ -211,6 +230,13 @@ app.MapGet("account/logoff", async (HttpContext context, SignInManager<Applicati
     //await context.Response.WriteAsync("OK");
     context.Response.Redirect("/");
 });
+
+app.MapGet("/api/listing-images/{id:guid}", async (Guid id, MhMDbContext db) =>
+{
+    var image = await db.ListingImages.FindAsync(id);
+    if (image is null) return Results.NotFound();
+    return Results.File(image.Data, image.ContentType, image.FileName);
+});//.RequireAuthorization();
 
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
