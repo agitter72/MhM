@@ -162,6 +162,16 @@ else
                             <InputNumber id="longitude" @bind-Value="model.Longitude" class="field-input" />
                             <ValidationMessage For="() => model.Longitude" />
                         </div>
+
+                        <div class="field field-full">
+                            <button type="button" class="btn btn-secondary" @onclick="ResolveCoordinatesAsync" disabled="@isResolvingCoordinates">
+                                @(isResolvingCoordinates ? "Ermittle Koordinaten..." : "Koordinaten ermitteln")
+                            </button>
+                            @if (!string.IsNullOrWhiteSpace(geocodingError))
+                            {
+                                <div class="alert-error">@geocodingError</div>
+                            }
+                        </div>
                     </div>
                 </div>
 

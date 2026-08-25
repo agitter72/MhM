@@ -5,6 +5,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
+    <UserSecretsId>MhM.UI-9b6a2f8a-6f0e-4f7d-9c1b-2dcb4de5a8f1</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>

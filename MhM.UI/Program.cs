@@ -1,6 +1,7 @@
 using MhM.UI.Components;
 using MhM.UI.Data;
 using MhM.UI.Localization;
+using MhM.UI.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Identity;
@@ -91,6 +92,12 @@ var requestLocalizationOptions = new RequestLocalizationOptions
     SupportedCultures = supportedCultures,
     SupportedUICultures = supportedCultures
 };
+
+// Register HttpClient for geocoding service
+builder.Services.AddHttpClient<IGeocodingService, GoogleGeocodingService>(client =>
+{
+    client.BaseAddress = new Uri("https://maps.googleapis.com/maps/api/");
+});
 
 var app = builder.Build();
 

@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using MhM.UI.Data;
 using MhM.UI.Localization;
 using MhM.UI.Data.Models;
+using MhM.UI.Services;
 
 namespace MhM.UI.Components.Pages;
 
@@ -21,12 +22,18 @@ public partial class Auftrag
     [Inject]
     protected UiLocalizer T { get; set; } = default!;
 
+    [Inject]
+    protected IGeocodingService Geocoding { get; set; } = default!;
+
     protected readonly ListingFormModel model = new();
     protected List<Category> categories = [];
     protected List<AppUser> requesters = [];
     protected bool isLoading = true;
     protected string? loadError;
     protected string? saveError;
+
+    protected bool isResolvingCoordinates;
+    protected string? geocodingError;
 
     protected bool IsEditMode => Id.HasValue;
     protected string CurrentFormName => IsEditMode ? "edit-listing-form" : "create-listing-form";
@@ -96,6 +103,16 @@ public partial class Auftrag
     {
         saveError = null;
 
+        if (!model.Latitude.HasValue || !model.Longitude.HasValue)
+        {
+            var maybeCoords = await Geocoding.TryGeocodeAsync(model.PostalCode.Trim(), model.City.Trim());
+            if (maybeCoords.HasValue)
+            {
+                model.Latitude = maybeCoords.Value.Latitude;
+                model.Longitude = maybeCoords.Value.Longitude;
+            }
+        }
+
         if (model.BudgetMin.HasValue && model.BudgetMax.HasValue && model.BudgetMin > model.BudgetMax)
         {
             saveError = T["TaskEdit.BudgetRangeError"];
@@ -134,6 +151,38 @@ public partial class Auftrag
 
         await Db.SaveChangesAsync();
         Navigation.NavigateTo("/auftraege");
+    }
+
+    protected async Task ResolveCoordinatesAsync()
+    {
+        geocodingError = null;
+
+        var postalCode = model.PostalCode.Trim();
+        var city = model.City.Trim();
+
+        if (string.IsNullOrWhiteSpace(postalCode) || string.IsNullOrWhiteSpace(city))
+        {
+            geocodingError = "Bitte zuerst PLZ und Ort eingeben.";
+            return;
+        }
+
+        isResolvingCoordinates = true;
+        try
+        {
+            var maybeCoords = await Geocoding.TryGeocodeAsync(postalCode, city);
+            if (!maybeCoords.HasValue)
+            {
+                geocodingError = "Koordinaten konnten nicht ermittelt werden.";
+                return;
+            }
+
+            model.Latitude = Math.Round(maybeCoords.Value.Latitude, 6);
+            model.Longitude = Math.Round(maybeCoords.Value.Longitude, 6);
+        }
+        finally
+        {
+            isResolvingCoordinates = false;
+        }
     }
 
     protected sealed class ListingFormModel
