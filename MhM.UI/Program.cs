@@ -24,10 +24,24 @@ builder.Services.AddRazorComponents()
 builder.Services.AddAuthorization();
 builder.Services.AddCascadingAuthenticationState();
 
+//builder.Services.AddDbContext<MhMDbContext>(options =>
+//    options.UseSqlServer(
+//        builder.Configuration.GetConnectionString("MhM")
+//        ?? throw new InvalidOperationException("Connection string 'MhM' was not found.")));
+
 builder.Services.AddDbContext<MhMDbContext>(options =>
-    options.UseSqlServer(
-        builder.Configuration.GetConnectionString("MhM")
-        ?? throw new InvalidOperationException("Connection string 'MhM' was not found.")));
+{
+    var connectionString = builder.Configuration.GetConnectionString("MhM")
+        ?? throw new InvalidOperationException("Connection string 'MhM' was not found.");
+
+    var sqlConnection = new Microsoft.Data.SqlClient.SqlConnection(connectionString)
+    {
+        AccessToken = new Azure.Identity.DefaultAzureCredential().GetToken(
+            new Azure.Core.TokenRequestContext(new[] { "https://database.windows.net/.default" })).Token
+    };
+
+    options.UseSqlServer(sqlConnection);
+});
 
 // Add ASP.NET Core Identity
 builder.Services.AddIdentity<ApplicationIdentityUser, IdentityRole>(options =>
@@ -88,6 +102,24 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
+// DB: Migration and Seeding
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    try
+    {
+        var context = services.GetRequiredService<MhMDbContext>();
+        context.Database.Migrate();
+        if (!app.Environment.IsProduction())
+        {
+            await DbInitializer.InitializeAsync(context);
+        }
+    }
+    catch (Exception e)
+    {
+        Console.WriteLine($"Fehler beim Migrieren/Seeding: {e.Message}");
+    }
+}
 app.UseRequestLocalization(requestLocalizationOptions);
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 app.UseHttpsRedirection();
