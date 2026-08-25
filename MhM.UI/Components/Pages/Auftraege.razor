@@ -7,6 +7,30 @@
     <a href="/auftraege/neu">@T["Listings.New"]</a>
 </div>
 
+<form method="get" action="/auftraege" style="margin:1rem 0;display:grid;gap:.75rem;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));">
+    <div>
+        <label for="lat">Latitude</label>
+        <input id="lat" name="lat" type="number" step="any" value="@Latitude" />
+    </div>
+    <div>
+        <label for="lon">Longitude</label>
+        <input id="lon" name="lon" type="number" step="any" value="@Longitude" />
+    </div>
+    <div>
+        <label for="radiusKm">Radius (km)</label>
+        <input id="radiusKm" name="radiusKm" type="number" min="1" step="1" value="@RadiusKm" />
+    </div>
+    <div style="display:flex;gap:.5rem;align-items:end;">
+        <button type="submit">Search radius</button>
+        <a href="/auftraege">Reset</a>
+    </div>
+</form>
+
+@if (IsGeoSearchActive)
+{
+    <p><strong>Geo filter active:</strong> @Latitude, @Longitude, @EffectiveRadiusKm km</p>
+}
+
 @if (items is null)
 {
     <p>@T["General.Loading"]</p>
@@ -30,6 +54,13 @@ else
                 <p><strong>@T["Listings.Category"]:</strong> @item.Category.Name</p>
                 <p><strong>@T["Listings.Requester"]:</strong> @item.Requester.DisplayName</p>
                 <p><strong>@T["Listings.Location"]:</strong> @item.PostalCode @item.City</p>
+                <p><strong>Coordinates:</strong> @item.Latitude, @item.Longitude</p>
+
+                @if (IsGeoSearchActive)
+                {
+                    <p><strong>Distance:</strong> @GetDistanceText(item.Id)</p>
+                }
+
                 <p><strong>@T["Listings.Compensation"]:</strong> @T.Enum(item.CompensationType)</p>
                 <p><strong>@T["Listings.Status"]:</strong> @T.Enum(item.Status)</p>
                 <p><strong>@T["Listings.Budget"]:</strong> @(item.BudgetMin?.ToString("N2")) € - @(item.BudgetMax?.ToString("N2")) €</p>

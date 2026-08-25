@@ -68,6 +68,8 @@ public partial class Auftrag
             model.City = listing.City;
             model.Status = listing.Status;
             model.PreferredDateLocal = listing.PreferredDateUtc?.ToLocalTime();
+            model.Latitude = listing.Latitude;
+            model.Longitude = listing.Longitude;
         }
         else
         {
@@ -83,6 +85,8 @@ public partial class Auftrag
             model.City = string.Empty;
             model.Status = ListingStatus.Offen;
             model.PreferredDateLocal = DateTime.Today.AddDays(3);
+            model.Latitude = null;
+            model.Longitude = null;
         }
 
         isLoading = false;
@@ -125,9 +129,10 @@ public partial class Auftrag
         entity.City = model.City.Trim();
         entity.Status = model.Status;
         entity.PreferredDateUtc = model.PreferredDateLocal?.ToUniversalTime();
+        entity.Latitude = model.Latitude;
+        entity.Longitude = model.Longitude;
 
         await Db.SaveChangesAsync();
-
         Navigation.NavigateTo("/auftraege");
     }
 
@@ -164,6 +169,12 @@ public partial class Auftrag
         [Required(ErrorMessage = "Bitte einen Ort eingeben.")]
         [StringLength(120, ErrorMessage = "Der Ort ist zu lang.")]
         public string City { get; set; } = string.Empty;
+
+        [Range(-90d, 90d, ErrorMessage = "Latitude must be between -90 and 90.")]
+        public double? Latitude { get; set; }
+
+        [Range(-180d, 180d, ErrorMessage = "Longitude must be between -180 and 180.")]
+        public double? Longitude { get; set; }
 
         public DateTime? PreferredDateLocal { get; set; }
 
