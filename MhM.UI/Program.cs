@@ -209,10 +209,4 @@ app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
-using (var scope = app.Services.CreateScope())
-{
-    var db = scope.ServiceProvider.GetRequiredService<MhMDbContext>();
-    await DbInitializer.InitializeAsync(db);
-}
-
 app.Run();
