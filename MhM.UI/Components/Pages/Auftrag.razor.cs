@@ -41,9 +41,6 @@ public partial class Auftrag
     protected string? saveError;
     protected string? imageUploadError;
 
-    protected bool isResolvingCoordinates;
-    protected string? geocodingError;
-
     protected int maxImages =>
         Configuration.GetSection("ListingImages").GetValue<int?>("MaxCount") ?? 20;
 
@@ -88,8 +85,6 @@ public partial class Auftrag
             model.City = listing.City;
             model.Status = listing.Status;
             model.PreferredDateLocal = listing.PreferredDateUtc?.ToLocalTime();
-            model.Latitude = listing.Latitude;
-            model.Longitude = listing.Longitude;
 
             existingImages = await ImageService.GetImagesAsync(Id!.Value);
         }
@@ -107,8 +102,6 @@ public partial class Auftrag
             model.City = string.Empty;
             model.Status = ListingStatus.Offen;
             model.PreferredDateLocal = DateTime.Today.AddDays(3);
-            model.Latitude = null;
-            model.Longitude = null;
             existingImages = [];
         }
 
@@ -147,20 +140,20 @@ public partial class Auftrag
     {
         saveError = null;
 
-        if (!model.Latitude.HasValue || !model.Longitude.HasValue)
-        {
-            var maybeCoords = await Geocoding.TryGeocodeAsync(model.PostalCode.Trim(), model.City.Trim());
-            if (maybeCoords.HasValue)
-            {
-                model.Latitude = maybeCoords.Value.Latitude;
-                model.Longitude = maybeCoords.Value.Longitude;
-            }
-        }
-
         if (model.BudgetMin.HasValue && model.BudgetMax.HasValue && model.BudgetMin > model.BudgetMax)
         {
             saveError = T["TaskEdit.BudgetRangeError"];
             return;
+        }
+
+        // Geokoordinaten immer beim Speichern neu ermitteln
+        double? latitude = null;
+        double? longitude = null;
+        var maybeCoords = await Geocoding.TryGeocodeAsync(model.PostalCode.Trim(), model.City.Trim());
+        if (maybeCoords.HasValue)
+        {
+            latitude = Math.Round(maybeCoords.Value.Latitude, 6);
+            longitude = Math.Round(maybeCoords.Value.Longitude, 6);
         }
 
         Listing entity;
@@ -186,43 +179,11 @@ public partial class Auftrag
         entity.City = model.City.Trim();
         entity.Status = model.Status;
         entity.PreferredDateUtc = model.PreferredDateLocal?.ToUniversalTime();
-        entity.Latitude = model.Latitude;
-        entity.Longitude = model.Longitude;
+        entity.Latitude = latitude;
+        entity.Longitude = longitude;
 
         await Db.SaveChangesAsync();
         Navigation.NavigateTo("/auftraege");
-    }
-
-    protected async Task ResolveCoordinatesAsync()
-    {
-        geocodingError = null;
-
-        var postalCode = model.PostalCode.Trim();
-        var city = model.City.Trim();
-
-        if (string.IsNullOrWhiteSpace(postalCode) || string.IsNullOrWhiteSpace(city))
-        {
-            geocodingError = "Bitte zuerst PLZ und Ort eingeben.";
-            return;
-        }
-
-        isResolvingCoordinates = true;
-        try
-        {
-            var maybeCoords = await Geocoding.TryGeocodeAsync(postalCode, city);
-            if (!maybeCoords.HasValue)
-            {
-                geocodingError = "Koordinaten konnten nicht ermittelt werden.";
-                return;
-            }
-
-            model.Latitude = Math.Round(maybeCoords.Value.Latitude, 6);
-            model.Longitude = Math.Round(maybeCoords.Value.Longitude, 6);
-        }
-        finally
-        {
-            isResolvingCoordinates = false;
-        }
     }
 
     protected sealed class ListingFormModel
@@ -258,12 +219,6 @@ public partial class Auftrag
         [Required(ErrorMessage = "Bitte einen Ort eingeben.")]
         [StringLength(120, ErrorMessage = "Der Ort ist zu lang.")]
         public string City { get; set; } = string.Empty;
-
-        [Range(-90d, 90d, ErrorMessage = "Latitude must be between -90 and 90.")]
-        public double? Latitude { get; set; }
-
-        [Range(-180d, 180d, ErrorMessage = "Longitude must be between -180 and 180.")]
-        public double? Longitude { get; set; }
 
         public DateTime? PreferredDateLocal { get; set; }
 

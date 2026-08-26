@@ -150,28 +150,6 @@ else
                             <label for="preferredDate">@T["TaskEdit.PreferredDate"]</label>
                             <InputDate id="preferredDate" @bind-Value="model.PreferredDateLocal" class="field-input" />
                         </div>
-
-                        <div class="field">
-                            <label for="latitude">Latitude</label>
-                            <InputNumber id="latitude" @bind-Value="model.Latitude" class="field-input" />
-                            <ValidationMessage For="() => model.Latitude" />
-                        </div>
-
-                        <div class="field">
-                            <label for="longitude">Longitude</label>
-                            <InputNumber id="longitude" @bind-Value="model.Longitude" class="field-input" />
-                            <ValidationMessage For="() => model.Longitude" />
-                        </div>
-
-                        <div class="field field-full">
-                            <button type="button" class="btn btn-secondary" @onclick="ResolveCoordinatesAsync" disabled="@isResolvingCoordinates">
-                                @(isResolvingCoordinates ? "Ermittle Koordinaten..." : "Koordinaten ermitteln")
-                            </button>
-                            @if (!string.IsNullOrWhiteSpace(geocodingError))
-                            {
-                                <div class="alert-error">@geocodingError</div>
-                            }
-                        </div>
                     </div>
                 </div>
 
