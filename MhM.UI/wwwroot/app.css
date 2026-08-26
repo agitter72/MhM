@@ -577,3 +577,92 @@ h1, h2, h3, h4, p {
         align-items: stretch;
     }
 }
+
+/* ── Karussell ──────────────────────────────────────────── */
+.carousel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.carousel-stage {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+}
+
+.carousel-frame {
+    position: relative;
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    overflow: hidden;
+    border-radius: 8px;
+    background: var(--color-surface, #f5f5f5);
+    min-height: 220px;
+}
+
+.carousel-image {
+    max-width: 100%;
+    max-height: 360px;
+    object-fit: contain;
+    border-radius: 8px;
+}
+
+.carousel-delete {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+}
+
+.carousel-arrow {
+    background: var(--color-surface, #f0f0f0);
+    border: 1px solid var(--color-border, #ddd);
+    border-radius: 50%;
+    width: 2.25rem;
+    height: 2.25rem;
+    font-size: 1.5rem;
+    line-height: 1;
+    cursor: pointer;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s;
+}
+
+    .carousel-arrow:hover:not(:disabled) {
+        background: var(--color-primary, #0078d4);
+        color: #fff;
+    }
+
+    .carousel-arrow:disabled {
+        opacity: 0.3;
+        cursor: default;
+    }
+
+.carousel-dots {
+    display: flex;
+    gap: 0.4rem;
+}
+
+.carousel-dot {
+    width: 0.6rem;
+    height: 0.6rem;
+    border-radius: 50%;
+    border: none;
+    background: var(--color-border, #ccc);
+    cursor: pointer;
+    padding: 0;
+    transition: background 0.15s;
+}
+
+    .carousel-dot.active {
+        background: var(--color-primary, #0078d4);
+    }
+
+.carousel-counter {
+    font-size: 0.8rem;
+}

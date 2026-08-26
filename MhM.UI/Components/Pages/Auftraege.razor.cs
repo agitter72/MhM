@@ -26,10 +26,6 @@ public partial class Auftraege
     protected List<Listing>? items;
     protected Dictionary<Guid, double> distancesKmByListingId = [];
 
-    // Lightbox-State
-    protected string? lightboxSrc;
-    protected string? lightboxAlt;
-
     protected bool IsGeoSearchActive => Latitude.HasValue && Longitude.HasValue;
     protected double EffectiveRadiusKm => RadiusKm is > 0 ? RadiusKm.Value : 25d;
 
@@ -38,7 +34,7 @@ public partial class Auftraege
         var openListings = await Db.Listings
             .Include(x => x.Category)
             .Include(x => x.Requester)
-            .Include(x => x.Images)          // NEU
+            .Include(x => x.Images)
             .Where(x => x.Status == ListingStatus.Offen)
             .OrderByDescending(x => x.CreatedUtc)
             .ToListAsync();
@@ -71,14 +67,6 @@ public partial class Auftraege
             })
             .ToList();
     }
-
-    protected void OpenLightbox(string src, string alt)
-    {
-        lightboxSrc = src;
-        lightboxAlt = alt;
-    }
-
-    protected void CloseLightbox() => lightboxSrc = null;
 
     protected string? GetDistanceText(Guid listingId)
         => distancesKmByListingId.TryGetValue(listingId, out var d) ? $"{d:N1} km" : null;

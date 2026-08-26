@@ -1,5 +1,6 @@
 @page "/auftraege"
 
+
 <PageTitle>@T["Listings.PageTitle"]</PageTitle>
 
 <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;">
@@ -50,23 +51,11 @@ else
                     <a href="@($"/auftraege/{item.Id}/bearbeiten")">@T["General.Edit"]</a>
                 </div>
 
-                @* ── Bildvorschau ────────────────────────────────────── *@
+                @* ── Bildkarussell ───────────────────────────────────── *@
                 @if (item.Images.Count > 0)
                 {
-                    <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin:.75rem 0;overflow-x:auto;">
-                        @foreach (var img in item.Images)
-                        {
-                            var src = $"/api/listing-images/{img.Id}";
-                            var alt = img.FileName;
-                            <button type="button"
-                                    title="@img.FileName"
-                                    style="padding:0;border:2px solid transparent;border-radius:6px;cursor:pointer;background:none;transition:border-color .15s;"
-                                    @onclick="() => OpenLightbox(src, alt)">
-                                <img src="@src"
-                                     alt="@img.FileName"
-                                     style="width:96px;height:72px;object-fit:cover;border-radius:4px;display:block;" />
-                            </button>
-                        }
+                    <div style="margin:.75rem 0;">
+                        <ImageCarousel Images="item.Images.ToList()" />
                     </div>
                 }
 
@@ -86,26 +75,5 @@ else
                 <p><strong>@T["Listings.Budget"]:</strong> @(item.BudgetMin?.ToString("N2")) € - @(item.BudgetMax?.ToString("N2")) €</p>
             </article>
         }
-    </div>
-}
-
-@* ── Lightbox ────────────────────────────────────────────────────────── *@
-@if (lightboxSrc is not null)
-{
-    <div style="position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.8);
-                display:flex;align-items:center;justify-content:center;"
-         @onclick="CloseLightbox">
-        <div style="position:relative;max-width:90vw;max-height:90vh;"
-             @onclick:stopPropagation>
-            <img src="@lightboxSrc"
-                 alt="@lightboxAlt"
-                 style="max-width:90vw;max-height:85vh;object-fit:contain;border-radius:8px;display:block;" />
-            <button type="button"
-                    style="position:absolute;top:-1rem;right:-1rem;width:2rem;height:2rem;
-                           border-radius:50%;border:none;background:#fff;cursor:pointer;
-                           font-size:1rem;line-height:1;box-shadow:0 2px 8px rgba(0,0,0,.4);"
-                    @onclick="CloseLightbox">✕</button>
-            <p style="color:#fff;text-align:center;margin:.5rem 0 0;font-size:.85rem;">@lightboxAlt</p>
-        </div>
     </div>
 }

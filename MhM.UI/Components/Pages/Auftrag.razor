@@ -162,23 +162,11 @@ else
                             <h3>Bilder zum Auftrag</h3>
                         </div>
 
-                        @* Vorhandene Bilder *@
+                        @* Vorhandene Bilder – Karussell *@
                         @if (existingImages.Count > 0)
                         {
-                            <div class="image-gallery">
-                                @foreach (var img in existingImages)
-                                {
-                                    <div class="image-thumb">
-                                        <img src="/api/listing-images/@img.Id"
-                                             alt="@img.FileName"
-                                             title="@img.FileName" />
-                                        <button type="button"
-                                                class="btn-icon btn-danger"
-                                                title="Bild löschen"
-                                                @onclick="() => DeleteImageAsync(img.Id)">✕</button>
-                                    </div>
-                                }
-                            </div>
+                            <ImageCarousel Images="existingImages"
+                                           OnDelete="DeleteImageAsync" />
                         }
 
                         @* Upload *@
