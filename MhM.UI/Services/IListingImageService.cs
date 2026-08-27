@@ -17,16 +17,22 @@ public interface IListingImageService
     Task DeleteImageAsync(Guid imageId);
 }
 
-public sealed class ListingImageService(MhMDbContext db, ListingImageSettings settings) : IListingImageService
+public sealed class ListingImageService(
+    IDbContextFactory<MhMDbContext> dbFactory,
+    ListingImageSettings settings) : IListingImageService
 {
     private static readonly HashSet<string> AllowedContentTypes =
         ["image/jpeg", "image/png", "image/gif", "image/bmp"];
 
-    public Task<List<ListingImage>> GetImagesAsync(Guid listingId) =>
-        db.ListingImages
-          .Where(x => x.ListingId == listingId)
-          .OrderBy(x => x.UploadedUtc)
-          .ToListAsync();
+    public async Task<List<ListingImage>> GetImagesAsync(Guid listingId)
+    {
+        await using var db = await dbFactory.CreateDbContextAsync();
+
+        return await db.ListingImages
+            .Where(x => x.ListingId == listingId)
+            .OrderBy(x => x.UploadedUtc)
+            .ToListAsync();
+    }
 
     public async Task<(bool Success, string? Error)> AddImageAsync(
         Guid listingId, string fileName, string contentType, Stream data)
@@ -36,6 +42,8 @@ public sealed class ListingImageService(MhMDbContext db, ListingImageSettings se
 
         if (data.Length > settings.MaxFileSizeBytes)
             return (false, $"Die Datei ist zu groß. Maximal {settings.MaxFileSizeBytes / 1024 / 1024} MB erlaubt.");
+
+        await using var db = await dbFactory.CreateDbContextAsync();
 
         var count = await db.ListingImages.CountAsync(x => x.ListingId == listingId);
         if (count >= settings.MaxCount)
@@ -59,6 +67,8 @@ public sealed class ListingImageService(MhMDbContext db, ListingImageSettings se
 
     public async Task DeleteImageAsync(Guid imageId)
     {
+        await using var db = await dbFactory.CreateDbContextAsync();
+
         var image = await db.ListingImages.FindAsync(imageId);
         if (image is not null)
         {

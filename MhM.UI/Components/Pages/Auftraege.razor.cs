@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.JSInterop;
 using MhM.UI.Data;
 using MhM.UI.Localization;
 using MhM.UI.Data.Models;
@@ -9,15 +10,15 @@ namespace MhM.UI.Components.Pages;
 public partial class Auftraege
 {
     [Inject]
-    protected MhMDbContext Db { get; set; } = default!;
+    protected IDbContextFactory<MhMDbContext> DbFactory { get; set; } = default!;
 
     [Inject]
     protected UiLocalizer T { get; set; } = default!;
 
-    [SupplyParameterFromQuery(Name = "lat")]
-    public double? Latitude { get; set; }
+    [Inject]
+    protected IJSRuntime JS { get; set; } = default!;
 
-    [SupplyParameterFromQuery(Name = "lon")]
+    public double? Latitude { get; set; }
     public double? Longitude { get; set; }
 
     [SupplyParameterFromQuery(Name = "radiusKm")]
@@ -27,11 +28,33 @@ public partial class Auftraege
     protected Dictionary<Guid, double> distancesKmByListingId = [];
 
     protected bool IsGeoSearchActive => Latitude.HasValue && Longitude.HasValue;
-    protected double EffectiveRadiusKm => RadiusKm is > 0 ? RadiusKm.Value : 25d;
+    protected double EffectiveRadiusKm => RadiusKm is > 0 ? RadiusKm.Value : 50d;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        if (Latitude.HasValue || Longitude.HasValue) return;
+
+        var location = await JS.InvokeAsync<BrowserLocationDto?>("browserLocation.getCurrent");
+        if (location is null) return;
+
+        Latitude = location.Latitude;
+        Longitude = location.Longitude;
+
+        StateHasChanged();
+    }
+
+    private sealed class BrowserLocationDto
+    {
+        public double Latitude { get; set; }
+        public double Longitude { get; set; }
+    }
 
     protected override async Task OnParametersSetAsync()
     {
-        var openListings = await Db.Listings
+        await using var db = await DbFactory.CreateDbContextAsync();
+
+        var openListings = await db.Listings
             .Include(x => x.Category)
             .Include(x => x.Requester)
             .Include(x => x.Images)

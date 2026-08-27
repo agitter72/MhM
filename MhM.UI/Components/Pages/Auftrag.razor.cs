@@ -15,7 +15,7 @@ public partial class Auftrag
     public Guid? Id { get; set; }
 
     [Inject]
-    protected MhMDbContext Db { get; set; } = default!;
+    protected IDbContextFactory<MhMDbContext> DbFactory { get; set; } = default!;
 
     [Inject]
     protected NavigationManager Navigation { get; set; } = default!;
@@ -54,17 +54,19 @@ public partial class Auftrag
         saveError = null;
         imageUploadError = null;
 
-        categories = await Db.Categories
+        await using var db = await DbFactory.CreateDbContextAsync();
+
+        categories = await db.Categories
             .OrderBy(x => x.Name)
             .ToListAsync();
 
-        requesters = await Db.Users
+        requesters = await db.AppUsers
             .OrderBy(x => x.DisplayName)
             .ToListAsync();
 
         if (IsEditMode)
         {
-            var listing = await Db.Listings.FirstOrDefaultAsync(x => x.Id == Id!.Value);
+            var listing = await db.Listings.FirstOrDefaultAsync(x => x.Id == Id!.Value);
 
             if (listing is null)
             {
@@ -146,7 +148,6 @@ public partial class Auftrag
             return;
         }
 
-        // Geokoordinaten immer beim Speichern neu ermitteln
         double? latitude = null;
         double? longitude = null;
         var maybeCoords = await Geocoding.TryGeocodeAsync(model.PostalCode.Trim(), model.City.Trim());
@@ -156,16 +157,17 @@ public partial class Auftrag
             longitude = Math.Round(maybeCoords.Value.Longitude, 6);
         }
 
-        Listing entity;
+        await using var db = await DbFactory.CreateDbContextAsync();
 
+        Listing entity;
         if (IsEditMode)
         {
-            entity = await Db.Listings.FirstAsync(x => x.Id == Id!.Value);
+            entity = await db.Listings.FirstAsync(x => x.Id == Id!.Value);
         }
         else
         {
             entity = new Listing { CreatedUtc = DateTime.UtcNow };
-            await Db.Listings.AddAsync(entity);
+            await db.Listings.AddAsync(entity);
         }
 
         entity.RequesterId = model.RequesterId!.Value;
@@ -182,7 +184,7 @@ public partial class Auftrag
         entity.Latitude = latitude;
         entity.Longitude = longitude;
 
-        await Db.SaveChangesAsync();
+        await db.SaveChangesAsync();
         Navigation.NavigateTo("/auftraege");
     }
 

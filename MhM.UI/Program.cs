@@ -31,28 +31,51 @@ builder.Services.AddCascadingAuthenticationState();
 //        builder.Configuration.GetConnectionString("MhM")
 //        ?? throw new InvalidOperationException("Connection string 'MhM' was not found.")));
 
-builder.Services.AddDbContext<MhMDbContext>(options =>
-{
-    var connectionString = builder.Configuration.GetConnectionString("MhM")
-        ?? throw new InvalidOperationException("Connection string 'MhM' was not found.");
+// DbContextFactory for Blazor Server best practices - use this in new/refactored code
+var connectionString = builder.Configuration.GetConnectionString("MhM")
+    ?? throw new InvalidOperationException("Connection string 'MhM' was not found.");
 
-    SqlConnection sqlConnection = null;
+// Register Azure credential for Managed Identity authentication
+var credential = new Azure.Identity.DefaultAzureCredential();
+
+builder.Services.AddDbContextFactory<MhMDbContext>(options =>
+{
     if (connectionString.StartsWith("Server=tcp:"))
     {
-        sqlConnection = new Microsoft.Data.SqlClient.SqlConnection(connectionString)
+        // Use Azure SQL with Managed Identity - set up token provider
+        options.UseSqlServer(connectionString, sqlOptions =>
         {
-            AccessToken = new Azure.Identity.DefaultAzureCredential().GetToken(
-                new Azure.Core.TokenRequestContext(new[] { "https://database.windows.net/.default" })).Token
-        };
-        options.UseSqlServer(sqlConnection);
+            sqlOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
+            // Add connection resiliency
+            sqlOptions.EnableRetryOnFailure(
+                maxRetryCount: 5,
+                maxRetryDelay: TimeSpan.FromSeconds(30),
+                errorNumbersToAdd: null);
+        });
+
+        // Configure Azure AD token provider for the connection
+        options.AddInterceptors(new AzureAdAuthenticationDbConnectionInterceptor(credential));
     }
     else
     {
-        options.UseSqlServer(
-            builder.Configuration.GetConnectionString("MhM")
-            ?? throw new InvalidOperationException("Connection string 'MhM' was not found."));
+        // Use standard SQL Server connection
+        options.UseSqlServer(connectionString, sqlOptions =>
+        {
+            sqlOptions.EnableRetryOnFailure(
+                maxRetryCount: 5,
+                maxRetryDelay: TimeSpan.FromSeconds(30),
+                errorNumbersToAdd: null);
+        });
     }
-});
+
+    options.LogTo(_ => { }, LogLevel.None)
+        .ConfigureWarnings(x =>
+        {
+            //x.Throw(CoreEventId.RowLimitingOperationWithoutOrderByWarning); //zum Erkennen von Skip/Take ohne OrderBy-Errors
+        });
+    //.LogTo(Console.WriteLine, new[] { DbLoggerCategory.Database.Command.Name }, LogLevel.Debug)
+    //.EnableSensitiveDataLogging()
+}, ServiceLifetime.Singleton);
 
 // Add ASP.NET Core Identity
 builder.Services.AddIdentity<ApplicationIdentityUser, IdentityRole>(options =>
@@ -113,7 +136,7 @@ builder.Services.Configure<ListingImageSettings>(
     builder.Configuration.GetSection("ListingImages"));
 builder.Services.AddScoped<IListingImageService, ListingImageService>(sp =>
     new ListingImageService(
-        sp.GetRequiredService<MhMDbContext>(),
+        sp.GetRequiredService<IDbContextFactory<MhMDbContext>>(),
         sp.GetRequiredService<IConfiguration>()
           .GetSection("ListingImages")
           .Get<ListingImageSettings>() ?? new ListingImageSettings()));
@@ -135,7 +158,7 @@ using (var scope = app.Services.CreateScope())
     try
     {
         var context = services.GetRequiredService<MhMDbContext>();
-        context.Database.Migrate();
+        await context.Database.MigrateAsync();
         if (!app.Environment.IsProduction())
         {
             await DbInitializer.InitializeAsync(context);
@@ -231,8 +254,9 @@ app.MapGet("account/logoff", async (HttpContext context, SignInManager<Applicati
     context.Response.Redirect("/");
 });
 
-app.MapGet("/api/listing-images/{id:guid}", async (Guid id, MhMDbContext db) =>
+app.MapGet("/api/listing-images/{id:guid}", async (Guid id, IDbContextFactory<MhMDbContext> dbFactory) =>
 {
+    await using var db = await dbFactory.CreateDbContextAsync();
     var image = await db.ListingImages.FindAsync(id);
     if (image is null) return Results.NotFound();
     return Results.File(image.Data, image.ContentType, image.FileName);

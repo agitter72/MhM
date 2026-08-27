@@ -2,6 +2,7 @@ using MhM.UI.Data;
 using MhM.UI.Data.Models;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.JSInterop;
 using System.ComponentModel.DataAnnotations;
 
@@ -11,10 +12,10 @@ public partial class Register
 {
     [Inject] private UserManager<ApplicationIdentityUser> UserManager { get; set; } = default!;
     [Inject] private SignInManager<ApplicationIdentityUser> SignInManager { get; set; } = default!;
-    [Inject] private MhMDbContext Db { get; set; } = default!;
+    [Inject] private IDbContextFactory<MhMDbContext> DbFactory { get; set; } = default!;
     [Inject] private NavigationManager Nav { get; set; } = default!;
-
     [Inject] private IJSRuntime JS { get; set; } = default!;
+
     private readonly RegisterInputModel model = new();
     private bool isBusy;
     private string? errorMessage;
@@ -56,8 +57,9 @@ public partial class Register
                     Role = UserRole.Privatperson
                 };
 
-                Db.Users.Add(appUser);
-                await Db.SaveChangesAsync();
+                await using var db = await DbFactory.CreateDbContextAsync();
+                db.AppUsers.Add(appUser);
+                await db.SaveChangesAsync();
             }
             catch
             {
@@ -72,10 +74,8 @@ public partial class Register
                 Nav.NavigateTo("/", forceLoad: true);
                 return;
             }
-            else
-            {
-                errorMessage = "Ungültige Anmeldedaten.";
-            }
+
+            errorMessage = "Ungültige Anmeldedaten.";
         }
         finally
         {

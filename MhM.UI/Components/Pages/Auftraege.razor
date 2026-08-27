@@ -10,19 +10,17 @@
 
 <form method="get" action="/auftraege" style="margin:1rem 0;display:grid;gap:.75rem;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));">
     <div>
-        <label for="lat">Latitude</label>
-        <input id="lat" name="lat" type="number" step="any" value="@Latitude" />
-    </div>
-    <div>
-        <label for="lon">Longitude</label>
-        <input id="lon" name="lon" type="number" step="any" value="@Longitude" />
-    </div>
-    <div>
-        <label for="radiusKm">Radius (km)</label>
-        <input id="radiusKm" name="radiusKm" type="number" min="1" step="1" value="@RadiusKm" />
+        <label for="radiusKm">Radius (km): @((RadiusKm ?? EffectiveRadiusKm).ToString("N0"))</label>
+        <input id="radiusKm"
+               name="radiusKm"
+               type="range"
+               min="1"
+               max="200"
+               step="1"
+               value="@(RadiusKm ?? EffectiveRadiusKm)" />
     </div>
     <div style="display:flex;gap:.5rem;align-items:end;">
-        <button type="submit">Search radius</button>
+        <button type="submit" class="btn btn-primary">Search radius</button>
         <a href="/auftraege">Reset</a>
     </div>
 </form>

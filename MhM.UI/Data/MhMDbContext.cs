@@ -11,7 +11,7 @@ public class MhMDbContext : IdentityDbContext<ApplicationIdentityUser>
     {
     }
 
-    public DbSet<AppUser> Users => Set<AppUser>();
+    public DbSet<AppUser> AppUsers => Set<AppUser>();
     public DbSet<HelperProfile> HelperProfiles => Set<HelperProfile>();
     public DbSet<Category> Categories => Set<Category>();
     public DbSet<Listing> Listings => Set<Listing>();
@@ -131,7 +131,7 @@ public class MhMDbContext : IdentityDbContext<ApplicationIdentityUser>
         reviews.ToTable("Reviews");
         reviews.HasKey(x => x.Id);
         reviews.Property(x => x.Comment).HasMaxLength(2000);
-        reviews.HasCheckConstraint("CK_Reviews_Stars", "[Stars] >= 1 AND [Stars] <= 5");
+        reviews.ToTable(t=>t.HasCheckConstraint("CK_Reviews_Stars", "[Stars] >= 1 AND [Stars] <= 5"));
         reviews.HasOne(x => x.Listing)
             .WithMany()
             .HasForeignKey(x => x.ListingId)

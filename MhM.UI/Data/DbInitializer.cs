@@ -7,8 +7,8 @@ public static class DbInitializer
 {
     public static async Task InitializeAsync(MhMDbContext db)
     {
-        await db.Database.EnsureCreatedAsync();
-
+        //await db.Database.EnsureCreatedAsync();
+        
         if (await db.Categories.AnyAsync())
         {
             return;
@@ -71,7 +71,7 @@ public static class DbInitializer
         };
 
         db.Categories.AddRange(categories);
-        db.Users.AddRange(requester, helperUser);
+        db.AppUsers.AddRange(requester, helperUser);
         db.HelperProfiles.Add(helperProfile);
         db.Listings.Add(listing);
 

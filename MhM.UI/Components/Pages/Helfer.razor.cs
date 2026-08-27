@@ -9,7 +9,7 @@ namespace MhM.UI.Components.Pages;
 public partial class Helfer
 {
     [Inject]
-    protected MhMDbContext Db { get; set; } = default!;
+    protected IDbContextFactory<MhMDbContext> DbFactory { get; set; } = default!;
 
     [Inject]
     protected UiLocalizer T { get; set; } = default!;
@@ -18,7 +18,9 @@ public partial class Helfer
 
     protected override async Task OnInitializedAsync()
     {
-        items = await Db.HelperProfiles
+        await using var db = await DbFactory.CreateDbContextAsync();
+
+        items = await db.HelperProfiles
             .Include(x => x.User)
             .OrderBy(x => x.User.City)
             .ThenBy(x => x.User.DisplayName)
