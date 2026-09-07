@@ -199,6 +199,7 @@ public partial class Auftraege
                 Message = model.Message.Trim(),
                 ProposedPrice = model.ProposedPrice,
                 CompensationType = model.CompensationType,
+                Status = ListingApplicationStatus.Eingereicht,
                 CreatedUtc = DateTime.UtcNow
             });
 

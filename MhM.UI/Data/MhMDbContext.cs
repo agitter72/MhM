@@ -89,10 +89,19 @@ public class MhMDbContext : IdentityDbContext<ApplicationIdentityUser>
         applications.HasKey(x => x.Id);
         applications.Property(x => x.Message).HasMaxLength(1500).IsRequired();
         applications.Property(x => x.ProposedPrice).HasPrecision(10, 2);
+
+        applications.Property(x => x.Status)
+            .HasConversion<int>()
+            .HasDefaultValue(ListingApplicationStatus.Eingereicht)
+            .IsRequired();
+
+        applications.HasIndex(x => new { x.ListingId, x.ApplicantId }).IsUnique();
+
         applications.HasOne(x => x.Listing)
             .WithMany(x => x.Applications)
             .HasForeignKey(x => x.ListingId)
             .OnDelete(DeleteBehavior.Cascade);
+
         applications.HasOne(x => x.Applicant)
             .WithMany()
             .HasForeignKey(x => x.ApplicantId)

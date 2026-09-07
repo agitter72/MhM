@@ -23,6 +23,13 @@ public enum ListingStatus
     Storniert = 5
 }
 
+public enum ListingApplicationStatus
+{
+    Eingereicht = 1,
+    Angenommen = 2,
+    Abgelehnt = 3
+}
+
 public sealed class AppUser
 {
     public Guid Id { get; set; } = Guid.NewGuid();
@@ -110,6 +117,7 @@ public sealed class ListingApplication
     public string Message { get; set; } = string.Empty;
     public decimal? ProposedPrice { get; set; }
     public CompensationType CompensationType { get; set; } = CompensationType.Bezahlung;
+    public ListingApplicationStatus Status { get; set; } = ListingApplicationStatus.Eingereicht;
     public DateTime CreatedUtc { get; set; } = DateTime.UtcNow;
 
     public Listing Listing { get; set; } = default!;

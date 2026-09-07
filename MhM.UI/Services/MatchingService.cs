@@ -21,7 +21,7 @@ public sealed class MatchingService(IDbContextFactory<MhMDbContext> dbFactory) :
             return [];
 
         var applications = await db.ListingApplications
-            .Where(x => x.ListingId == listingId)
+            .Where(x => x.ListingId == listingId && x.Status == ListingApplicationStatus.Eingereicht)
             .Include(x => x.Applicant)
                 .ThenInclude(x => x.HelperProfile)
             .ToListAsync(cancellationToken);
@@ -114,40 +114,73 @@ public sealed class MatchingService(IDbContextFactory<MhMDbContext> dbFactory) :
         CancellationToken cancellationToken = default)
     {
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        var strategy = db.Database.CreateExecutionStrategy();
 
-        var listing = await db.Listings
-            .FirstOrDefaultAsync(x => x.Id == listingId, cancellationToken)
-            ?? throw new InvalidOperationException("Auftrag nicht gefunden.");
-
-        if (listing.Status != ListingStatus.Offen && listing.Status != ListingStatus.InBearbeitung)
-            throw new InvalidOperationException("Auftrag kann nicht vergeben werden.");
-
-        var hasApplication = await db.ListingApplications
-            .AnyAsync(x => x.ListingId == listingId && x.ApplicantId == helperUserId, cancellationToken);
-
-        if (!hasApplication)
-            throw new InvalidOperationException("Der Helfer hat sich nicht auf diesen Auftrag beworben.");
-
-        listing.Status = ListingStatus.InBearbeitung;
-
-        var conversationExists = await db.Conversations.AnyAsync(
-            x => x.ListingId == listingId &&
-                 x.RequesterId == listing.RequesterId &&
-                 x.HelperId == helperUserId,
-            cancellationToken);
-
-        if (!conversationExists)
+        await strategy.ExecuteAsync(async () =>
         {
-            db.Conversations.Add(new Conversation
-            {
-                ListingId = listingId,
-                RequesterId = listing.RequesterId,
-                HelperId = helperUserId,
-                CreatedUtc = DateTime.UtcNow
-            });
-        }
+            await using var retryDb = await dbFactory.CreateDbContextAsync(cancellationToken);
+            await using var tx = await retryDb.Database.BeginTransactionAsync(cancellationToken);
 
-        await db.SaveChangesAsync(cancellationToken);
+            var listing = await retryDb.Listings
+                .FirstOrDefaultAsync(x => x.Id == listingId, cancellationToken)
+                ?? throw new InvalidOperationException("Auftrag nicht gefunden.");
+
+            if (listing.Status != ListingStatus.Offen && listing.Status != ListingStatus.InBearbeitung)
+                throw new InvalidOperationException("Auftrag kann nicht vergeben werden.");
+
+            var selectedApplication = await retryDb.ListingApplications
+                .FirstOrDefaultAsync(
+                    x => x.ListingId == listingId &&
+                         x.ApplicantId == helperUserId &&
+                         x.Status == ListingApplicationStatus.Eingereicht,
+                    cancellationToken);
+
+            if (selectedApplication is null)
+                throw new InvalidOperationException("Keine eingereichte Bewerbung dieses Helfers vorhanden.");
+
+            listing.Status = ListingStatus.InBearbeitung;
+            selectedApplication.Status = ListingApplicationStatus.Angenommen;
+
+            var otherPendingApplications = await retryDb.ListingApplications
+                .Where(x => x.ListingId == listingId &&
+                            x.ApplicantId != helperUserId &&
+                            x.Status == ListingApplicationStatus.Eingereicht)
+                .ToListAsync(cancellationToken);
+
+            foreach (var app in otherPendingApplications)
+            {
+                app.Status = ListingApplicationStatus.Abgelehnt;
+            }
+
+            var conversation = await retryDb.Conversations.FirstOrDefaultAsync(
+                x => x.ListingId == listingId &&
+                     x.RequesterId == listing.RequesterId &&
+                     x.HelperId == helperUserId,
+                cancellationToken);
+
+            if (conversation is null)
+            {
+                conversation = new Conversation
+                {
+                    ListingId = listingId,
+                    RequesterId = listing.RequesterId,
+                    HelperId = helperUserId,
+                    CreatedUtc = DateTime.UtcNow
+                };
+                retryDb.Conversations.Add(conversation);
+            }
+
+            retryDb.Messages.Add(new Message
+            {
+                Conversation = conversation,
+                SenderUserId = listing.RequesterId,
+                Content = $"✅ Auftrag „{listing.Title}“ wurde vergeben. Bitte Details im Chat abstimmen.",
+                SentUtc = DateTime.UtcNow
+            });
+
+            await retryDb.SaveChangesAsync(cancellationToken);
+            await tx.CommitAsync(cancellationToken);
+        });
     }
 
     private static bool IsCompensationCompatible(CompensationType listingType, CompensationType applicationType)

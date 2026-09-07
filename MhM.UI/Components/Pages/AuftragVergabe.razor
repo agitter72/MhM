@@ -12,7 +12,7 @@ else if (!string.IsNullOrWhiteSpace(error))
 }
 else
 {
-    <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;">
+    <div class="assignment-header">
         <div>
             <h1>Vergabe: @listingTitle</h1>
             <p><strong>Status:</strong> @listingStatusText</p>
@@ -22,53 +22,112 @@ else
 
     @if (!string.IsNullOrWhiteSpace(success))
     {
-        <div style="margin:1rem 0;padding:.75rem;border:1px solid #b7eb8f;background:#f6ffed;border-radius:8px;">
+        <div class="assignment-success">
             @success
         </div>
     }
 
-    @if (candidates.Count == 0)
+    @if (applicationRows.Count == 0)
     {
-        <p>Keine passenden Bewerbungen gefunden.</p>
+        <p>Keine Bewerbungen vorhanden.</p>
     }
     else
     {
-        <table style="width:100%;border-collapse:collapse;margin-top:1rem;">
-            <thead>
-                <tr>
-                    <th style="text-align:left;padding:.5rem;border-bottom:1px solid #ddd;">Helfer</th>
-                    <th style="text-align:left;padding:.5rem;border-bottom:1px solid #ddd;">Gesamtscore</th>
-                    <th style="text-align:left;padding:.5rem;border-bottom:1px solid #ddd;">Distanz</th>
-                    <th style="text-align:left;padding:.5rem;border-bottom:1px solid #ddd;">Preis</th>
-                    <th style="text-align:left;padding:.5rem;border-bottom:1px solid #ddd;">Details</th>
-                    <th style="text-align:left;padding:.5rem;border-bottom:1px solid #ddd;"></th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var c in candidates)
-                {
+        <div class="assignment-filter-bar">
+            <button class="btn btn-secondary @(selectedStatusFilter is null ? "is-active" : null)"
+                    @onclick="() => SetFilter(null)">
+                Alle (@CountAll)
+            </button>
+
+            <button class="btn btn-secondary @(selectedStatusFilter == ListingApplicationStatus.Eingereicht ? "is-active" : null)"
+                    @onclick="() => SetFilter(ListingApplicationStatus.Eingereicht)">
+                Eingereicht (@CountEingereicht)
+            </button>
+
+            <button class="btn btn-secondary @(selectedStatusFilter == ListingApplicationStatus.Angenommen ? "is-active" : null)"
+                    @onclick="() => SetFilter(ListingApplicationStatus.Angenommen)">
+                Angenommen (@CountAngenommen)
+            </button>
+
+            <button class="btn btn-secondary @(selectedStatusFilter == ListingApplicationStatus.Abgelehnt ? "is-active" : null)"
+                    @onclick="() => SetFilter(ListingApplicationStatus.Abgelehnt)">
+                Abgelehnt (@CountAbgelehnt)
+            </button>
+        </div>
+
+        <div class="assignment-legend">
+            <span class="assignment-legend-item">
+                <span class="assignment-legend-dot status-dot-eingereicht"></span>
+                Eingereicht
+            </span>
+            <span class="assignment-legend-item">
+                <span class="assignment-legend-dot status-dot-angenommen"></span>
+                Angenommen
+            </span>
+            <span class="assignment-legend-item">
+                <span class="assignment-legend-dot status-dot-abgelehnt"></span>
+                Abgelehnt
+            </span>
+        </div>
+
+        @if (FilteredApplicationRows.Count == 0)
+        {
+            <p>Keine Bewerbungen im gewählten Filter.</p>
+        }
+        else
+        {
+            <table class="assignment-table assignment-table-compact">
+                <thead>
                     <tr>
-                        <td style="padding:.5rem;border-bottom:1px solid #eee;">@c.ApplicantName</td>
-                        <td style="padding:.5rem;border-bottom:1px solid #eee;"><strong>@c.TotalScore.ToString("N1")</strong></td>
-                        <td style="padding:.5rem;border-bottom:1px solid #eee;">@(c.DistanceKm?.ToString("N1") + " km" ?? "n/a")</td>
-                        <td style="padding:.5rem;border-bottom:1px solid #eee;">@(c.ProposedPrice?.ToString("N2") + " €" ?? "n/a")</td>
-                        <td style="padding:.5rem;border-bottom:1px solid #eee;">
-                            D:@c.DistanceScore.ToString("N0")
-                            | B:@c.RatingScore.ToString("N0")
-                            | P:@c.PriceScore.ToString("N0")
-                            | Z:@c.ReliabilityScore.ToString("N0")
-                            | V:@c.VerificationScore.ToString("N0")
-                        </td>
-                        <td style="padding:.5rem;border-bottom:1px solid #eee;">
-                            <button class="btn btn-primary"
-                                    disabled="@(isAssigning || !canAssign)"
-                                    @onclick="() => AssignAsync(c.ApplicantId)">
-                                Vergeben
-                            </button>
-                        </td>
+                        <th>Helfer</th>
+                        <th>Status</th>
+                        <th>Gesamtscore</th>
+                        <th>Distanz</th>
+                        <th>Preis</th>
+                        <th>Details</th>
+                        <th></th>
                     </tr>
-                }
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    @foreach (var row in FilteredApplicationRows)
+                    {
+                        <tr>
+                            <td data-label="Helfer">@row.ApplicantName</td>
+                            <td data-label="Status">
+                                <span class="@GetStatusBadgeClass(row.Status)">
+                                    @GetStatusText(row.Status)
+                                </span>
+                            </td>
+                            <td data-label="Gesamtscore">@(row.TotalScore?.ToString("N1") ?? "—")</td>
+                            <td data-label="Distanz">@(row.DistanceKm?.ToString("N1") + " km" ?? "n/a")</td>
+                            <td data-label="Preis">@(row.ProposedPrice?.ToString("N2") + " €" ?? "n/a")</td>
+                            <td data-label="Details">
+                                @if (row.TotalScore.HasValue)
+                                {
+                                    <span>
+                                        D:@(row.DistanceScore?.ToString("N0") ?? "—")
+                                        | B:@(row.RatingScore?.ToString("N0") ?? "—")
+                                        | P:@(row.PriceScore?.ToString("N0") ?? "—")
+                                        | Z:@(row.ReliabilityScore?.ToString("N0") ?? "—")
+                                        | V:@(row.VerificationScore?.ToString("N0") ?? "—")
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span>Kein aktuelles Ranking</span>
+                                }
+                            </td>
+                            <td data-label="" class="assignment-cell-actions">
+                                <button class="btn btn-primary assignment-assign-btn"
+                                        disabled="@(isAssigning || !canAssign || row.Status != ListingApplicationStatus.Eingereicht)"
+                                        @onclick="() => AssignAsync(row.ApplicantId)">
+                                    Vergeben
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
     }
 }
