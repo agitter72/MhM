@@ -8,24 +8,139 @@
 {
     <p>@T["General.Loading"]</p>
 }
-else if (items.Count == 0)
-{
-    <p>@T["Helpers.Empty"]</p>
-}
 else
 {
-    <div style="display:grid;gap:1rem;">
-        @foreach (var item in items)
-        {
-            <article style="border:1px solid #ddd;padding:1rem;border-radius:8px;">
-                <h2>@item.Title</h2>
-                <p><strong>@T["Helpers.Name"]:</strong> @item.User.DisplayName</p>
-                <p>@item.Description</p>
-                <p><strong>@T["Helpers.Skills"]:</strong> @item.Skills</p>
-                <p><strong>@T["Helpers.Radius"]:</strong> @item.RadiusKm km</p>
-                <p><strong>@T["Helpers.HourlyRate"]:</strong> @(item.HourlyRate?.ToString("N2")) €</p>
-                <p><strong>@T["Helpers.Barter"]:</strong> @(item.OffersBarter ? T["General.Yes"] : T["General.No"])</p>
+    @if (isAuthenticated)
+    {
+        <section class="editor-grid" style="margin-bottom:1.5rem;">
+            <article class="panel panel-form">
+                <EditForm Model="activation" OnValidSubmit="ActivateAsync" FormName="HelperActivationForm">
+                    <DataAnnotationsValidator />
+                    <ValidationSummary />
+
+                    @if (!string.IsNullOrWhiteSpace(errorMessage))
+                    {
+                        <div class="alert-error">@errorMessage</div>
+                    }
+
+                    @if (!string.IsNullOrWhiteSpace(successMessage))
+                    {
+                        <div class="alert-success">@successMessage</div>
+                    }
+
+                    <div class="form-section">
+                        <div class="section-heading">
+                            <div class="eyebrow">@T["Helpers.ActivationEyebrow"]</div>
+                            <h3>@(currentHelperProfile is null ? T["Helpers.ActivationHeadline"] : T["Helpers.EditHeadline"])</h3>
+                            <p class="muted">@T["Helpers.ActivationText"]</p>
+                        </div>
+
+                        <div class="form-grid">
+                            <div class="field field-full">
+                                <label for="helperTitle">@T["Helpers.Title"]</label>
+                                <InputText id="helperTitle" class="field-input" @bind-Value="activation.Title" />
+                                <ValidationMessage For="() => activation.Title" />
+                            </div>
+
+                            <div class="field field-full">
+                                <label for="helperDescription">@T["Helpers.Description"]</label>
+                                <InputTextArea id="helperDescription" class="field-input field-textarea" rows="5" @bind-Value="activation.Description" />
+                                <ValidationMessage For="() => activation.Description" />
+                            </div>
+
+                            <div class="field field-full">
+                                <label for="helperSkills">@T["Helpers.Skills"]</label>
+                                <InputText id="helperSkills" class="field-input" @bind-Value="activation.Skills" />
+                                <ValidationMessage For="() => activation.Skills" />
+                            </div>
+
+                            <div class="field">
+                                <label for="helperRate">@T["Helpers.HourlyRate"]</label>
+                                <InputNumber id="helperRate" class="field-input" @bind-Value="activation.HourlyRate" />
+                                <ValidationMessage For="() => activation.HourlyRate" />
+                            </div>
+
+                            <div class="field">
+                                <label for="helperRadius">@T["Helpers.Radius"]</label>
+                                <InputNumber id="helperRadius" class="field-input" @bind-Value="activation.RadiusKm" />
+                                <ValidationMessage For="() => activation.RadiusKm" />
+                            </div>
+
+                            <div class="field field-full">
+                                <label>
+                                    <InputCheckbox @bind-Value="activation.OffersBarter" />
+                                    @T["Helpers.Barter"]
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button class="btn btn-primary" type="submit" disabled="@isBusy">
+                            @(isBusy
+                                ? T["Helpers.Saving"]
+                                : (currentHelperProfile is null ? T["Helpers.ActivateButton"] : T["Helpers.UpdateButton"]))
+                        </button>
+                    </div>
+                </EditForm>
             </article>
-        }
-    </div>
+
+            <aside class="panel panel-side">
+                <div class="eyebrow">@T["Helpers.StatusEyebrow"]</div>
+                <h3 class="preview-title">@T["Helpers.StatusHeadline"]</h3>
+
+                @if (currentHelperProfile is null)
+                {
+                    <p class="preview-text">@T["Helpers.NotActiveYet"]</p>
+                }
+                else
+                {
+                    <p class="preview-text">@T["Helpers.AlreadyActive"]</p>
+                    <div class="preview-meta">
+                        <div>
+                            <strong>@T["Helpers.Title"]</strong>
+                            <span class="muted">@currentHelperProfile.Title</span>
+                        </div>
+                        <div>
+                            <strong>@T["Helpers.Radius"]</strong>
+                            <span class="muted">@currentHelperProfile.RadiusKm km</span>
+                        </div>
+                        <div>
+                            <strong>@T["Helpers.HourlyRate"]</strong>
+                            <span class="muted">@(currentHelperProfile.HourlyRate?.ToString("N2") ?? "-") €</span>
+                        </div>
+                    </div>
+                }
+            </aside>
+        </section>
+    }
+    else
+    {
+        <section class="panel" style="margin-bottom:1.5rem;">
+            <h3>@T["Helpers.LoginRequiredHeadline"]</h3>
+            <p class="muted">@T["Helpers.LoginRequiredText"]</p>
+        </section>
+    }
+
+    @if (items.Count == 0)
+    {
+        <p>@T["Helpers.Empty"]</p>
+    }
+    else
+    {
+        <div style="display:grid;gap:1rem;">
+            @foreach (var item in items)
+            {
+                <article class="panel">
+                    <h2>@item.Title</h2>
+                    <p><strong>@T["Helpers.Name"]:</strong> @item.User.DisplayName</p>
+                    <p>@item.Description</p>
+                    <p><strong>@T["Helpers.Skills"]:</strong> @item.Skills</p>
+                    <p><strong>@T["Helpers.Radius"]:</strong> @item.RadiusKm km</p>
+                    <p><strong>@T["Helpers.HourlyRate"]:</strong> @(item.HourlyRate?.ToString("N2")) €</p>
+                    <p><strong>@T["Helpers.Barter"]:</strong> @(item.OffersBarter ? T["General.Yes"] : T["General.No"])</p>
+                </article>
+            }
+        </div>
+    }
 }

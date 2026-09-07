@@ -141,6 +141,8 @@ builder.Services.AddScoped<IListingImageService, ListingImageService>(sp =>
           .GetSection("ListingImages")
           .Get<ListingImageSettings>() ?? new ListingImageSettings()));
 
+builder.Services.AddScoped<IMatchingService, MatchingService>();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

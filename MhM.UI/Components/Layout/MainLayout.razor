@@ -33,6 +33,15 @@
                 <span class="sidebar-link-icon">◌</span>
                 <span>@T["Nav.Helpers"]</span>
             </NavLink>
+
+            <AuthorizeView>
+                <Authorized>
+                    <NavLink href="/helfer" class="sidebar-link">
+                        <span class="sidebar-link-icon">★</span>
+                        <span>@T["Nav.ActivateHelper"]</span>
+                    </NavLink>
+                </Authorized>
+            </AuthorizeView>
         </nav>
 
         <div class="sidebar-card">
@@ -55,12 +64,13 @@
                 <a class="btn btn-primary" href="/auftraege/neu">+ @T["Nav.NewListing"]</a>
 
                 <AuthorizeView>
-                    <Authorized>
+                    <Authorized Context="authState">
+                        <a class="btn btn-secondary" href="/helfer">@T["Nav.ActivateHelper"]</a>
                         <a class="btn btn-secondary" href="/account/logoff">Abmelden</a>
                         <div class="user-pill">
                             <div class="user-pill-avatar">👤</div>
                             <div>
-                                <strong>@context.User.Identity?.Name</strong>
+                                <strong>@authState.User.Identity?.Name</strong>
                                 <div class="muted">Angemeldet</div>
                             </div>
                         </div>
