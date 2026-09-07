@@ -1,139 +1,199 @@
 @page "/auftraege"
 
-
 <PageTitle>@T["Listings.PageTitle"]</PageTitle>
 
-<div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;">
-    <h1>@T["Listings.Headline"]</h1>
-    <a href="/auftraege/neu">@T["Listings.New"]</a>
-</div>
+<div class="auftraege-page">
+    <section class="panel auftraege-header">
+        <div>
+            <div class="eyebrow">@T["Listings.PageTitle"]</div>
+            <h1>@T["Listings.Headline"]</h1>
+        </div>
 
-<form method="get" action="/auftraege" style="margin:1rem 0;display:grid;gap:.75rem;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));">
-    <div>
-        <label for="radiusKm">Radius (km): @((RadiusKm ?? EffectiveRadiusKm).ToString("N0"))</label>
-        <input id="radiusKm"
-               name="radiusKm"
-               type="range"
-               min="1"
-               max="200"
-               step="1"
-               value="@(RadiusKm ?? EffectiveRadiusKm)" />
-    </div>
-    <div style="display:flex;gap:.5rem;align-items:end;">
-        <button type="submit" class="btn btn-primary">Search radius</button>
-        <a href="/auftraege">Reset</a>
-    </div>
-</form>
+        <a class="btn btn-primary" href="/auftraege/neu">@T["Listings.New"]</a>
+    </section>
 
-@if (IsGeoSearchActive)
-{
-    <p><strong>Geo filter active:</strong> @Latitude, @Longitude, @EffectiveRadiusKm km</p>
-}
+    <form method="get" action="/auftraege" class="panel auftraege-filter">
+        <div class="listing-filter-range">
+            <label for="radiusKm">Radius (km): @((RadiusKm ?? EffectiveRadiusKm).ToString("N0"))</label>
+            <input id="radiusKm"
+                   name="radiusKm"
+                   type="range"
+                   min="1"
+                   max="200"
+                   step="1"
+                   value="@(RadiusKm ?? EffectiveRadiusKm)"
+                   class="listing-range" />
+        </div>
 
-@if (!string.IsNullOrWhiteSpace(applyError))
-{
-    <div class="alert-error">@applyError</div>
-}
-@if (!string.IsNullOrWhiteSpace(applySuccess))
-{
-    <div style="margin:1rem 0;padding:.75rem;border:1px solid #b7eb8f;background:#f6ffed;border-radius:8px;">
-        @applySuccess
-    </div>
-}
+        <div class="listing-filter-actions">
+            <button type="submit" class="btn btn-primary">Search radius</button>
+            <a class="btn btn-secondary" href="/auftraege">Reset</a>
+        </div>
+    </form>
 
-@if (items is null)
-{
-    <p>@T["General.Loading"]</p>
-}
-else if (items.Count == 0)
-{
-    <p>@T["Listings.Empty"]</p>
-}
-else
-{
-    <div style="display:grid;gap:1rem;">
-        @foreach (var item in items)
-        {
-            var applyModel = GetApplicationModel(item.Id);
+    @if (IsGeoSearchActive)
+    {
+        <div class="listing-alert listing-alert-info">
+            <strong>Geo filter active:</strong> @Latitude, @Longitude, @EffectiveRadiusKm km
+        </div>
+    }
 
-            <article style="border:1px solid #ddd;padding:1rem;border-radius:8px;">
-                <div style="display:flex;justify-content:space-between;align-items:start;gap:1rem;flex-wrap:wrap;">
-                    <h2>@item.Title</h2>
-                    <div style="display:flex;gap:.75rem;">
-                        <a href="@($"/auftraege/{item.Id}/bearbeiten")">@T["General.Edit"]</a>
-                        <a href="@($"/auftraege/{item.Id}/vergabe")">Vergabe</a>
+    @if (!string.IsNullOrWhiteSpace(applyError))
+    {
+        <div class="listing-alert listing-alert-error">@applyError</div>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(applySuccess))
+    {
+        <div class="listing-alert listing-alert-success">@applySuccess</div>
+    }
+
+    @if (items is null)
+    {
+        <div class="panel">@T["General.Loading"]</div>
+    }
+    else if (items.Count == 0)
+    {
+        <div class="panel">@T["Listings.Empty"]</div>
+    }
+    else
+    {
+        <div class="listing-list">
+            @foreach (var item in items)
+            {
+                var applyModel = GetApplicationModel(item.Id);
+
+                <article class="listing-card panel">
+                    <div class="listing-card-media">
+                        @if (item.Images.Count > 0)
+                        {
+                            <div class="listing-card-media-inner">
+                                <ImageCarousel Images="item.Images.ToList()" />
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="listing-card-placeholder">
+                                <span>Kein Bild verfügbar</span>
+                            </div>
+                        }
                     </div>
-                </div>
 
-                @if (item.Images.Count > 0)
-                {
-                    <div style="margin:.75rem 0;">
-                        <ImageCarousel Images="item.Images.ToList()" />
-                    </div>
-                }
+                    <div class="listing-card-body">
+                        <div class="listing-card-header">
+                            <div>
+                                <h2 class="listing-card-title">@item.Title</h2>
 
-                <p>@item.Description</p>
-                <p><strong>@T["Listings.Category"]:</strong> @item.Category.Name</p>
-                <p><strong>@T["Listings.Requester"]:</strong> @item.Requester.DisplayName</p>
-                <p><strong>@T["Listings.Location"]:</strong> @item.PostalCode @item.City</p>
-                <p><strong>Coordinates:</strong> @item.Latitude, @item.Longitude</p>
-
-                @if (IsGeoSearchActive)
-                {
-                    <p><strong>Distance:</strong> @GetDistanceText(item.Id)</p>
-                }
-
-                <p><strong>@T["Listings.Compensation"]:</strong> @T.Enum(item.CompensationType)</p>
-                <p><strong>@T["Listings.Status"]:</strong> @T.Enum(item.Status)</p>
-                <p><strong>@T["Listings.Budget"]:</strong> @(item.BudgetMin?.ToString("N2")) € - @(item.BudgetMax?.ToString("N2")) €</p>
-
-                @if (CanApplyToListing(item) && !HasApplied(item.Id))
-                {
-                    <section style="margin-top:1rem;border-top:1px solid #eee;padding-top:1rem;">
-                        <h3 style="margin-top:0;">Für Auftrag bewerben</h3>
-
-                        <EditForm Model="applyModel"
-                                  OnValidSubmit="() => ApplyAsync(item.Id)"
-                                  FormName="@GetApplyFormName(item.Id)">
-                            <DataAnnotationsValidator />
-
-                            <div style="display:grid;gap:.75rem;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));">
-                                <div>
-                                    <label>Preisvorschlag (€)</label>
-                                    <InputNumber @bind-Value="applyModel.ProposedPrice" class="field-input" />
-                                    <ValidationMessage For="() => applyModel.ProposedPrice" />
-                                </div>
-
-                                <div>
-                                    <label>Vergütung</label>
-                                    <InputSelect @bind-Value="applyModel.CompensationType" class="field-input">
-                                        @foreach (var compensationType in Enum.GetValues<CompensationType>())
-                                        {
-                                            <option value="@compensationType">@T.Enum(compensationType)</option>
-                                        }
-                                    </InputSelect>
-                                </div>
-
-                                <div style="grid-column:1 / -1;">
-                                    <label>Nachricht</label>
-                                    <InputTextArea @bind-Value="applyModel.Message" class="field-input" rows="4" />
-                                    <ValidationMessage For="() => applyModel.Message" />
+                                <div class="listing-chip-row">
+                                    <span class="badge-soft">@T.Enum(item.Status)</span>
+                                    <span class="badge-soft">@T.Enum(item.CompensationType)</span>
                                 </div>
                             </div>
+                        </div>
 
-                            <button type="submit"
-                                    class="btn btn-primary"
-                                    disabled="@(applyingListingId == item.Id)">
-                                @(applyingListingId == item.Id ? "Bewerbung wird gesendet …" : "Jetzt bewerben")
-                            </button>
-                        </EditForm>
-                    </section>
-                }
-                else if (HasApplied(item.Id))
-                {
-                    <p style="margin-top:1rem;color:#237804;"><strong>Du hast dich bereits auf diesen Auftrag beworben.</strong></p>
-                }
-            </article>
-        }
-    </div>
-}
+                        <p class="listing-card-description">@item.Description</p>
+
+                        <dl class="listing-card-details">
+                            <div class="listing-detail">
+                                <dt>@T["Listings.Category"]</dt>
+                                <dd>@item.Category.Name</dd>
+                            </div>
+
+                            <div class="listing-detail">
+                                <dt>@T["Listings.Requester"]</dt>
+                                <dd>@item.Requester.DisplayName</dd>
+                            </div>
+
+                            <div class="listing-detail">
+                                <dt>@T["Listings.Location"]</dt>
+                                <dd>@item.PostalCode @item.City</dd>
+                            </div>
+
+                            <div class="listing-detail">
+                                <dt>Coordinates</dt>
+                                <dd>@item.Latitude, @item.Longitude</dd>
+                            </div>
+
+                            @if (IsGeoSearchActive)
+                            {
+                                <div class="listing-detail listing-detail--highlight">
+                                    <dt>Distance</dt>
+                                    <dd>@GetDistanceText(item.Id)</dd>
+                                </div>
+                            }
+
+                            <div class="listing-detail">
+                                <dt>@T["Listings.Compensation"]</dt>
+                                <dd>@T.Enum(item.CompensationType)</dd>
+                            </div>
+
+                            <div class="listing-detail">
+                                <dt>@T["Listings.Status"]</dt>
+                                <dd>@T.Enum(item.Status)</dd>
+                            </div>
+
+                            <div class="listing-detail">
+                                <dt>@T["Listings.Budget"]</dt>
+                                <dd>@(item.BudgetMin?.ToString("N2")) € - @(item.BudgetMax?.ToString("N2")) €</dd>
+                            </div>
+                        </dl>
+
+                        @if (CanApplyToListing(item) && !HasApplied(item.Id))
+                        {
+                            <section class="listing-application listing-application--accent">
+                                <h3>Für Auftrag bewerben</h3>
+
+                                <EditForm Model="applyModel"
+                                          OnValidSubmit="() => ApplyAsync(item.Id)"
+                                          FormName="@GetApplyFormName(item.Id)">
+                                    <DataAnnotationsValidator />
+
+                                    <div class="listing-application-grid">
+                                        <div class="field">
+                                            <label>Preisvorschlag (€)</label>
+                                            <InputNumber @bind-Value="applyModel.ProposedPrice" class="field-input" />
+                                            <ValidationMessage For="() => applyModel.ProposedPrice" />
+                                        </div>
+
+                                        <div class="field">
+                                            <label>Vergütung</label>
+                                            <InputSelect @bind-Value="applyModel.CompensationType" class="field-input">
+                                                @foreach (var compensationType in Enum.GetValues<CompensationType>())
+                                                {
+                                                    <option value="@compensationType">@T.Enum(compensationType)</option>
+                                                }
+                                            </InputSelect>
+                                        </div>
+
+                                        <div class="field field--full">
+                                            <label>Nachricht</label>
+                                            <InputTextArea @bind-Value="applyModel.Message" class="field-input field-textarea" rows="4" />
+                                            <ValidationMessage For="() => applyModel.Message" />
+                                        </div>
+                                    </div>
+
+                                    <button type="submit"
+                                            class="btn btn-primary"
+                                            disabled="@(applyingListingId == item.Id)">
+                                        @(applyingListingId == item.Id ? "Bewerbung wird gesendet …" : "Jetzt bewerben")
+                                    </button>
+                                </EditForm>
+                            </section>
+                        }
+                        else if (HasApplied(item.Id))
+                        {
+                            <div class="listing-alert listing-alert-success">
+                                <strong>Du hast dich bereits auf diesen Auftrag beworben.</strong>
+                            </div>
+                        }
+
+                        <div class="listing-card-actions">
+                            <a class="btn btn-secondary" href="@($"/auftraege/{item.Id}/bearbeiten")">@T["General.Edit"]</a>
+                            <a class="btn btn-secondary" href="@($"/auftraege/{item.Id}/vergabe")">Vergabe</a>
+                        </div>
+                    </div>
+                </article>
+            }
+        </div>
+    }
+</div>

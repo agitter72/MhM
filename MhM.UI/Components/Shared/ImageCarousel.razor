@@ -8,10 +8,12 @@
                 disabled="@(Images.Count <= 1)">&#8249;</button>
 
         <div class="carousel-frame">
-            <img src="/api/listing-images/@Images[_index].Id"
-                 alt="@Images[_index].FileName"
-                 title="@Images[_index].FileName"
-                 class="carousel-image" />
+            <div class="carousel-image-wrapper">
+                <img src="/api/listing-images/@Images[_index].Id"
+                     alt="@Images[_index].FileName"
+                     title="@Images[_index].FileName"
+                     class="carousel-image" />
+            </div>
 
             @if (OnDelete.HasDelegate)
             {
