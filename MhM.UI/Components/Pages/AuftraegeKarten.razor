@@ -1,0 +1,55 @@
+@using MhM.UI.Data.Models;
+
+<div class="auftraege-karten-grid">
+    @if (Items == null)
+    {
+        <div class="panel">Lädt...</div>
+    }
+    else if (Items.Count == 0)
+    {
+        <div class="panel">Keine Aufträge gefunden.</div>
+    }
+    else
+    {
+        @foreach (var item in Items)
+        {
+            <article class="auftrag-karte">
+                <div class="auftrag-karte-image">
+                    @if (item.Images.Count > 0)
+                    {
+                        <img src="/api/listing-images/@item.Images.ToList()[0].Id"
+                             alt="@item.Images.ToList()[0].FileName"
+                             title="@item.Images.ToList()[0].FileName"
+                             class="carousel-image" />
+                    }
+                    else
+                    {
+                        <div class="auftrag-bild-placeholder">
+                            <span>Kein Bild</span>
+                        </div>
+                    }
+                </div>
+
+                <div class="auftrag-karte-content">
+                    <h3 class="auftrag-karte-title">@item.Title</h3>
+                    <p class="auftrag-karte-location">@item.PostalCode @item.City</p>
+                    <div class="auftrag-karte-price">
+                        @if (item.BudgetMin.HasValue && item.BudgetMax.HasValue)
+                        {
+                            <span>@item.BudgetMin.Value.ToString("N2") € - @item.BudgetMax.Value.ToString("N2") €</span>
+                        }
+                        else if (item.BudgetMax.HasValue)
+                        {
+                            <span>bis @item.BudgetMax.Value.ToString("N2") €</span>
+                        }
+                    </div>
+                </div>
+            </article>
+        }
+    }
+</div>
+
+@code {
+    [Parameter]
+    public List<Listing> Items { get; set; } = [];
+}

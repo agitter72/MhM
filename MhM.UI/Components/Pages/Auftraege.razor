@@ -59,140 +59,147 @@
     else
     {
         <div class="listing-list">
-            @foreach (var item in items)
+            @if (false)
             {
-                var applyModel = GetApplicationModel(item.Id);
+                foreach (var item in items)
+                {
+                    var applyModel = GetApplicationModel(item.Id);
 
-                <article class="listing-card panel">
-                    <div class="listing-card-media">
-                        @if (item.Images.Count > 0)
-                        {
-                            <div class="listing-card-media-inner">
-                                <ImageCarousel Images="item.Images.ToList()" />
-                            </div>
-                        }
-                        else
-                        {
-                            <div class="listing-card-placeholder">
-                                <span>Kein Bild verfügbar</span>
-                            </div>
-                        }
-                    </div>
-
-                    <div class="listing-card-body">
-                        <div class="listing-card-header">
-                            <div>
-                                <h2 class="listing-card-title">@item.Title</h2>
-
-                                <div class="listing-chip-row">
-                                    <span class="badge-soft">@T.Enum(item.Status)</span>
-                                    <span class="badge-soft">@T.Enum(item.CompensationType)</span>
+                    <article class="listing-card panel">
+                        <div class="listing-card-media">
+                            @if (item.Images.Count > 0)
+                            {
+                                <div class="listing-card-media-inner">
+                                    <ImageCarousel Images="item.Images.ToList()" />
                                 </div>
-                            </div>
+                            }
+                            else
+                            {
+                                <div class="listing-card-placeholder">
+                                    <span>Kein Bild verfügbar</span>
+                                </div>
+                            }
                         </div>
 
-                        <p class="listing-card-description">@item.Description</p>
+                        <div class="listing-card-body">
+                            <div class="listing-card-header">
+                                <div>
+                                    <h2 class="listing-card-title">@item.Title</h2>
 
-                        <dl class="listing-card-details">
-                            <div class="listing-detail">
-                                <dt>@T["Listings.Category"]</dt>
-                                <dd>@item.Category.Name</dd>
+                                    <div class="listing-chip-row">
+                                        <span class="badge-soft">@T.Enum(item.Status)</span>
+                                        <span class="badge-soft">@T.Enum(item.CompensationType)</span>
+                                    </div>
+                                </div>
                             </div>
 
-                            <div class="listing-detail">
-                                <dt>@T["Listings.Requester"]</dt>
-                                <dd>@item.Requester.DisplayName</dd>
-                            </div>
+                            <p class="listing-card-description">@item.Description</p>
 
-                            <div class="listing-detail">
-                                <dt>@T["Listings.Location"]</dt>
-                                <dd>@item.PostalCode @item.City</dd>
-                            </div>
+                            <dl class="listing-card-details">
+                                <div class="listing-detail">
+                                    <dt>@T["Listings.Category"]</dt>
+                                    <dd>@item.Category.Name</dd>
+                                </div>
 
-                            <div class="listing-detail">
-                                <dt>Coordinates</dt>
-                                <dd>@item.Latitude, @item.Longitude</dd>
-                            </div>
+                                <div class="listing-detail">
+                                    <dt>@T["Listings.Requester"]</dt>
+                                    <dd>@item.Requester.DisplayName</dd>
+                                </div>
 
-                            @if (IsGeoSearchActive)
+                                <div class="listing-detail">
+                                    <dt>@T["Listings.Location"]</dt>
+                                    <dd>@item.PostalCode @item.City</dd>
+                                </div>
+
+                                <div class="listing-detail">
+                                    <dt>Coordinates</dt>
+                                    <dd>@item.Latitude, @item.Longitude</dd>
+                                </div>
+
+                                @if (IsGeoSearchActive)
+                                {
+                                    <div class="listing-detail listing-detail--highlight">
+                                        <dt>Distance</dt>
+                                        <dd>@GetDistanceText(item.Id)</dd>
+                                    </div>
+                                }
+
+                                <div class="listing-detail">
+                                    <dt>@T["Listings.Compensation"]</dt>
+                                    <dd>@T.Enum(item.CompensationType)</dd>
+                                </div>
+
+                                <div class="listing-detail">
+                                    <dt>@T["Listings.Status"]</dt>
+                                    <dd>@T.Enum(item.Status)</dd>
+                                </div>
+
+                                <div class="listing-detail">
+                                    <dt>@T["Listings.Budget"]</dt>
+                                    <dd>@(item.BudgetMin?.ToString("N2")) € - @(item.BudgetMax?.ToString("N2")) €</dd>
+                                </div>
+                            </dl>
+
+                            @if (CanApplyToListing(item) && !HasApplied(item.Id))
                             {
-                                <div class="listing-detail listing-detail--highlight">
-                                    <dt>Distance</dt>
-                                    <dd>@GetDistanceText(item.Id)</dd>
+                                <section class="listing-application listing-application--accent">
+                                    <h3>Für Auftrag bewerben</h3>
+
+                                    <EditForm Model="applyModel"
+                                    OnValidSubmit="() => ApplyAsync(item.Id)"
+                                    FormName="@GetApplyFormName(item.Id)">
+                                        <DataAnnotationsValidator />
+
+                                        <div class="listing-application-grid">
+                                            <div class="field">
+                                                <label>Preisvorschlag (€)</label>
+                                                <InputNumber @bind-Value="applyModel.ProposedPrice" class="field-input" />
+                                                <ValidationMessage For="() => applyModel.ProposedPrice" />
+                                            </div>
+
+                                            <div class="field">
+                                                <label>Vergütung</label>
+                                                <InputSelect @bind-Value="applyModel.CompensationType" class="field-input">
+                                                    @foreach (var compensationType in Enum.GetValues<CompensationType>())
+                                                    {
+                                                        <option value="@compensationType">@T.Enum(compensationType)</option>
+                                                    }
+                                                </InputSelect>
+                                            </div>
+
+                                            <div class="field field--full">
+                                                <label>Nachricht</label>
+                                                <InputTextArea @bind-Value="applyModel.Message" class="field-input field-textarea" rows="4" />
+                                                <ValidationMessage For="() => applyModel.Message" />
+                                            </div>
+                                        </div>
+
+                                        <button type="submit"
+                                        class="btn btn-primary"
+                                        disabled="@(applyingListingId == item.Id)">
+                                            @(applyingListingId == item.Id ? "Bewerbung wird gesendet …" : "Jetzt bewerben")
+                                        </button>
+                                    </EditForm>
+                                </section>
+                            }
+                            else if (HasApplied(item.Id))
+                            {
+                                <div class="listing-alert listing-alert-success">
+                                    <strong>Du hast dich bereits auf diesen Auftrag beworben.</strong>
                                 </div>
                             }
 
-                            <div class="listing-detail">
-                                <dt>@T["Listings.Compensation"]</dt>
-                                <dd>@T.Enum(item.CompensationType)</dd>
+                            <div class="listing-card-actions">
+                                <a class="btn btn-secondary" href="@($"/auftraege/{item.Id}/bearbeiten")">@T["General.Edit"]</a>
+                                <a class="btn btn-secondary" href="@($"/auftraege/{item.Id}/vergabe")">Vergabe</a>
                             </div>
-
-                            <div class="listing-detail">
-                                <dt>@T["Listings.Status"]</dt>
-                                <dd>@T.Enum(item.Status)</dd>
-                            </div>
-
-                            <div class="listing-detail">
-                                <dt>@T["Listings.Budget"]</dt>
-                                <dd>@(item.BudgetMin?.ToString("N2")) € - @(item.BudgetMax?.ToString("N2")) €</dd>
-                            </div>
-                        </dl>
-
-                        @if (CanApplyToListing(item) && !HasApplied(item.Id))
-                        {
-                            <section class="listing-application listing-application--accent">
-                                <h3>Für Auftrag bewerben</h3>
-
-                                <EditForm Model="applyModel"
-                                          OnValidSubmit="() => ApplyAsync(item.Id)"
-                                          FormName="@GetApplyFormName(item.Id)">
-                                    <DataAnnotationsValidator />
-
-                                    <div class="listing-application-grid">
-                                        <div class="field">
-                                            <label>Preisvorschlag (€)</label>
-                                            <InputNumber @bind-Value="applyModel.ProposedPrice" class="field-input" />
-                                            <ValidationMessage For="() => applyModel.ProposedPrice" />
-                                        </div>
-
-                                        <div class="field">
-                                            <label>Vergütung</label>
-                                            <InputSelect @bind-Value="applyModel.CompensationType" class="field-input">
-                                                @foreach (var compensationType in Enum.GetValues<CompensationType>())
-                                                {
-                                                    <option value="@compensationType">@T.Enum(compensationType)</option>
-                                                }
-                                            </InputSelect>
-                                        </div>
-
-                                        <div class="field field--full">
-                                            <label>Nachricht</label>
-                                            <InputTextArea @bind-Value="applyModel.Message" class="field-input field-textarea" rows="4" />
-                                            <ValidationMessage For="() => applyModel.Message" />
-                                        </div>
-                                    </div>
-
-                                    <button type="submit"
-                                            class="btn btn-primary"
-                                            disabled="@(applyingListingId == item.Id)">
-                                        @(applyingListingId == item.Id ? "Bewerbung wird gesendet …" : "Jetzt bewerben")
-                                    </button>
-                                </EditForm>
-                            </section>
-                        }
-                        else if (HasApplied(item.Id))
-                        {
-                            <div class="listing-alert listing-alert-success">
-                                <strong>Du hast dich bereits auf diesen Auftrag beworben.</strong>
-                            </div>
-                        }
-
-                        <div class="listing-card-actions">
-                            <a class="btn btn-secondary" href="@($"/auftraege/{item.Id}/bearbeiten")">@T["General.Edit"]</a>
-                            <a class="btn btn-secondary" href="@($"/auftraege/{item.Id}/vergabe")">Vergabe</a>
                         </div>
-                    </div>
-                </article>
+                    </article>
+                }
+            }
+            else
+            {
+                <AuftraegeKarten Items="items" />
             }
         </div>
     }
