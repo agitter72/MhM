@@ -185,7 +185,7 @@ public partial class Auftrag
         entity.Longitude = longitude;
 
         await db.SaveChangesAsync();
-        Navigation.NavigateTo("/auftraege");
+        Navigation.NavigateTo($"/auftraege/{entity.Id}");
     }
 
     protected sealed class ListingFormModel
