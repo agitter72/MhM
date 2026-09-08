@@ -903,3 +903,183 @@ h1, h2, h3, h4, p {
         grid-template-columns: 1fr;
     }
 }
+
+.carousel {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.carousel-frame {
+    position: relative;
+    min-height: 240px;
+    border-radius: 18px;
+    overflow: hidden;
+    background: var(--panel-2);
+}
+
+.carousel-image-wrapper {
+    width: 100%;
+    height: 100%;
+    min-height: 240px;
+}
+
+.carousel-image {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.carousel-arrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 3;
+    width: 2.25rem;
+    height: 2.25rem;
+    border: 0;
+    border-radius: 999px;
+    background: rgba(17, 24, 39, 0.55);
+    color: #fff;
+    cursor: pointer;
+}
+
+.carousel-arrow-prev { left: 0.65rem; }
+.carousel-arrow-next { right: 0.65rem; }
+
+/* indicator (counter) bottom center */
+.carousel-counter {
+    position: absolute;
+    left: 50%;
+    bottom: 0.65rem;
+    transform: translateX(-50%);
+    z-index: 3;
+    margin: 0;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    background: rgba(17, 24, 39, 0.55);
+    color: #fff;
+    font-size: 0.8rem;
+}
+
+.carousel-dots {
+    display: flex;
+    justify-content: center; /* center horizontally */
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.6rem;      /* directly under image */
+}
+
+.carousel-dot {
+    width: 10px;
+    height: 10px;
+    border: 0;
+    border-radius: 999px;
+    background: #cbd5e1;
+    cursor: pointer;
+    padding: 0;
+}
+
+.carousel-dot.active {
+    background: var(--primary);
+}
+
+.auftrag-detail-page {
+    width: 100%;
+    max-width: 700px;
+    margin: 0 auto;
+}
+
+.auftrag-detail-content {
+    display: grid;
+    grid-template-rows: 1fr auto auto;
+    gap: 0.1rem;
+    align-items: start;
+}
+
+.auftrag-detail-media-panel,
+.auftrag-detail-data-panel {
+    height: 100%;
+}
+
+.auftrag-detail-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0;
+}
+
+.auftrag-detail-table tr + tr {
+    border-top: 1px solid var(--line);
+}
+
+.auftrag-detail-table th,
+.auftrag-detail-table td {
+    padding: 0.75rem 0;
+    vertical-align: top;
+}
+
+    .auftrag-detail-table td[colspan="2"]{
+        text-align:left;
+    }
+
+    .auftrag-detail-table th {
+        width: 42%;
+        text-align: left; /* label linksbündig */
+        font-weight: 700; /* label fett */
+        color: var(--text);
+    }
+
+.auftrag-detail-table td {
+    width: 58%;
+    text-align: right;     /* Werte rechtsbündig */
+    color: var(--text);
+}
+
+.auftrag-detail-apply-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 1rem;
+}
+
+.auftrag-detail-apply-grid .field--full {
+    grid-column: 1 / -1;
+}
+
+/* globaler Mobile-Stack bleibt, aber AuftragDetail wird überschrieben */
+@media (max-width: 900px) {
+    .listing-application-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .auftrag-detail-apply-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+}
+
+.listing-alert-success {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    margin: 0.75rem 0;
+    padding: 0.9rem 1rem;
+    border-radius: 14px;
+    border: 1px solid #b7ebc9;
+    background: #ecfdf3;
+    color: #166534;
+    font-weight: 600;
+}
+
+.listing-alert-success::before {
+    content: "ℹ";
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.2rem;
+    height: 1.2rem;
+    border-radius: 999px;
+    background: #22c55e;
+    color: #ffffff;
+    font-size: 0.75rem;
+    line-height: 1;
+    flex-shrink: 0;
+}

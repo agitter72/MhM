@@ -1,33 +1,35 @@
 @using MhM.UI.Data.Models
 
 <div class="carousel">
-    <div class="carousel-stage">
+    <div class="carousel-frame">
         <button type="button"
                 class="carousel-arrow carousel-arrow-prev"
                 @onclick="Prev"
-                disabled="@(Images.Count <= 1)">&#8249;</button>
+                disabled="@(Images.Count <= 1)"
+                aria-label="Vorheriges Bild">&#8249;</button>
 
-        <div class="carousel-frame">
-            <div class="carousel-image-wrapper">
-                <img src="/api/listing-images/@Images[_index].Id"
-                     alt="@Images[_index].FileName"
-                     title="@Images[_index].FileName"
-                     class="carousel-image" />
-            </div>
-
-            @if (OnDelete.HasDelegate)
-            {
-                <button type="button"
-                        class="btn-icon btn-danger carousel-delete"
-                        title="Bild löschen"
-                        @onclick="DeleteCurrentAsync">&#x2715;</button>
-            }
+        <div class="carousel-image-wrapper">
+            <img src="/api/listing-images/@Images[_index].Id"
+                 alt="@Images[_index].FileName"
+                 title="@Images[_index].FileName"
+                 class="carousel-image" />
         </div>
 
         <button type="button"
                 class="carousel-arrow carousel-arrow-next"
                 @onclick="Next"
-                disabled="@(Images.Count <= 1)">&#8250;</button>
+                disabled="@(Images.Count <= 1)"
+                aria-label="Nächstes Bild">&#8250;</button>
+
+        <p class="carousel-counter muted">@(_index + 1) / @Images.Count</p>
+
+        @if (OnDelete.HasDelegate)
+        {
+            <button type="button"
+                    class="btn-icon btn-danger carousel-delete"
+                    title="Bild löschen"
+                    @onclick="DeleteCurrentAsync">&#x2715;</button>
+        }
     </div>
 
     <div class="carousel-dots">
@@ -39,6 +41,4 @@
                     @onclick="() => GoTo(idx)"></button>
         }
     </div>
-
-    <p class="carousel-counter muted">@(_index + 1) / @Images.Count</p>
 </div>

@@ -28,92 +28,88 @@ else
             </div>
         </section>
 
-        @if (!string.IsNullOrWhiteSpace(applyError))
-        {
-            <div class="listing-alert listing-alert-error">@applyError</div>
-        }
-
-        @if (!string.IsNullOrWhiteSpace(applySuccess))
-        {
-            <div class="listing-alert listing-alert-success">@applySuccess</div>
-        }
-
-        <article class="listing-card panel">
-            <div class="listing-card-media">
-                @if (item.Images.Count > 0)
-                {
-                    <div class="listing-card-media-inner">
-                        <ImageCarousel Images="item.Images.ToList()" />
-                    </div>
-                }
-                else
-                {
-                    <div class="listing-card-placeholder">
-                        <span>Kein Bild verfügbar</span>
-                    </div>
-                }
-            </div>
-
-            <div class="listing-card-body">
-                <div class="listing-chip-row">
-                    <span class="badge-soft">@T.Enum(item.Status)</span>
-                    <span class="badge-soft">@T.Enum(item.CompensationType)</span>
+        <div class="auftrag-detail-content">
+            <section class="panel auftrag-detail-media-panel">
+                <div class="listing-card-media">
+                    @if (item.Images.Count > 0)
+                    {
+                        <div class="listing-card-media-inner">
+                            <ImageCarousel Images="item.Images.ToList()" />
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="listing-card-placeholder">
+                            <span>Kein Bild verfügbar</span>
+                        </div>
+                    }
                 </div>
+            </section>
 
-                <p class="listing-card-description">@item.Description</p>
+            <section class="panel auftrag-detail-data-panel">
+                <div class="listing-chip-row">
+                    <label>Vergütung: </label><span class="badge-soft">@T.Enum(item.CompensationType)</span>
+                    <label>Status: </label><span class="badge-soft">@T.Enum(item.Status)</span>
+                </div>
+            </section>
 
-                <dl class="listing-card-details">
-                    <div class="listing-detail">
-                        <dt>Kategorie</dt>
-                        <dd>@item.Category.Name</dd>
-                    </div>
+            <section class="panel auftrag-detail-data-panel">
+                <div class="listing-card-body">
 
-                    <div class="listing-detail">
-                        <dt>Erstellt von</dt>
-                        <dd>@item.Requester.DisplayName</dd>
-                    </div>
+                    <table class="auftrag-detail-table">
+                        <tbody>
+                            <tr>
+                                <th colspan="2">Worum gehts:</th>
+                            </tr>
+                            <tr>
+                                <td colspan="2" class="left">@item.Description</td>
+                            </tr>
+                            <tr>
+                                <th>Kategorie</th>
+                                <td>@item.Category.Name</td>
+                            </tr>
+                            <tr>
+                                <th>Erstellt von</th>
+                                <td>@item.Requester.DisplayName</td>
+                            </tr>
+                            <tr>
+                                <th>Ort</th>
+                                <td>@item.PostalCode @item.City</td>
+                            </tr>
+                            <tr>
+                                <th>Koordinaten</th>
+                                <td>@item.Latitude, @item.Longitude</td>
+                            </tr>
+                            <tr>
+                                <th>Vergütung</th>
+                                <td>@T.Enum(item.CompensationType)</td>
+                            </tr>
+                            <tr>
+                                <th>Status</th>
+                                <td>@T.Enum(item.Status)</td>
+                            </tr>
+                            <tr>
+                                <th>Budget</th>
+                                <td>@(item.BudgetMin?.ToString("N2")) € - @(item.BudgetMax?.ToString("N2")) €</td>
+                            </tr>
+                            <tr>
+                                <th>Wunschtermin</th>
+                                <td>@(item.PreferredDateUtc?.ToLocalTime().ToString("dd.MM.yyyy HH:mm") ?? "-")</td>
+                            </tr>
+                            <tr>
+                                <th>Erstellt am</th>
+                                <td>@item.CreatedUtc.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</td>
+                            </tr>
+                            <tr>
+                                <th>Bewerbungen</th>
+                                <td>@applicationCount</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
 
-                    <div class="listing-detail">
-                        <dt>Ort</dt>
-                        <dd>@item.PostalCode @item.City</dd>
-                    </div>
-
-                    <div class="listing-detail">
-                        <dt>Koordinaten</dt>
-                        <dd>@item.Latitude, @item.Longitude</dd>
-                    </div>
-
-                    <div class="listing-detail">
-                        <dt>Vergütung</dt>
-                        <dd>@T.Enum(item.CompensationType)</dd>
-                    </div>
-
-                    <div class="listing-detail">
-                        <dt>Status</dt>
-                        <dd>@T.Enum(item.Status)</dd>
-                    </div>
-
-                    <div class="listing-detail">
-                        <dt>Budget</dt>
-                        <dd>@(item.BudgetMin?.ToString("N2")) € - @(item.BudgetMax?.ToString("N2")) €</dd>
-                    </div>
-
-                    <div class="listing-detail">
-                        <dt>Wunschtermin</dt>
-                        <dd>@(item.PreferredDateUtc?.ToLocalTime().ToString("dd.MM.yyyy HH:mm") ?? "-")</dd>
-                    </div>
-
-                    <div class="listing-detail">
-                        <dt>Erstellt am</dt>
-                        <dd>@item.CreatedUtc.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</dd>
-                    </div>
-
-                    <div class="listing-detail">
-                        <dt>Bewerbungen</dt>
-                        <dd>@applicationCount</dd>
-                    </div>
-                </dl>
-
+            <section class="panel auftrag-detail-data-panel">
                 @if (CanApplyToListing(item) && !HasApplied(item.Id))
                 {
                     <section class="listing-application listing-application--accent">
@@ -124,7 +120,7 @@ else
                                   FormName="@GetApplyFormName(item.Id)">
                             <DataAnnotationsValidator />
 
-                            <div class="listing-application-grid">
+                            <div class="listing-application-grid auftrag-detail-apply-grid">
                                 <div class="field">
                                     <label>Preisvorschlag (€)</label>
                                     <InputNumber @bind-Value="applyModel.ProposedPrice" class="field-input" />
@@ -147,7 +143,6 @@ else
                                     <ValidationMessage For="() => applyModel.Message" />
                                 </div>
                             </div>
-
                             <button type="submit" class="btn btn-primary" disabled="@isApplying">
                                 @(isApplying ? "Bewerbung wird gesendet …" : "Jetzt bewerben")
                             </button>
@@ -160,7 +155,17 @@ else
                         <strong>Du hast dich bereits auf diesen Auftrag beworben.</strong>
                     </div>
                 }
-            </div>
-        </article>
+            </section>
+
+            @if (!string.IsNullOrWhiteSpace(applyError))
+            {
+                <div class="listing-alert listing-alert-error">@applyError</div>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(applySuccess))
+            {
+                <div class="listing-alert listing-alert-success">@applySuccess</div>
+            }
+        </div>
     </div>
 }
