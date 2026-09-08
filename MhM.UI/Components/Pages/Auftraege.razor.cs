@@ -29,7 +29,24 @@ public partial class Auftraege
     [SupplyParameterFromQuery(Name = "radiusKm")]
     public double? RadiusKm { get; set; }
 
+    [SupplyParameterFromQuery(Name = "q")]
+    public string? Query { get; set; }
+
+    [SupplyParameterFromQuery(Name = "city")]
+    public string? City { get; set; }
+
+    [SupplyParameterFromQuery(Name = "min")]
+    public decimal? BudgetMinFilter { get; set; }
+
+    [SupplyParameterFromQuery(Name = "max")]
+    public decimal? BudgetMaxFilter { get; set; }
+
+    [SupplyParameterFromQuery(Name = "k")]
+    public int[]? CategoryIds { get; set; }
+
     protected List<Listing>? items;
+    protected List<Category> categories = [];
+    protected HashSet<int> selectedCategoryIds = [];
     protected Dictionary<Guid, double> distancesKmByListingId = [];
 
     protected readonly Dictionary<Guid, ListingApplicationInputModel> applicationModels = [];
@@ -43,6 +60,28 @@ public partial class Auftraege
     protected bool IsGeoSearchActive => Latitude.HasValue && Longitude.HasValue;
     protected double EffectiveRadiusKm => RadiusKm is > 0 ? RadiusKm.Value : 50d;
 
+    // durch:
+    [SupplyParameterFromQuery(Name = "comp")]
+    public string? Compensation { get; set; }
+
+    protected CompensationType? CompensationFilter
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(Compensation))
+            {
+                return null;
+            }
+
+            if (int.TryParse(Compensation, out var intValue) &&
+                Enum.IsDefined(typeof(CompensationType), intValue))
+            {
+                return (CompensationType)intValue;
+            }
+
+            return null;
+        }
+    }
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender) return;
@@ -67,11 +106,60 @@ public partial class Auftraege
     {
         await using var db = await DbFactory.CreateDbContextAsync();
 
-        var openListings = await db.Listings
+        categories = await db.Categories
+            .OrderBy(x => x.Name)
+            .ToListAsync();
+
+        selectedCategoryIds = (CategoryIds ?? [])
+            .Distinct()
+            .ToHashSet();
+
+        var listingQuery = db.Listings
             .Include(x => x.Category)
             .Include(x => x.Requester)
             .Include(x => x.Images)
             .Where(x => x.Status == ListingStatus.Offen)
+            .AsQueryable();
+
+        if (selectedCategoryIds.Count > 0)
+        {
+            listingQuery = listingQuery.Where(x => selectedCategoryIds.Contains(x.CategoryId));
+        }
+
+        if (!string.IsNullOrWhiteSpace(Query))
+        {
+            var term = Query.Trim();
+            listingQuery = listingQuery.Where(x =>
+                x.Title.Contains(term) ||
+                x.Description.Contains(term));
+        }
+
+        if (!string.IsNullOrWhiteSpace(City))
+        {
+            var locationTerm = City.Trim();
+            listingQuery = listingQuery.Where(x =>
+                x.City.Contains(locationTerm) ||
+                x.PostalCode.Contains(locationTerm));
+        }
+
+        if (CompensationFilter.HasValue)
+        {
+            listingQuery = listingQuery.Where(x => x.CompensationType == CompensationFilter.Value);
+        }
+
+        if (BudgetMinFilter.HasValue)
+        {
+            var min = BudgetMinFilter.Value;
+            listingQuery = listingQuery.Where(x => (x.BudgetMax ?? x.BudgetMin ?? decimal.MaxValue) >= min);
+        }
+
+        if (BudgetMaxFilter.HasValue)
+        {
+            var max = BudgetMaxFilter.Value;
+            listingQuery = listingQuery.Where(x => (x.BudgetMin ?? x.BudgetMax ?? 0m) <= max);
+        }
+
+        var filteredListings = await listingQuery
             .OrderByDescending(x => x.CreatedUtc)
             .ToListAsync();
 
@@ -81,7 +169,7 @@ public partial class Auftraege
 
         if (!IsGeoSearchActive)
         {
-            items = openListings;
+            items = filteredListings;
         }
         else
         {
@@ -89,7 +177,7 @@ public partial class Auftraege
             var centerLon = Longitude!.Value;
             var radius = EffectiveRadiusKm;
 
-            items = openListings
+            items = filteredListings
                 .Where(x => x.Latitude.HasValue && x.Longitude.HasValue)
                 .Select(x => new
                 {
