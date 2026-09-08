@@ -13,6 +13,7 @@
     {
         @foreach (var item in Items)
         {
+            <a class="btn btn-secondary" href="@($"/auftraege/{item.Id}/bearbeiten")">
             <article class="auftrag-karte">
                 <div class="auftrag-karte-image">
                     @if (item.Images.Count > 0)
@@ -45,6 +46,7 @@
                     </div>
                 </div>
             </article>
+            </a>
         }
     }
 </div>
