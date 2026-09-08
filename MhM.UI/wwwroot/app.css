@@ -909,6 +909,12 @@ h1, h2, h3, h4, p {
     margin-top: 0.5rem;
 }
 
+.auftrag-karte-link {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+}
+
 @media (max-width: 900px) {
     .assignment-filter-bar .btn {
         flex: 1 1 calc(50% - .5rem);

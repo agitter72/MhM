@@ -13,39 +13,39 @@
     {
         @foreach (var item in Items)
         {
-            <a class="btn btn-secondary" href="@($"/auftraege/{item.Id}/bearbeiten")">
-            <article class="auftrag-karte">
-                <div class="auftrag-karte-image">
-                    @if (item.Images.Count > 0)
-                    {
-                        <img src="/api/listing-images/@item.Images.ToList()[0].Id"
-                             alt="@item.Images.ToList()[0].FileName"
-                             title="@item.Images.ToList()[0].FileName"
-                             class="carousel-image" />
-                    }
-                    else
-                    {
-                        <div class="auftrag-bild-placeholder">
-                            <span>Kein Bild</span>
-                        </div>
-                    }
-                </div>
-
-                <div class="auftrag-karte-content">
-                    <h3 class="auftrag-karte-title">@item.Title</h3>
-                    <p class="auftrag-karte-location">@item.PostalCode @item.City</p>
-                    <div class="auftrag-karte-price">
-                        @if (item.BudgetMin.HasValue && item.BudgetMax.HasValue)
+            <a class="auftrag-karte-link" href="@($"/auftraege/{item.Id}")">
+                <article class="auftrag-karte">
+                    <div class="auftrag-karte-image">
+                        @if (item.Images.Count > 0)
                         {
-                            <span>@item.BudgetMin.Value.ToString("N2") € - @item.BudgetMax.Value.ToString("N2") €</span>
+                            <img src="/api/listing-images/@item.Images.ToList()[0].Id"
+                                 alt="@item.Images.ToList()[0].FileName"
+                                 title="@item.Images.ToList()[0].FileName"
+                                 class="carousel-image" />
                         }
-                        else if (item.BudgetMax.HasValue)
+                        else
                         {
-                            <span>bis @item.BudgetMax.Value.ToString("N2") €</span>
+                            <div class="auftrag-bild-placeholder">
+                                <span>Kein Bild</span>
+                            </div>
                         }
                     </div>
-                </div>
-            </article>
+
+                    <div class="auftrag-karte-content">
+                        <h3 class="auftrag-karte-title">@item.Title</h3>
+                        <p class="auftrag-karte-location">@item.PostalCode @item.City</p>
+                        <div class="auftrag-karte-price">
+                            @if (item.BudgetMin.HasValue && item.BudgetMax.HasValue)
+                            {
+                                <span>@item.BudgetMin.Value.ToString("N2") € - @item.BudgetMax.Value.ToString("N2") €</span>
+                            }
+                            else if (item.BudgetMax.HasValue)
+                            {
+                                <span>bis @item.BudgetMax.Value.ToString("N2") €</span>
+                            }
+                        </div>
+                    </div>
+                </article>
             </a>
         }
     }
