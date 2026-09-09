@@ -1,5 +1,5 @@
 # Copilot Instructions
 
 ## Project Guidelines
-- User wants the carousel indicator positioned at the bottom center.
 - User wants ImageCarousel dots centered under the image.
+- Use component-specific styles in separate `.razor.css` files instead of keeping them in shared `wwwroot/app.css` when appropriate.
