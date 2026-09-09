@@ -23,6 +23,9 @@ public partial class Auftraege
     [Inject]
     protected AuthenticationStateProvider AuthenticationStateProvider { get; set; } = default!;
 
+    [Inject]
+    protected NavigationManager Navigation { get; set; } = default!;
+
     public double? Latitude { get; set; }
     public double? Longitude { get; set; }
 
@@ -294,10 +297,8 @@ public partial class Auftraege
             await db.SaveChangesAsync();
 
             appliedListingIds.Add(listingId);
-            applySuccess = "Bewerbung erfolgreich gesendet.";
-
-            model.Message = string.Empty;
-            model.ProposedPrice = null;
+            Navigation.NavigateTo("/mein?tab=applications&status=eingereicht");
+            return;
         }
         finally
         {

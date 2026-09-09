@@ -1,0 +1,106 @@
+.mein-header {
+    margin-bottom: 1rem;
+}
+
+.mein-tabs-shell {
+    padding: 0.75rem;
+}
+
+.mein-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color, #d9d9d9);
+    padding-bottom: 0.75rem;
+}
+
+.mein-tab {
+    border: 1px solid var(--border-color, #d9d9d9);
+    background: var(--surface-1, #fff);
+    color: inherit;
+    padding: 0.5rem 0.85rem;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    font: inherit;
+}
+
+.mein-tab:hover {
+    background: var(--surface-2, #f5f5f5);
+}
+
+.mein-tab.is-active {
+    background: var(--primary, #0d6efd);
+    color: #fff;
+    border-color: var(--primary, #0d6efd);
+}
+
+.mein-tab-content {
+    padding-top: 0.25rem;
+}
+
+.mein-grid {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: 1fr;
+    margin-bottom: 1rem;
+}
+
+@media (min-width: 1100px) {
+    .mein-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+.mein-applications-list {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.mein-application-item h3 {
+    margin-bottom: 0.35rem;
+}
+
+.mein-application-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+.mein-status-badge {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    padding: 0.2rem 0.6rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.mein-status-badge.status-eingereicht {
+    background: #eef2ff;
+    color: #3730a3;
+}
+
+.mein-status-badge.status-angenommen {
+    background: #ecfdf3;
+    color: #166534;
+}
+
+.mein-status-badge.status-abgelehnt {
+    background: #fef2f2;
+    color: #991b1b;
+}
+
+.mein-application-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin: 0.75rem 0 1rem;
+}
+
+.mein-application-filters .btn.is-active {
+    border-color: var(--primary, #0d6efd);
+    background: var(--primary, #0d6efd);
+    color: #fff;
+}

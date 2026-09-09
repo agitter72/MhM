@@ -1,10 +1,10 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.EntityFrameworkCore;
 using MhM.UI.Data;
 using MhM.UI.Data.Models;
 using MhM.UI.Localization;
+using Microsoft.AspNetCore.Components.Authorization;
 
 namespace MhM.UI.Components.Pages;
 
@@ -21,6 +21,9 @@ public partial class AuftragDetail
 
     [Inject]
     protected AuthenticationStateProvider AuthenticationStateProvider { get; set; } = default!;
+
+    [Inject]
+    protected NavigationManager Navigation { get; set; } = default!;
 
     protected Listing? item;
     protected bool isLoading = true;
@@ -153,11 +156,9 @@ public partial class AuftragDetail
             await db.SaveChangesAsync();
 
             appliedListingIds.Add(item.Id);
-            applySuccess = "Bewerbung erfolgreich gesendet.";
             applicationCount++;
-
-            model.Message = string.Empty;
-            model.ProposedPrice = null;
+            Navigation.NavigateTo("/mein?tab=applications&status=eingereicht");
+            return;
         }
         finally
         {

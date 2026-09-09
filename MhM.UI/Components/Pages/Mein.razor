@@ -1,0 +1,339 @@
+@page "/mein"
+@attribute [Authorize]
+@using Microsoft.AspNetCore.Authorization
+
+<PageTitle>Mein Bereich</PageTitle>
+
+@if (isLoading)
+{
+    <section class="panel">
+        <p class="muted">Lädt...</p>
+    </section>
+}
+else
+{
+    <section class="mein-header panel">
+        <div>
+            <div class="eyebrow">Privater Bereich</div>
+            <h1>Mein Bereich</h1>
+            <p class="muted">Verwalte deine Aufträge, Helferprofil- und Kontodaten.</p>
+        </div>
+    </section>
+
+    <section class="panel mein-tabs-shell">
+        <div class="mein-tabs" role="tablist" aria-label="Mein Bereich Tabs">
+            <button type="button"
+                    role="tab"
+                    class="mein-tab @(activeTab == MeinTab.OwnListings ? "is-active" : null)"
+                    aria-selected="@(activeTab == MeinTab.OwnListings)"
+                    @onclick="() => SetTab(MeinTab.OwnListings)">
+                Meine Aufträge
+            </button>
+
+            @* <button type="button"
+                    role="tab"
+                    class="mein-tab @(activeTab == MeinTab.HelperListings ? "is-active" : null)"
+                    aria-selected="@(activeTab == MeinTab.HelperListings)"
+                    @onclick="() => SetTab(MeinTab.HelperListings)">
+                Helfer-Aufträge
+            </button> *@
+
+            
+            <button type="button"
+                    role="tab"
+                    class="mein-tab @(activeTab == MeinTab.Applications ? "is-active" : null)"
+                    aria-selected="@(activeTab == MeinTab.Applications)"
+                    @onclick="() => SetTab(MeinTab.Applications)">
+                Meine Bewerbungen
+            </button>
+
+            <button type="button"
+                    role="tab"
+                    class="mein-tab @(activeTab == MeinTab.HelperProfile ? "is-active" : null)"
+                    aria-selected="@(activeTab == MeinTab.HelperProfile)"
+                    @onclick="() => SetTab(MeinTab.HelperProfile)">
+                Helferdaten
+            </button>
+
+            <button type="button"
+                    role="tab"
+                    class="mein-tab @(activeTab == MeinTab.PersonalData ? "is-active" : null)"
+                    aria-selected="@(activeTab == MeinTab.PersonalData)"
+                    @onclick="() => SetTab(MeinTab.PersonalData)">
+                Persönliche Daten
+            </button>
+
+            <button type="button"
+                    role="tab"
+                    class="mein-tab @(activeTab == MeinTab.Password ? "is-active" : null)"
+                    aria-selected="@(activeTab == MeinTab.Password)"
+                    @onclick="() => SetTab(MeinTab.Password)">
+                Passwort
+            </button>
+
+        </div>
+
+        <div class="mein-tab-content" role="tabpanel">
+            @if (activeTab == MeinTab.OwnListings)
+            {
+                <article>
+                    <h2>Meine erstellten Aufträge</h2>
+                    @if (myOwnListings.Count == 0)
+                    {
+                        <p class="muted">Du hast noch keine Aufträge erstellt.</p>
+                    }
+                    else
+                    {
+                        <AuftraegeKarten Items="myOwnListings" />
+                    }
+                </article>
+            }
+            else if (activeTab == MeinTab.HelperListings)
+            {
+                <article>
+                    <h2>Aufträge, bei denen ich Helfer bin</h2>
+                    @if (myHelperListings.Count == 0)
+                    {
+                        <p class="muted">Du bist aktuell noch bei keinem Auftrag als Helfer angenommen.</p>
+                    }
+                    else
+                    {
+                        <AuftraegeKarten Items="myHelperListings" />
+                    }
+                </article>
+            }
+            else if (activeTab == MeinTab.HelperProfile)
+            {
+                <article class="panel-form">
+                    <h2>Helferdaten bearbeiten</h2>
+
+                    @if (!string.IsNullOrWhiteSpace(helperError))
+                    {
+                        <div class="alert-error">@helperError</div>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(helperSuccess))
+                    {
+                        <div class="alert-success">@helperSuccess</div>
+                    }
+
+                    <EditForm Model="helperData" OnValidSubmit="SaveHelperDataAsync" FormName="mein-helper-form">
+                        <DataAnnotationsValidator />
+                        <ValidationSummary />
+
+                        <div class="form-grid">
+                            <div class="field field-full">
+                                <label for="helperTitle">Titel</label>
+                                <InputText id="helperTitle" class="field-input" @bind-Value="helperData.Title" />
+                                <ValidationMessage For="() => helperData.Title" />
+                            </div>
+
+                            <div class="field field-full">
+                                <label for="helperDescription">Beschreibung</label>
+                                <InputTextArea id="helperDescription" class="field-input field-textarea" rows="4" @bind-Value="helperData.Description" />
+                                <ValidationMessage For="() => helperData.Description" />
+                            </div>
+
+                            <div class="field field-full">
+                                <label for="helperSkills">Skills</label>
+                                <InputText id="helperSkills" class="field-input" @bind-Value="helperData.Skills" />
+                            </div>
+
+                            <div class="field">
+                                <label for="helperRate">Stundensatz (€)</label>
+                                <InputNumber id="helperRate" class="field-input" @bind-Value="helperData.HourlyRate" />
+                            </div>
+
+                            <div class="field">
+                                <label for="helperRadius">Radius (km)</label>
+                                <InputNumber id="helperRadius" class="field-input" @bind-Value="helperData.RadiusKm" />
+                                <ValidationMessage For="() => helperData.RadiusKm" />
+                            </div>
+
+                            <div class="field field-full">
+                                <label>
+                                    <InputCheckbox @bind-Value="helperData.OffersBarter" />
+                                    Biete auch Tausch an
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary" disabled="@savingHelper">
+                                @(savingHelper ? "Speichert..." : "Helferdaten speichern")
+                            </button>
+                        </div>
+                    </EditForm>
+                </article>
+            }
+            else if (activeTab == MeinTab.PersonalData)
+            {
+                <article class="panel-form">
+                    <h2>Persönliche Daten</h2>
+
+                    @if (!string.IsNullOrWhiteSpace(personalError))
+                    {
+                        <div class="alert-error">@personalError</div>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(personalSuccess))
+                    {
+                        <div class="alert-success">@personalSuccess</div>
+                    }
+
+                    <EditForm Model="personalData" OnValidSubmit="SavePersonalDataAsync" FormName="mein-personal-form">
+                        <DataAnnotationsValidator />
+                        <ValidationSummary />
+
+                        <div class="form-grid">
+                            <div class="field">
+                                <label for="firstName">Vorname</label>
+                                <InputText id="firstName" class="field-input" @bind-Value="personalData.FirstName" />
+                                <ValidationMessage For="() => personalData.FirstName" />
+                            </div>
+
+                            <div class="field">
+                                <label for="lastName">Nachname</label>
+                                <InputText id="lastName" class="field-input" @bind-Value="personalData.LastName" />
+                                <ValidationMessage For="() => personalData.LastName" />
+                            </div>
+
+                            <div class="field field-full">
+                                <label for="email">E-Mail</label>
+                                <InputText id="email" class="field-input" @bind-Value="personalData.Email" />
+                                <ValidationMessage For="() => personalData.Email" />
+                            </div>
+
+                            <div class="field field-full">
+                                <label for="phone">Telefon</label>
+                                <InputText id="phone" class="field-input" @bind-Value="personalData.Phone" />
+                            </div>
+
+                            <div class="field">
+                                <label for="postalCode">PLZ</label>
+                                <InputText id="postalCode" class="field-input" @bind-Value="personalData.PostalCode" />
+                                <ValidationMessage For="() => personalData.PostalCode" />
+                            </div>
+
+                            <div class="field">
+                                <label for="city">Ort</label>
+                                <InputText id="city" class="field-input" @bind-Value="personalData.City" />
+                                <ValidationMessage For="() => personalData.City" />
+                            </div>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary" disabled="@savingPersonal">
+                                @(savingPersonal ? "Speichert..." : "Daten speichern")
+                            </button>
+                        </div>
+                    </EditForm>
+                </article>
+            }
+            else if (activeTab == MeinTab.Password)
+            {
+                <article class="panel-form">
+                    <h2>Passwort ändern</h2>
+
+                    @if (!string.IsNullOrWhiteSpace(passwordError))
+                    {
+                        <div class="alert-error">@passwordError</div>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(passwordSuccess))
+                    {
+                        <div class="alert-success">@passwordSuccess</div>
+                    }
+
+                    <EditForm Model="passwordData" OnValidSubmit="ChangePasswordAsync" FormName="mein-password-form">
+                        <DataAnnotationsValidator />
+                        <ValidationSummary />
+
+                        <div class="form-grid">
+                            <div class="field field-full">
+                                <label for="currentPassword">Aktuelles Passwort</label>
+                                <InputText id="currentPassword" type="password" class="field-input" @bind-Value="passwordData.CurrentPassword" />
+                                <ValidationMessage For="() => passwordData.CurrentPassword" />
+                            </div>
+
+                            <div class="field">
+                                <label for="newPassword">Neues Passwort</label>
+                                <InputText id="newPassword" type="password" class="field-input" @bind-Value="passwordData.NewPassword" />
+                                <ValidationMessage For="() => passwordData.NewPassword" />
+                            </div>
+
+                            <div class="field">
+                                <label for="confirmPassword">Passwort bestätigen</label>
+                                <InputText id="confirmPassword" type="password" class="field-input" @bind-Value="passwordData.ConfirmPassword" />
+                                <ValidationMessage For="() => passwordData.ConfirmPassword" />
+                            </div>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary" disabled="@savingPassword">
+                                @(savingPassword ? "Ändert..." : "Passwort ändern")
+                            </button>
+                        </div>
+                    </EditForm>
+                </article>
+            }
+            else if (activeTab == MeinTab.Applications)
+            {
+                <article>
+                    <h2>Aufträge, auf die ich mich beworben habe</h2>
+
+                    <div class="mein-application-filters">
+                        <button type="button"
+                                class="btn btn-secondary @(selectedApplicationStatusFilter is null ? "is-active" : null)"
+                                @onclick="() => SetApplicationFilter(null)">
+                            Alle (@applicationsCountAll)
+                        </button>
+
+                        <button type="button"
+                                class="btn btn-secondary @(selectedApplicationStatusFilter == ListingApplicationStatus.Eingereicht ? "is-active" : null)"
+                                @onclick="() => SetApplicationFilter(ListingApplicationStatus.Eingereicht)">
+                            Eingereicht (@applicationsCountEingereicht)
+                        </button>
+
+                        <button type="button"
+                                class="btn btn-secondary @(selectedApplicationStatusFilter == ListingApplicationStatus.Angenommen ? "is-active" : null)"
+                                @onclick="() => SetApplicationFilter(ListingApplicationStatus.Angenommen)">
+                            Angenommen (@applicationsCountAngenommen)
+                        </button>
+
+                        <button type="button"
+                                class="btn btn-secondary @(selectedApplicationStatusFilter == ListingApplicationStatus.Abgelehnt ? "is-active" : null)"
+                                @onclick="() => SetApplicationFilter(ListingApplicationStatus.Abgelehnt)">
+                            Abgelehnt (@applicationsCountAbgelehnt)
+                        </button>
+                    </div>
+
+                    @if (filteredApplications.Count == 0)
+                    {
+                        <p class="muted">Keine Bewerbungen im gewählten Filter.</p>
+                    }
+                    else
+                    {
+                        <div class="mein-applications-list">
+                            @foreach (var application in filteredApplications)
+                            {
+                                <article class="panel mein-application-item">
+                                    <h3>
+                                        <a href="@($"/auftraege/{application.ListingId}")">@application.Title</a>
+                                    </h3>
+
+                                    <p class="muted">@application.PostalCode @application.City</p>
+
+                                    <div class="mein-application-meta">
+                                        <span class="@GetApplicationStatusClass(application.Status)">
+                                            @GetApplicationStatusText(application.Status)
+                                        </span>
+                                        <span>Bewerbung: @application.CreatedUtc.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</span>
+                                        <span>Preisvorschlag: @(application.ProposedPrice?.ToString("N2") ?? "—") €</span>
+                                    </div>
+                                </article>
+                            }
+                        </div>
+                    }
+                </article>
+            }
+        </div>
+    </section>
+}
