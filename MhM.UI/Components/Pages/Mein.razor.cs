@@ -5,6 +5,8 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.JSInterop;
+using MhM.UI.Models;
 
 namespace MhM.UI.Components.Pages;
 
@@ -15,12 +17,16 @@ public partial class Mein
     [Inject] protected UserManager<ApplicationIdentityUser> UserManager { get; set; } = default!;
     [Inject] protected SignInManager<ApplicationIdentityUser> SignInManager { get; set; } = default!;
     [Inject] protected NavigationManager Navigation { get; set; } = default!;
+    [Inject] protected IJSRuntime JS { get; set; } = default!;
 
     [SupplyParameterFromQuery(Name = "tab")]
     public string? TabQuery { get; set; }
 
     [SupplyParameterFromQuery(Name = "status")]
     public string? StatusQuery { get; set; }
+
+    [SupplyParameterFromQuery(Name = "saved")]
+    public string? SavedQuery { get; set; }
 
     protected bool isLoading = true;
 
@@ -78,6 +84,11 @@ public partial class Mein
         else if (activeTab != MeinTab.Applications)
         {
             selectedApplicationStatusFilter = null;
+        }
+
+        if (activeTab == MeinTab.PersonalData && SavedQuery == "1")
+        {
+            personalSuccess = "Persönliche Daten wurden gespeichert.";
         }
     }
 
@@ -180,49 +191,15 @@ public partial class Mein
 
         try
         {
-            var identityUser = await UserManager.FindByIdAsync(currentIdentityUserId);
-            if (identityUser is null)
+            var result = await JS.InvokeAsync<ProfileUpdateResult>("profileApi.save", personalData);
+            if (!result.Success)
             {
-                personalError = "Benutzerkonto nicht gefunden.";
+                personalError = result.Message;
                 return;
             }
 
-            await using var db = await DbFactory.CreateDbContextAsync();
-            var appUser = await db.AppUsers.FirstOrDefaultAsync(x => x.Id == currentAppUserId.Value);
-            if (appUser is null)
-            {
-                personalError = "AppUser-Profil nicht gefunden.";
-                return;
-            }
-
-            identityUser.FirstName = personalData.FirstName.Trim();
-            identityUser.LastName = personalData.LastName.Trim();
-            identityUser.Email = personalData.Email.Trim();
-            identityUser.UserName = personalData.Email.Trim();
-            identityUser.PhoneNumber = string.IsNullOrWhiteSpace(personalData.Phone) ? null : personalData.Phone.Trim();
-
-            var updateResult = await UserManager.UpdateAsync(identityUser);
-            if (!updateResult.Succeeded)
-            {
-                personalError = string.Join(" ", updateResult.Errors.Select(x => x.Description));
-                return;
-            }
-
-            appUser.DisplayName = $"{personalData.FirstName} {personalData.LastName}".Trim();
-            if (string.IsNullOrWhiteSpace(appUser.DisplayName))
-            {
-                appUser.DisplayName = personalData.Email.Trim();
-            }
-
-            appUser.Email = personalData.Email.Trim();
-            appUser.Phone = string.IsNullOrWhiteSpace(personalData.Phone) ? null : personalData.Phone.Trim();
-            appUser.PostalCode = personalData.PostalCode.Trim();
-            appUser.City = personalData.City.Trim();
-
-            await db.SaveChangesAsync();
-            //await SignInManager.RefreshSignInAsync(identityUser);
-
-            personalSuccess = "Persönliche Daten wurden gespeichert.";
+            personalData.Phone = result.Phone;
+            Navigation.NavigateTo("/mein?tab=personal&saved=1", forceLoad: true);
         }
         catch (Exception ex)
         {
@@ -490,7 +467,7 @@ public partial class Mein
         [Required, EmailAddress]
         public string Email { get; set; } = string.Empty;
 
-        [MaxLength(50)]
+        [InternationalPhone]
         public string? Phone { get; set; }
 
         [Required, MaxLength(20)]

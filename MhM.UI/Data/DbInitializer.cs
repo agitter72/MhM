@@ -112,9 +112,9 @@ public static class DbInitializer
         {
             await db.SaveChangesAsync();
         }
-        catch(Exception ex)
+        catch
         {
-            throw ex;
+            throw;
         }
     }
 }

@@ -78,18 +78,18 @@
 }
 
 .mein-status-badge.status-eingereicht {
-    background: #eef2ff;
-    color: #3730a3;
+    background: var(--primary-soft);
+    color: var(--primary);
 }
 
 .mein-status-badge.status-angenommen {
-    background: #ecfdf3;
-    color: #166534;
+    background: color-mix(in srgb, var(--success) 16%, var(--panel));
+    color: var(--success);
 }
 
 .mein-status-badge.status-abgelehnt {
-    background: #fef2f2;
-    color: #991b1b;
+    background: var(--danger-bg);
+    color: var(--danger-text);
 }
 
 .mein-application-filters {

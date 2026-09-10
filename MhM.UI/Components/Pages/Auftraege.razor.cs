@@ -9,8 +9,10 @@ using MhM.UI.Data.Models;
 
 namespace MhM.UI.Components.Pages;
 
-public partial class Auftraege
+public partial class Auftraege : IAsyncDisposable
 {
+    private const int LoadBatchSize = 10;
+
     [Inject]
     protected IDbContextFactory<MhMDbContext> DbFactory { get; set; } = default!;
 
@@ -59,6 +61,14 @@ public partial class Auftraege
     protected Guid? applyingListingId;
     protected string? applyError;
     protected string? applySuccess;
+    protected int totalItems;
+    protected bool loadingMore;
+    protected ElementReference loadMoreSentinel;
+
+    private List<Listing> filteredItems = [];
+    private DotNetObjectReference<Auftraege>? dotNetReference;
+
+    protected bool HasMoreItems => items is not null && items.Count < totalItems;
 
     protected bool IsGeoSearchActive => Latitude.HasValue && Longitude.HasValue;
     protected double EffectiveRadiusKm => RadiusKm is > 0 ? RadiusKm.Value : 50d;
@@ -87,16 +97,24 @@ public partial class Auftraege
     }
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!firstRender) return;
-        if (Latitude.HasValue || Longitude.HasValue) return;
+        if (HasMoreItems)
+        {
+            dotNetReference ??= DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("infiniteScroll.observe", loadMoreSentinel, dotNetReference);
+        }
 
-        var location = await JS.InvokeAsync<BrowserLocationDto?>("browserLocation.getCurrent");
-        if (location is null) return;
+        if (firstRender && !Latitude.HasValue && !Longitude.HasValue)
+        {
+            var location = await JS.InvokeAsync<BrowserLocationDto?>("browserLocation.getCurrent");
+            if (location is not null)
+            {
+                Latitude = location.Latitude;
+                Longitude = location.Longitude;
 
-        Latitude = location.Latitude;
-        Longitude = location.Longitude;
-
-        StateHasChanged();
+                await LoadListingsAsync();
+                StateHasChanged();
+            }
+        }
     }
 
     private sealed class BrowserLocationDto
@@ -106,6 +124,11 @@ public partial class Auftraege
     }
 
     protected override async Task OnParametersSetAsync()
+    {
+        await LoadListingsAsync();
+    }
+
+    private async Task LoadListingsAsync()
     {
         await using var db = await DbFactory.CreateDbContextAsync();
 
@@ -172,7 +195,7 @@ public partial class Auftraege
 
         if (!IsGeoSearchActive)
         {
-            items = filteredListings;
+            filteredItems = filteredListings;
         }
         else
         {
@@ -180,7 +203,7 @@ public partial class Auftraege
             var centerLon = Longitude!.Value;
             var radius = EffectiveRadiusKm;
 
-            items = filteredListings
+            filteredItems = filteredListings
                 .Where(x => x.Latitude.HasValue && x.Longitude.HasValue)
                 .Select(x => new
                 {
@@ -197,7 +220,56 @@ public partial class Auftraege
                 .ToList();
         }
 
+        totalItems = filteredItems.Count;
+        items = filteredItems
+            .Take(LoadBatchSize)
+            .ToList();
+
         SeedApplicationModels();
+    }
+
+    [JSInvokable]
+    public Task LoadMoreAsync()
+    {
+        if (loadingMore || items is null || !HasMoreItems)
+        {
+            return Task.CompletedTask;
+        }
+
+        loadingMore = true;
+        var nextCount = Math.Min(items.Count + LoadBatchSize, totalItems);
+        items = filteredItems.Take(nextCount).ToList();
+
+        foreach (var listing in items)
+        {
+            applicationModels.TryAdd(listing.Id, new ListingApplicationInputModel
+            {
+                CompensationType = listing.CompensationType
+            });
+        }
+
+        loadingMore = false;
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (dotNetReference is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await JS.InvokeVoidAsync("infiniteScroll.disconnect");
+        }
+        catch (JSDisconnectedException)
+        {
+            // The circuit is already gone; there is no observer left to clean up.
+        }
+
+        dotNetReference.Dispose();
     }
 
     protected string? GetDistanceText(Guid listingId)

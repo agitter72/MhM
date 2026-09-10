@@ -204,7 +204,17 @@ else
 
                             <div class="field field-full">
                                 <label for="phone">Telefon</label>
-                                <InputText id="phone" class="field-input" @bind-Value="personalData.Phone" />
+                                <InputText id="phone"
+                                           type="tel"
+                                           inputmode="tel"
+                                           autocomplete="tel"
+                                           class="field-input"
+                                           placeholder="+49 151 234 567 89"
+                                           maxlength="26"
+                                           oninput="window.phoneInput.format(this)"
+                                           @bind-Value="personalData.Phone" />
+                                <small class="field-hint">Mit Ländervorwahl, z. B. +49 für Deutschland.</small>
+                                <ValidationMessage For="() => personalData.Phone" />
                             </div>
 
                             <div class="field">

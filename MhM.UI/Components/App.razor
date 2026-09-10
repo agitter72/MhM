@@ -8,6 +8,21 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <base href="/" />
+    <script>
+        (() => {
+            let savedTheme = null;
+            try {
+                savedTheme = localStorage.getItem("mhm-theme");
+            } catch {
+                // Storage can be unavailable in strict privacy modes.
+            }
+
+            const prefersDark = matchMedia("(prefers-color-scheme: dark)").matches;
+            document.documentElement.dataset.theme = savedTheme === "dark" || savedTheme === "light"
+                ? savedTheme
+                : prefersDark ? "dark" : "light";
+        })();
+    </script>
     <ResourcePreloader />
     <link rel="stylesheet" href="@Assets["app.css"]" />
     <link rel="stylesheet" href="@Assets["MhM.UI.styles.css"]" />

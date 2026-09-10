@@ -9,8 +9,9 @@
 .assignment-success {
     margin: 1rem 0;
     padding: 0.75rem;
-    border: 1px solid #b7eb8f;
-    background: #f6ffed;
+    border: 1px solid var(--success-line);
+    background: var(--success-bg);
+    color: var(--success-text);
     border-radius: 8px;
 }
 
@@ -47,18 +48,18 @@
 }
 
 .status-dot-eingereicht {
-    background: #e6f4ff;
-    border: 1px solid #91caff;
+    background: var(--info-bg);
+    border: 1px solid var(--info-line);
 }
 
 .status-dot-angenommen {
-    background: #f6ffed;
-    border: 1px solid #b7eb8f;
+    background: var(--success-bg);
+    border: 1px solid var(--success-line);
 }
 
 .status-dot-abgelehnt {
-    background: #fff1f0;
-    border: 1px solid #ffa39e;
+    background: var(--danger-bg);
+    border: 1px solid var(--danger-line);
 }
 
 .assignment-table {
@@ -70,12 +71,12 @@
 .assignment-table th {
     text-align: left;
     padding: 0.5rem;
-    border-bottom: 1px solid #ddd;
+    border-bottom: 1px solid var(--line);
 }
 
 .assignment-table td {
     padding: 0.5rem;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid var(--line);
 }
 
 .assignment-status-badge {
@@ -86,18 +87,18 @@
 }
 
 .assignment-status-badge.status-eingereicht {
-    background: #e6f4ff;
-    color: #0958d9;
+    background: var(--info-bg);
+    color: var(--info-text);
 }
 
 .assignment-status-badge.status-angenommen {
-    background: #f6ffed;
-    color: #237804;
+    background: var(--success-bg);
+    color: var(--success-text);
 }
 
 .assignment-status-badge.status-abgelehnt {
-    background: #fff1f0;
-    color: #a8071a;
+    background: var(--danger-bg);
+    color: var(--danger-text);
 }
 
 @media (max-width: 900px) {
@@ -122,7 +123,7 @@
         padding: 0.75rem 0.85rem;
         border: 1px solid var(--line);
         border-radius: 12px;
-        background: #fff;
+        background: var(--panel);
     }
 
     .assignment-table.assignment-table-compact td {

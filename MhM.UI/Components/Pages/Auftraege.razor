@@ -111,9 +111,24 @@
             }
             else
             {
+                <div class="listing-results-summary" aria-live="polite">
+                    @items.Count von @totalItems @(totalItems == 1 ? "Auftrag" : "Aufträgen") angezeigt
+                </div>
                 <div class="listing-list">
                     <AuftraegeKarten Items="items" />
                 </div>
+
+                @if (HasMoreItems)
+                {
+                    <div class="infinite-scroll-sentinel" @ref="loadMoreSentinel" role="status" aria-live="polite">
+                        <span class="loading-dot" aria-hidden="true"></span>
+                        Weitere Aufträge werden geladen …
+                    </div>
+                }
+                else if (totalItems > LoadBatchSize)
+                {
+                    <div class="listing-end-message">Alle Aufträge wurden geladen.</div>
+                }
             }
         </section>
     </div>

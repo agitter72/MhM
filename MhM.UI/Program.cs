@@ -1,6 +1,7 @@
 using MhM.UI.Components;
 using MhM.UI.Data;
 using MhM.UI.Localization;
+using MhM.UI.Models;
 using MhM.UI.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -10,10 +11,17 @@ using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using System.Globalization;
+using System.ComponentModel.DataAnnotations;
 using System.Net;
 using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Console/debug logging works in local development, containers and App Service without
+// requiring write access to the Windows Event Log.
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
+builder.Logging.AddDebug();
 
 builder
     .Services.AddLocalization();
@@ -255,6 +263,87 @@ app.MapGet("account/logoff", async (HttpContext context, SignInManager<Applicati
     //await context.Response.WriteAsync("OK");
     context.Response.Redirect("/");
 });
+
+app.MapPost("/account/profile", async (
+    PersonalProfileUpdate profile,
+    ClaimsPrincipal principal,
+    IDbContextFactory<MhMDbContext> dbFactory,
+    ILookupNormalizer normalizer,
+    SignInManager<ApplicationIdentityUser> signInManager) =>
+{
+    var validationResults = new List<ValidationResult>();
+    if (!Validator.TryValidateObject(profile, new ValidationContext(profile), validationResults, validateAllProperties: true))
+    {
+        return Results.Json(
+            new ProfileUpdateResult(false, validationResults[0].ErrorMessage ?? "Bitte die Eingaben prüfen."),
+            statusCode: StatusCodes.Status400BadRequest);
+    }
+
+    var identityUserId = principal.FindFirstValue(ClaimTypes.NameIdentifier);
+    if (string.IsNullOrWhiteSpace(identityUserId))
+    {
+        return Results.Json(
+            new ProfileUpdateResult(false, "Die Anmeldung ist abgelaufen. Bitte erneut anmelden."),
+            statusCode: StatusCodes.Status401Unauthorized);
+    }
+
+    if (!InternationalPhone.TryNormalize(profile.Phone, out var normalizedPhone))
+    {
+        return Results.Json(
+            new ProfileUpdateResult(false, "Bitte eine gültige internationale Telefonnummer eingeben."),
+            statusCode: StatusCodes.Status400BadRequest);
+    }
+
+    await using var db = await dbFactory.CreateDbContextAsync();
+    var identityUser = await db.Users.FirstOrDefaultAsync(x => x.Id == identityUserId);
+    if (identityUser is null)
+    {
+        return Results.Json(new ProfileUpdateResult(false, "Benutzerkonto nicht gefunden."), statusCode: 404);
+    }
+
+    var originalEmail = identityUser.Email;
+    var appUser = await db.AppUsers.FirstOrDefaultAsync(x => x.Email == originalEmail);
+    if (appUser is null)
+    {
+        return Results.Json(new ProfileUpdateResult(false, "AppUser-Profil nicht gefunden."), statusCode: 404);
+    }
+
+    var email = profile.Email.Trim();
+    var normalizedEmail = normalizer.NormalizeEmail(email);
+    var emailInUse = await db.Users.AnyAsync(x => x.Id != identityUserId && x.NormalizedEmail == normalizedEmail)
+        || await db.AppUsers.AnyAsync(x => x.Id != appUser.Id && x.Email == email);
+    if (emailInUse)
+    {
+        return Results.Json(
+            new ProfileUpdateResult(false, "Diese E-Mail-Adresse wird bereits verwendet."),
+            statusCode: StatusCodes.Status409Conflict);
+    }
+
+    var firstName = profile.FirstName.Trim();
+    var lastName = profile.LastName.Trim();
+    var displayName = $"{firstName} {lastName}".Trim();
+
+    identityUser.FirstName = firstName;
+    identityUser.LastName = lastName;
+    identityUser.Email = email;
+    identityUser.NormalizedEmail = normalizedEmail;
+    identityUser.UserName = email;
+    identityUser.NormalizedUserName = normalizer.NormalizeName(email);
+    identityUser.PhoneNumber = normalizedPhone;
+    identityUser.SecurityStamp = Guid.NewGuid().ToString();
+    identityUser.ConcurrencyStamp = Guid.NewGuid().ToString();
+
+    appUser.DisplayName = string.IsNullOrWhiteSpace(displayName) ? email : displayName;
+    appUser.Email = email;
+    appUser.Phone = normalizedPhone;
+    appUser.PostalCode = profile.PostalCode.Trim();
+    appUser.City = profile.City.Trim();
+
+    await db.SaveChangesAsync();
+    await signInManager.RefreshSignInAsync(identityUser);
+
+    return Results.Json(new ProfileUpdateResult(true, "Persönliche Daten wurden gespeichert.", normalizedPhone));
+}).RequireAuthorization();
 
 app.MapGet("/api/listing-images/{id:guid}", async (Guid id, IDbContextFactory<MhMDbContext> dbFactory) =>
 {

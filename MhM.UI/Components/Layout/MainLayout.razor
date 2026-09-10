@@ -11,7 +11,7 @@
     <aside class="sidebar @(IsMobileNavOpen ? "is-open" : null)">
         <div class="sidebar-brand">
             <div class="sidebar-brand-icon">MhM</div>
-            <div>
+            <div class="sidebar-brand-copy">
                 <div class="sidebar-brand-title">@T["App.Title"]</div>
                 <div class="sidebar-brand-subtitle">@T["Layout.SidebarSubtitle"]</div>
             </div>
@@ -22,36 +22,47 @@
 
             <NavLink href="/" Match="NavLinkMatch.All" class="sidebar-link" @onclick="CloseMobileNav">
                 <span class="sidebar-link-icon">⌂</span>
-                <span>@T["Nav.Home"]</span>
+                <span class="sidebar-link-label">@T["Nav.Home"]</span>
             </NavLink>
 
             <NavLink href="/auftraege" class="sidebar-link" @onclick="CloseMobileNav">
                 <span class="sidebar-link-icon">▣</span>
-                <span>@T["Nav.Listings"]</span>
+                <span class="sidebar-link-label">@T["Nav.Listings"]</span>
             </NavLink>
 
             <NavLink href="/auftraege/neu" class="sidebar-link" @onclick="CloseMobileNav">
                 <span class="sidebar-link-icon">＋</span>
-                <span>@T["Nav.NewListing"]</span>
+                <span class="sidebar-link-label">@T["Nav.NewListing"]</span>
             </NavLink>
 
             <NavLink href="/helfer" class="sidebar-link" @onclick="CloseMobileNav">
                 <span class="sidebar-link-icon">◌</span>
-                <span>@T["Nav.Helpers"]</span>
+                <span class="sidebar-link-label">@T["Nav.Helpers"]</span>
             </NavLink>
 
             <AuthorizeView>
                 <Authorized>
                     <NavLink href="/helfer" class="sidebar-link" @onclick="CloseMobileNav">
                         <span class="sidebar-link-icon">★</span>
-                        <span>@T["Nav.ActivateHelper"]</span>
+                        <span class="sidebar-link-label">@T["Nav.ActivateHelper"]</span>
                     </NavLink>
 
                     <NavLink href="/mein" class="sidebar-link" @onclick="CloseMobileNav">
                         <span class="sidebar-link-icon">👤</span>
-                        <span>Mein</span>
+                        <span class="sidebar-link-label">Mein</span>
                     </NavLink>
                 </Authorized>
+                <NotAuthorized>
+                    <NavLink href="/account/login" class="sidebar-link" @onclick="CloseMobileNav">
+                        <span class="sidebar-link-icon">→</span>
+                        <span class="sidebar-link-label">Anmelden</span>
+                    </NavLink>
+
+                    <NavLink href="/account/register" class="sidebar-link" @onclick="CloseMobileNav">
+                        <span class="sidebar-link-icon">＋</span>
+                        <span class="sidebar-link-label">Registrieren</span>
+                    </NavLink>
+                </NotAuthorized>
             </AuthorizeView>
         </nav>
 
@@ -59,13 +70,13 @@
             <div class="sidebar-card-label">MVP</div>
             <h3>@T["Layout.SidebarCardTitle"]</h3>
             <p>@T["Layout.SidebarCardText"]</p>
-            <a class="btn btn-light" href="/auftraege/neu">@T["Layout.CreateListing"]</a>
+            <a class="btn btn-primary" href="/auftraege/neu">@T["Layout.CreateListing"]</a>
         </div>
     </aside>
 
     <div class="content-area">
         <header class="topbar">
-            <div>
+            <div class="topbar-summary">
                 <button class="mobile-nav-toggle btn btn-light"
                         type="button"
                         aria-label="Menü öffnen"
@@ -79,12 +90,20 @@
             </div>
 
             <div class="topbar-actions">
+                <button class="theme-toggle btn btn-light"
+                        type="button"
+                        aria-label="Farbschema wechseln"
+                        title="Hell-/Dunkelmodus wechseln"
+                        onclick="window.theme.toggle()">
+                    <span class="theme-icon theme-icon-moon" aria-hidden="true">☾</span>
+                    <span class="theme-icon theme-icon-sun" aria-hidden="true">☀</span>
+                </button>
                 <CultureSwitcher />
-                <a class="btn btn-primary" href="/auftraege/neu">+ @T["Nav.NewListing"]</a>
+                <a class="btn btn-primary topbar-create" href="/auftraege/neu">+ @T["Nav.NewListing"]</a>
 
                 <AuthorizeView>
                     <Authorized Context="authState">
-                        <a class="btn btn-secondary" href="/helfer">@T["Nav.ActivateHelper"]</a>
+                        <a class="btn btn-secondary topbar-helper" href="/helfer">@T["Nav.ActivateHelper"]</a>
                         <a class="btn btn-secondary" href="/account/logoff">Abmelden</a>
                         <div class="user-pill">
                             <div class="user-pill-avatar">👤</div>
@@ -95,8 +114,8 @@
                         </div>
                     </Authorized>
                     <NotAuthorized>
-                        <a class="btn btn-secondary" href="/account/login">Anmelden</a>
-                        <a class="btn btn-light" href="/account/register">Registrieren</a>
+                        <a class="btn btn-secondary topbar-login" href="/account/login">Anmelden</a>
+                        <a class="btn btn-primary topbar-register" href="/account/register">Registrieren</a>
                     </NotAuthorized>
                 </AuthorizeView>
             </div>
@@ -107,6 +126,14 @@
         </main>
     </div>
 </div>
+
+<button class="return-to-top"
+        type="button"
+        aria-label="Zurück nach oben"
+        title="Zurück nach oben"
+        onclick="window.pageNavigation.scrollToTop()">
+    ↑
+</button>
 
 <div id="blazor-error-ui" data-nosnippet>
     An unhandled error has occurred.
