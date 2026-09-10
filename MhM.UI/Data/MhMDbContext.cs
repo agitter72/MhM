@@ -20,6 +20,7 @@ public class MhMDbContext : IdentityDbContext<ApplicationIdentityUser>
     public DbSet<Conversation> Conversations => Set<Conversation>();
     public DbSet<Message> Messages => Set<Message>();
     public DbSet<Review> Reviews => Set<Review>();
+    public DbSet<ReviewCategoryRating> ReviewCategoryRatings => Set<ReviewCategoryRating>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -139,8 +140,8 @@ public class MhMDbContext : IdentityDbContext<ApplicationIdentityUser>
         var reviews = modelBuilder.Entity<Review>();
         reviews.ToTable("Reviews");
         reviews.HasKey(x => x.Id);
-        reviews.Property(x => x.Comment).HasMaxLength(2000);
-        reviews.ToTable(t=>t.HasCheckConstraint("CK_Reviews_Stars", "[Stars] >= 1 AND [Stars] <= 5"));
+        reviews.ToTable(t => t.HasCheckConstraint("CK_Reviews_Stars", "[Stars] >= 1 AND [Stars] <= 5"));
+
         reviews.HasOne(x => x.Listing)
             .WithMany()
             .HasForeignKey(x => x.ListingId)
@@ -153,6 +154,19 @@ public class MhMDbContext : IdentityDbContext<ApplicationIdentityUser>
             .WithMany()
             .HasForeignKey(x => x.RevieweeId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        var reviewCategoryRatings = modelBuilder.Entity<ReviewCategoryRating>();
+        reviewCategoryRatings.ToTable("ReviewCategoryRatings");
+        reviewCategoryRatings.HasKey(x => x.Id);
+        reviewCategoryRatings.Property(x => x.CategoryKey).HasMaxLength(64).IsRequired();
+        reviewCategoryRatings.Property(x => x.Stars).IsRequired();
+        reviewCategoryRatings.ToTable(t => t.HasCheckConstraint("CK_ReviewCategoryRatings_Stars", "[Stars] >= 1 AND [Stars] <= 5"));
+        reviewCategoryRatings.HasIndex(x => new { x.ReviewId, x.CategoryKey }).IsUnique();
+
+        reviewCategoryRatings.HasOne(x => x.Review)
+            .WithMany(x => x.CategoryRatings)
+            .HasForeignKey(x => x.ReviewId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         modelBuilder.Entity<ApplicationIdentityUser>(entity =>
         {

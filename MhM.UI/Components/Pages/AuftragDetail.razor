@@ -55,7 +55,6 @@ else
 
             <section class="panel auftrag-detail-data-panel">
                 <div class="listing-card-body">
-
                     <table class="auftrag-detail-table">
                         <tbody>
                             <tr>
@@ -165,6 +164,79 @@ else
             @if (!string.IsNullOrWhiteSpace(applySuccess))
             {
                 <div class="listing-alert listing-alert-success">@applySuccess</div>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(reviewError))
+            {
+                <div class="listing-alert listing-alert-error">@reviewError</div>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(reviewSuccess))
+            {
+                <div class="listing-alert listing-alert-success">@reviewSuccess</div>
+            }
+
+            @if (canReviewHelper && !hasReviewedHelper)
+            {
+                <ReviewCard Title="Bewertung des Helfers durch den Auftraggeber"
+                            Categories="_helperReviewCategories"
+                            SubmitText="Helfer bewerten"
+                            OnSubmit="SubmitHelperReviewAsync" />
+            }
+            else if (canReviewHelper && hasReviewedHelper)
+            {
+                <div class="listing-alert listing-alert-success">Du hast den Helfer bereits bewertet.</div>
+            }
+
+            @if (canReviewRequester && !hasReviewedRequester)
+            {
+                <ReviewCard Title="Bewertung des Auftraggebers durch den Helfer"
+                            Categories="_requesterReviewCategories"
+                            SubmitText="Auftraggeber bewerten"
+                            OnSubmit="SubmitRequesterReviewAsync" />
+            }
+            else if (canReviewRequester && hasReviewedRequester)
+            {
+                <div class="listing-alert listing-alert-success">Du hast den Auftraggeber bereits bewertet.</div>
+            }
+
+            @if (helperReviewFromRequester is not null || requesterReviewFromHelper is not null)
+            {
+                <section class="panel auftrag-detail-data-panel">
+                    <h3>Abgegebene Bewertungen</h3>
+
+                    @if (helperReviewFromRequester is not null)
+                    {
+                        <article class="review-summary-card">
+                            <h4>@helperReviewFromRequester.ReviewerRole → @helperReviewFromRequester.RevieweeRole</h4>
+                            <p class="review-summary-stars">@ToStars(helperReviewFromRequester.Stars)</p>
+                            <p class="review-summary-date">@helperReviewFromRequester.CreatedUtc.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</p>
+
+                            <ul class="review-summary-list">
+                                @foreach (var c in helperReviewFromRequester.Categories)
+                                {
+                                    <li><strong>@c.Label:</strong> @ToStars(c.Stars)</li>
+                                }
+                            </ul>
+                        </article>
+                    }
+
+                    @if (requesterReviewFromHelper is not null)
+                    {
+                        <article class="review-summary-card">
+                            <h4>@requesterReviewFromHelper.ReviewerRole → @requesterReviewFromHelper.RevieweeRole</h4>
+                            <p class="review-summary-stars">@ToStars(requesterReviewFromHelper.Stars)</p>
+                            <p class="review-summary-date">@requesterReviewFromHelper.CreatedUtc.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</p>
+
+                            <ul class="review-summary-list">
+                                @foreach (var c in requesterReviewFromHelper.Categories)
+                                {
+                                    <li><strong>@c.Label:</strong> @ToStars(c.Stars)</li>
+                                }
+                            </ul>
+                        </article>
+                    }
+                </section>
             }
         </div>
     </div>

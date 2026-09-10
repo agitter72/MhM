@@ -1,0 +1,79 @@
+<div class="review-card">
+    <h3 class="review-title">@Title</h3>
+
+    @foreach (var category in Categories)
+    {
+        <div class="review-row">
+            <span class="review-label">@category.Label</span>
+
+            <div class="star-group" role="radiogroup" aria-label="@category.Label">
+                @for (var star = 1; star <= 5; star++)
+                {
+                    var currentStar = star;
+                    var isActive = GetRating(category.Key) >= currentStar;
+
+                    <button type="button"
+                            class="star-button @(isActive ? "active" : string.Empty)"
+                            title="@($"{currentStar} Sterne")"
+                            aria-label="@($"{category.Label}: {currentStar} Sterne")"
+                            @onclick="() => SetRating(category.Key, currentStar)">
+                        ★
+                    </button>
+                }
+            </div>
+        </div>
+    }
+
+    <div class="review-actions">
+        <button class="btn btn-primary"
+                type="button"
+                disabled="@(!CanSubmit)"
+                @onclick="SubmitAsync">
+            @SubmitText
+        </button>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string Title { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public IReadOnlyList<ReviewCategory> Categories { get; set; } = [];
+    [Parameter] public string SubmitText { get; set; } = "Bewertung speichern";
+    [Parameter] public EventCallback<ReviewSubmission> OnSubmit { get; set; }
+
+    private readonly ReviewSubmission _submission = new();
+
+    private bool CanSubmit =>
+        Categories.Count > 0 &&
+        Categories.All(c => _submission.Ratings.TryGetValue(c.Key, out var value) && value > 0);
+
+    protected override void OnParametersSet()
+    {
+        foreach (var category in Categories)
+        {
+            if (!_submission.Ratings.ContainsKey(category.Key))
+            {
+                _submission.Ratings[category.Key] = 0;
+            }
+        }
+    }
+
+    private void SetRating(string key, int value)
+    {
+        _submission.Ratings[key] = value;
+    }
+
+    private int GetRating(string key)
+    {
+        return _submission.Ratings.TryGetValue(key, out var rating) ? rating : 0;
+    }
+
+    private async Task SubmitAsync()
+    {
+        if (!CanSubmit || !OnSubmit.HasDelegate)
+        {
+            return;
+        }
+
+        await OnSubmit.InvokeAsync(_submission);
+    }
+}

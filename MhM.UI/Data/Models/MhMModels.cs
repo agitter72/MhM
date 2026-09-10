@@ -157,10 +157,21 @@ public sealed class Review
     public Guid ReviewerId { get; set; }
     public Guid RevieweeId { get; set; }
     public int Stars { get; set; }
-    public string Comment { get; set; } = string.Empty;
     public DateTime CreatedUtc { get; set; } = DateTime.UtcNow;
 
     public Listing Listing { get; set; } = default!;
     public AppUser Reviewer { get; set; } = default!;
     public AppUser Reviewee { get; set; } = default!;
+
+    public ICollection<ReviewCategoryRating> CategoryRatings { get; set; } = [];
+}
+
+public sealed class ReviewCategoryRating
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid ReviewId { get; set; }
+    public string CategoryKey { get; set; } = string.Empty;
+    public int Stars { get; set; }
+
+    public Review Review { get; set; } = default!;
 }

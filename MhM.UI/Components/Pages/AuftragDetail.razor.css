@@ -64,3 +64,42 @@
         grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
     }
 }
+
+.review-summary-card {
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    padding: 0.9rem;
+    margin-top: 0.8rem;
+    background: var(--panel-2);
+}
+
+.review-summary-card h4 {
+    margin: 0 0 0.4rem 0;
+}
+
+.review-summary-stars {
+    margin: 0;
+    color: #f7b500;
+    font-size: 1.1rem;
+    font-weight: 700;
+}
+
+.review-summary-date {
+    margin: 0.25rem 0 0.65rem 0;
+    color: var(--muted);
+    font-size: 0.9rem;
+}
+
+.review-summary-list {
+    margin: 0 0 0.65rem 0;
+    padding-left: 1rem;
+}
+
+.review-summary-list li {
+    margin: 0.2rem 0;
+}
+
+.review-summary-comment {
+    margin: 0;
+    white-space: pre-wrap;
+}
