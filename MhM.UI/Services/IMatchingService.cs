@@ -25,4 +25,9 @@ public interface IMatchingService
         Guid listingId,
         Guid helperUserId,
         CancellationToken cancellationToken = default);
+
+    Task CompleteListingByRequesterAsync(
+        Guid listingId,
+        Guid requesterUserId,
+        CancellationToken cancellationToken = default);
 }

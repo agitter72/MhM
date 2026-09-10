@@ -2,6 +2,7 @@ using MhM.UI.Data;
 using MhM.UI.Data.Models;
 using MhM.UI.Localization;
 using MhM.UI.Models;
+using MhM.UI.Services;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.EntityFrameworkCore;
@@ -26,6 +27,283 @@ public partial class AuftragDetail
     [Inject]
     protected NavigationManager Navigation { get; set; } = default!;
 
+    [Inject]
+    protected IMatchingService MatchingService { get; set; } = default!;
+
+    protected bool canRequesterCompleteAndReview;
+    protected bool requesterCompletionBlockedByPreferredDate;
+
+    // Methoden anpassen
+    protected Task SubmitHelperReviewAsync(ReviewSubmission submission)
+        => SaveReviewAsync(submission, ReviewTarget.Helper, completeListingIfAllowed: true);
+
+    protected Task SubmitRequesterReviewAsync(ReviewSubmission submission)
+        => SaveReviewAsync(submission, ReviewTarget.Requester, completeListingIfAllowed: false);
+
+    private async Task SaveReviewAsync(
+        ReviewSubmission submission,
+        ReviewTarget target,
+        bool completeListingIfAllowed)
+    {
+        reviewError = null;
+        reviewSuccess = null;
+
+        if (item is null || !currentUserId.HasValue)
+        {
+            reviewError = "Bewertung konnte nicht gespeichert werden.";
+            return;
+        }
+
+        await using var db = await DbFactory.CreateDbContextAsync();
+
+        var listing = await db.Listings
+            .FirstOrDefaultAsync(x => x.Id == item.Id);
+
+        if (listing is null)
+        {
+            reviewError = "Auftrag nicht gefunden.";
+            return;
+        }
+
+        var acceptedId = await db.ListingApplications
+            .AsNoTracking()
+            .Where(x => x.ListingId == listing.Id && x.Status == ListingApplicationStatus.Angenommen)
+            .Select(x => (Guid?)x.ApplicantId)
+            .FirstOrDefaultAsync();
+
+        if (!acceptedId.HasValue)
+        {
+            reviewError = "Es wurde kein angenommener Helfer gefunden.";
+            return;
+        }
+
+        var reviewerId = currentUserId.Value;
+        var preferredDateReached = IsPreferredDateReached(listing.PreferredDateUtc);
+
+        var canCompleteListingNow =
+            completeListingIfAllowed &&
+            target == ReviewTarget.Helper &&
+            reviewerId == listing.RequesterId &&
+            listing.Status == ListingStatus.InBearbeitung &&
+            preferredDateReached;
+
+        if (listing.Status != ListingStatus.Abgeschlossen && !canCompleteListingNow)
+        {
+            if (target == ReviewTarget.Helper &&
+                reviewerId == listing.RequesterId &&
+                listing.Status == ListingStatus.InBearbeitung &&
+                !preferredDateReached)
+            {
+                reviewError = $"Der Auftrag kann erst ab {FormatDateLocal(listing.PreferredDateUtc)} beendet und bewertet werden.";
+            }
+            else
+            {
+                reviewError = "Bewertungen sind erst nach Auftragsbeendigung möglich.";
+            }
+
+            return;
+        }
+
+        Guid revieweeId;
+        IReadOnlyList<ReviewCategory> categories;
+
+        switch (target)
+        {
+            case ReviewTarget.Helper:
+                if (reviewerId != listing.RequesterId)
+                {
+                    reviewError = "Nur der Auftraggeber kann den Helfer bewerten.";
+                    return;
+                }
+
+                revieweeId = acceptedId.Value;
+                categories = _helperReviewCategories;
+                break;
+
+            case ReviewTarget.Requester:
+                if (reviewerId != acceptedId.Value)
+                {
+                    reviewError = "Nur der angenommene Helfer kann den Auftraggeber bewerten.";
+                    return;
+                }
+
+                revieweeId = listing.RequesterId;
+                categories = _requesterReviewCategories;
+                break;
+
+            default:
+                reviewError = "Ungültiger Bewertungstyp.";
+                return;
+        }
+
+        if (reviewerId == revieweeId)
+        {
+            reviewError = "Selbstbewertung ist nicht erlaubt.";
+            return;
+        }
+
+        if (categories.Any(c => !submission.Ratings.TryGetValue(c.Key, out var v) || v is < 1 or > 5))
+        {
+            reviewError = "Bitte alle Bewertungskategorien mit 1 bis 5 Sternen ausfüllen.";
+            return;
+        }
+
+        var stars = Math.Clamp((int)Math.Round(submission.AverageRating, MidpointRounding.AwayFromZero), 1, 5);
+
+        var existing = await db.Reviews
+            .Include(x => x.CategoryRatings)
+            .FirstOrDefaultAsync(x =>
+                x.ListingId == listing.Id &&
+                x.ReviewerId == reviewerId &&
+                x.RevieweeId == revieweeId);
+
+        if (existing is null)
+        {
+            existing = new Review
+            {
+                ListingId = listing.Id,
+                ReviewerId = reviewerId,
+                RevieweeId = revieweeId,
+                Stars = stars,
+                CreatedUtc = DateTime.UtcNow
+            };
+
+            foreach (var category in categories)
+            {
+                existing.CategoryRatings.Add(new ReviewCategoryRating
+                {
+                    CategoryKey = category.Key,
+                    Stars = submission.Ratings[category.Key]
+                });
+            }
+
+            db.Reviews.Add(existing);
+        }
+        else
+        {
+            existing.Stars = stars;
+            existing.CreatedUtc = DateTime.UtcNow;
+            existing.CategoryRatings.Clear();
+
+            foreach (var category in categories)
+            {
+                existing.CategoryRatings.Add(new ReviewCategoryRating
+                {
+                    ReviewId = existing.Id,
+                    CategoryKey = category.Key,
+                    Stars = submission.Ratings[category.Key]
+                });
+            }
+        }
+
+        if (canCompleteListingNow)
+        {
+            try
+            {
+                await MatchingService.CompleteListingByRequesterAsync(listing.Id, reviewerId);
+                await db.Entry(listing).ReloadAsync();
+            }
+            catch (InvalidOperationException ex)
+            {
+                reviewError = ex.Message;
+                return;
+            }
+        }
+
+        await db.SaveChangesAsync();
+
+        if (item is not null)
+        {
+            item.Status = listing.Status;
+        }
+
+        await LoadReviewStateAsync(db);
+        await LoadSubmittedReviewsAsync(db);
+
+        if (canCompleteListingNow)
+        {
+            hasReviewedHelper = true;
+            reviewSuccess = "Auftrag wurde beendet und der Helfer erfolgreich bewertet.";
+        }
+        else if (target == ReviewTarget.Helper)
+        {
+            hasReviewedHelper = true;
+            reviewSuccess = "Die Helfer-Bewertung wurde gespeichert.";
+        }
+        else
+        {
+            hasReviewedRequester = true;
+            reviewSuccess = "Die Auftraggeber-Bewertung wurde gespeichert.";
+        }
+    }
+
+    private async Task LoadReviewStateAsync(MhMDbContext db)
+    {
+        canReviewHelper = false;
+        canReviewRequester = false;
+        hasReviewedHelper = false;
+        hasReviewedRequester = false;
+        canRequesterCompleteAndReview = false;
+        requesterCompletionBlockedByPreferredDate = false;
+        acceptedHelperId = null;
+
+        if (item is null || !currentUserId.HasValue)
+            return;
+
+        acceptedHelperId = await db.ListingApplications
+            .AsNoTracking()
+            .Where(x => x.ListingId == item.Id && x.Status == ListingApplicationStatus.Angenommen)
+            .Select(x => (Guid?)x.ApplicantId)
+            .FirstOrDefaultAsync();
+
+        if (!acceptedHelperId.HasValue)
+            return;
+
+        var isRequester = currentUserId.Value == item.RequesterId;
+        var isAcceptedHelper = currentUserId.Value == acceptedHelperId.Value;
+
+        if (isRequester)
+        {
+            hasReviewedHelper = await db.Reviews
+                .AsNoTracking()
+                .AnyAsync(x =>
+                    x.ListingId == item.Id &&
+                    x.ReviewerId == currentUserId.Value &&
+                    x.RevieweeId == acceptedHelperId.Value);
+        }
+
+        if (isAcceptedHelper)
+        {
+            hasReviewedRequester = await db.Reviews
+                .AsNoTracking()
+                .AnyAsync(x =>
+                    x.ListingId == item.Id &&
+                    x.ReviewerId == currentUserId.Value &&
+                    x.RevieweeId == item.RequesterId);
+        }
+
+        var preferredDateReached = IsPreferredDateReached(item.PreferredDateUtc);
+
+        canRequesterCompleteAndReview =
+            item.Status == ListingStatus.InBearbeitung &&
+            isRequester &&
+            preferredDateReached &&
+            !hasReviewedHelper;
+
+        requesterCompletionBlockedByPreferredDate =
+            item.Status == ListingStatus.InBearbeitung &&
+            isRequester &&
+            !preferredDateReached;
+
+        canReviewHelper = item.Status == ListingStatus.Abgeschlossen && isRequester;
+        canReviewRequester = item.Status == ListingStatus.Abgeschlossen && isAcceptedHelper;
+    }
+
+    private static bool IsPreferredDateReached(DateTime? preferredDateUtc)
+        => !preferredDateUtc.HasValue || DateTime.UtcNow >= preferredDateUtc.Value;
+
+    private static string FormatDateLocal(DateTime? utcDate)
+        => utcDate?.ToLocalTime().ToString("dd.MM.yyyy HH:mm") ?? "-";
     private static readonly IReadOnlyList<ReviewCategory> _helperReviewCategories =
     [
         new("quality", "Qualität der Arbeit"),
@@ -198,12 +476,6 @@ public partial class AuftragDetail
             isApplying = false;
         }
     }
-
-    protected Task SubmitHelperReviewAsync(ReviewSubmission submission)
-        => SaveReviewAsync(submission, ReviewTarget.Helper);
-
-    protected Task SubmitRequesterReviewAsync(ReviewSubmission submission)
-        => SaveReviewAsync(submission, ReviewTarget.Requester);
 
     private async Task SaveReviewAsync(ReviewSubmission submission, ReviewTarget target)
     {
@@ -391,50 +663,6 @@ public partial class AuftragDetail
         foreach (var listingId in existing)
         {
             appliedListingIds.Add(listingId);
-        }
-    }
-
-    private async Task LoadReviewStateAsync(MhMDbContext db)
-    {
-        canReviewHelper = false;
-        canReviewRequester = false;
-        hasReviewedHelper = false;
-        hasReviewedRequester = false;
-        acceptedHelperId = null;
-
-        if (item is null || !currentUserId.HasValue || item.Status != ListingStatus.Abgeschlossen)
-            return;
-
-        acceptedHelperId = await db.ListingApplications
-            .AsNoTracking()
-            .Where(x => x.ListingId == item.Id && x.Status == ListingApplicationStatus.Angenommen)
-            .Select(x => (Guid?)x.ApplicantId)
-            .FirstOrDefaultAsync();
-
-        if (!acceptedHelperId.HasValue)
-            return;
-
-        canReviewHelper = currentUserId.Value == item.RequesterId;
-        canReviewRequester = currentUserId.Value == acceptedHelperId.Value;
-
-        if (canReviewHelper)
-        {
-            hasReviewedHelper = await db.Reviews
-                .AsNoTracking()
-                .AnyAsync(x =>
-                    x.ListingId == item.Id &&
-                    x.ReviewerId == currentUserId.Value &&
-                    x.RevieweeId == acceptedHelperId.Value);
-        }
-
-        if (canReviewRequester)
-        {
-            hasReviewedRequester = await db.Reviews
-                .AsNoTracking()
-                .AnyAsync(x =>
-                    x.ListingId == item.Id &&
-                    x.ReviewerId == currentUserId.Value &&
-                    x.RevieweeId == item.RequesterId);
         }
     }
 

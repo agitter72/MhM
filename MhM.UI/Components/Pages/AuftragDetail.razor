@@ -148,7 +148,7 @@ else
                         </EditForm>
                     </section>
                 }
-                else if (HasApplied(item.Id))
+                else if (HasApplied(item.Id) && !canReviewHelper)
                 {
                     <div class="listing-alert listing-alert-success">
                         <strong>Du hast dich bereits auf diesen Auftrag beworben.</strong>
@@ -176,7 +176,21 @@ else
                 <div class="listing-alert listing-alert-success">@reviewSuccess</div>
             }
 
-            @if (canReviewHelper && !hasReviewedHelper)
+            @if (requesterCompletionBlockedByPreferredDate)
+            {
+                <div class="listing-alert listing-alert-error">
+                    Der Auftrag kann erst ab dem Wunschtermin (@(item?.PreferredDateUtc?.ToLocalTime().ToString("dd.MM.yyyy HH:mm") ?? "-")) beendet und bewertet werden.
+                </div>
+            }
+
+            @if (canRequesterCompleteAndReview)
+            {
+                <ReviewCard Title="Auftrag beenden und Helfer bewerten"
+                            Categories="_helperReviewCategories"
+                            SubmitText="Auftrag beenden & Helfer bewerten"
+                            OnSubmit="SubmitHelperReviewAsync" />
+            }
+            else if (canReviewHelper && !hasReviewedHelper)
             {
                 <ReviewCard Title="Bewertung des Helfers durch den Auftraggeber"
                             Categories="_helperReviewCategories"

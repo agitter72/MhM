@@ -183,6 +183,46 @@ public sealed class MatchingService(IDbContextFactory<MhMDbContext> dbFactory) :
         });
     }
 
+    public async Task CompleteListingByRequesterAsync(
+    Guid listingId,
+    Guid requesterUserId,
+    CancellationToken cancellationToken = default)
+    {
+        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        var strategy = db.Database.CreateExecutionStrategy();
+
+        await strategy.ExecuteAsync(async () =>
+        {
+            await using var retryDb = await dbFactory.CreateDbContextAsync(cancellationToken);
+            await using var tx = await retryDb.Database.BeginTransactionAsync(cancellationToken);
+
+            var listing = await retryDb.Listings
+                .FirstOrDefaultAsync(x => x.Id == listingId, cancellationToken)
+                ?? throw new InvalidOperationException("Auftrag nicht gefunden.");
+
+            if (listing.RequesterId != requesterUserId)
+                throw new InvalidOperationException("Nur der Auftraggeber kann den Auftrag abschließen.");
+
+            if (listing.Status != ListingStatus.InBearbeitung)
+                throw new InvalidOperationException("Nur Aufträge in Bearbeitung können abgeschlossen werden.");
+
+            if (listing.PreferredDateUtc.HasValue && DateTime.UtcNow < listing.PreferredDateUtc.Value)
+                throw new InvalidOperationException(
+                    $"Der Auftrag kann erst ab {listing.PreferredDateUtc.Value.ToLocalTime():dd.MM.yyyy HH:mm} abgeschlossen werden.");
+
+            var acceptedExists = await retryDb.ListingApplications
+                .AnyAsync(x => x.ListingId == listingId && x.Status == ListingApplicationStatus.Angenommen, cancellationToken);
+
+            if (!acceptedExists)
+                throw new InvalidOperationException("Es wurde kein angenommener Helfer gefunden.");
+
+            listing.Status = ListingStatus.Abgeschlossen;
+
+            await retryDb.SaveChangesAsync(cancellationToken);
+            await tx.CommitAsync(cancellationToken);
+        });
+    }
+
     private static bool IsCompensationCompatible(CompensationType listingType, CompensationType applicationType)
         => listingType == CompensationType.Beides ||
            applicationType == CompensationType.Beides ||
