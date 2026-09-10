@@ -117,11 +117,11 @@ h1, h2, h3, h4, p {
     transition: 0.2s ease;
 }
 
-.sidebar-link:hover,
-.sidebar-link.active {
-    background: rgba(255, 255, 255, 0.1);
-    color: white;
-}
+    .sidebar-link:hover,
+    .sidebar-link.active {
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+    }
 
 .sidebar-link-icon {
     width: 24px;
@@ -248,9 +248,7 @@ h1, h2, h3, h4, p {
 }
 
 .hero-card-featured {
-    background:
-        radial-gradient(circle at top right, rgba(132, 145, 255, 0.35), transparent 32%),
-        linear-gradient(180deg, #ffffff 0%, #f8faff 100%);
+    background: radial-gradient(circle at top right, rgba(132, 145, 255, 0.35), transparent 32%), linear-gradient(180deg, #ffffff 0%, #f8faff 100%);
     border: 1px solid #e8edf9;
 }
 
@@ -259,10 +257,10 @@ h1, h2, h3, h4, p {
     color: white;
 }
 
-.hero-card-accent .eyebrow,
-.hero-card-accent .muted {
-    color: rgba(255,255,255,0.62);
-}
+    .hero-card-accent .eyebrow,
+    .hero-card-accent .muted {
+        color: rgba(255,255,255,0.62);
+    }
 
 .hero-card h2 {
     font-size: 2.2rem;
@@ -302,18 +300,18 @@ h1, h2, h3, h4, p {
     padding: 1.1rem;
 }
 
-.stat-card span,
-.preview-meta span,
-.mini-list-item span {
-    display: block;
-    color: var(--muted);
-    font-size: 0.88rem;
-    margin-bottom: 0.3rem;
-}
+    .stat-card span,
+    .preview-meta span,
+    .mini-list-item span {
+        display: block;
+        color: var(--muted);
+        font-size: 0.88rem;
+        margin-bottom: 0.3rem;
+    }
 
-.stat-card strong {
-    font-size: 1.8rem;
-}
+    .stat-card strong {
+        font-size: 1.8rem;
+    }
 
 .mini-list {
     display: grid;
@@ -424,10 +422,10 @@ h1, h2, h3, h4, p {
     gap: 0.45rem;
 }
 
-.field label {
-    font-weight: 600;
-    font-size: 0.95rem;
-}
+    .field label {
+        font-weight: 600;
+        font-size: 0.95rem;
+    }
 
 .field-input {
     width: 100%;
@@ -502,9 +500,9 @@ h1, h2, h3, h4, p {
     margin-top: 1rem;
 }
 
-.preview-meta strong {
-    display: block;
-}
+    .preview-meta strong {
+        display: block;
+    }
 
 .valid.modified:not([type=checkbox]) {
     outline: 1px solid #26b050;
@@ -529,9 +527,9 @@ h1, h2, h3, h4, p {
     color: white;
 }
 
-.blazor-error-boundary::after {
-    content: "An error has occurred.";
-}
+    .blazor-error-boundary::after {
+        content: "An error has occurred.";
+    }
 
 .lang-switcher {
     display: flex;
@@ -540,7 +538,7 @@ h1, h2, h3, h4, p {
 }
 
 @media (max-width: 900px) {
-    
+
     .listing-card {
         grid-template-columns: 1fr;
     }
@@ -565,8 +563,7 @@ h1, h2, h3, h4, p {
     }
 }
 
-
-
+.alert-success,
 .listing-alert-success {
     display: flex;
     align-items: center;
@@ -580,26 +577,27 @@ h1, h2, h3, h4, p {
     font-weight: 600;
 }
 
-.listing-alert-success::before {
-    content: "ℹ";
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 1.2rem;
-    height: 1.2rem;
-    border-radius: 999px;
-    background: #22c55e;
-    color: #ffffff;
-    font-size: 0.75rem;
-    line-height: 1;
-    flex-shrink: 0;
-}
+    .alert-success::before,
+    .listing-alert-success::before {
+        content: "ℹ";
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 1.2rem;
+        height: 1.2rem;
+        border-radius: 999px;
+        background: #22c55e;
+        color: #ffffff;
+        font-size: 0.75rem;
+        line-height: 1;
+        flex-shrink: 0;
+    }
 
-/* ===== Mobile-first layout tuning ===== */
-.mobile-nav-toggle {
-    display: none;
-    margin-bottom: 0.75rem;
-}
+    /* ===== Mobile-first layout tuning ===== */
+    .mobile-nav-toggle {
+        display: none;
+        margin-bottom: 0.75rem;
+    }
 
 .mobile-nav-backdrop {
     display: none;
@@ -639,9 +637,9 @@ h1, h2, h3, h4, p {
         box-shadow: 0 18px 45px rgba(17, 24, 39, 0.35);
     }
 
-    .sidebar.is-open {
-        transform: translateX(0);
-    }
+        .sidebar.is-open {
+            transform: translateX(0);
+        }
 
     .sidebar-card {
         display: none;
@@ -670,11 +668,11 @@ h1, h2, h3, h4, p {
         gap: 0.65rem;
     }
 
-    .topbar-actions .btn,
-    .topbar-actions .lang-switcher {
-        flex: 1 1 calc(50% - 0.65rem);
-        min-width: 0;
-    }
+        .topbar-actions .btn,
+        .topbar-actions .lang-switcher {
+            flex: 1 1 calc(50% - 0.65rem);
+            min-width: 0;
+        }
 
     .user-pill {
         width: 100%;

@@ -220,7 +220,7 @@ public partial class Mein
             appUser.City = personalData.City.Trim();
 
             await db.SaveChangesAsync();
-            await SignInManager.RefreshSignInAsync(identityUser);
+            //await SignInManager.RefreshSignInAsync(identityUser);
 
             personalSuccess = "Persönliche Daten wurden gespeichert.";
         }
