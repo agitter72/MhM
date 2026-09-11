@@ -55,17 +55,20 @@ builder.Services.AddRateLimiter(options =>
 //        builder.Configuration.GetConnectionString("MhM")
 //        ?? throw new InvalidOperationException("Connection string 'MhM' was not found.")));
 
-// DbContextFactory for Blazor Server best practices - use this in new/refactored code
-var connectionString = builder.Configuration.GetConnectionString("MhM")
-    ?? throw new InvalidOperationException("Connection string 'MhM' was not found.");
-
-// Register Azure credential for Managed Identity authentication
-var credential = new Azure.Identity.DefaultAzureCredential();
+// Local development and automated tests use LocalDB. Deployed environments use
+// Azure SQL with Managed Identity through the regular "MhM" connection string.
+var connectionStringName = builder.Environment.IsDevelopment() || builder.Environment.IsEnvironment("Test")
+    ? "MhM-dev"
+    : "MhM";
+var connectionString = builder.Configuration.GetConnectionString(connectionStringName)
+    ?? throw new InvalidOperationException($"Connection string '{connectionStringName}' was not found.");
 
 builder.Services.AddDbContextFactory<MhMDbContext>(options =>
 {
     if (connectionString.StartsWith("Server=tcp:"))
     {
+        var credential = new Azure.Identity.DefaultAzureCredential();
+
         // Use Azure SQL with Managed Identity - set up token provider
         options.UseSqlServer(connectionString, sqlOptions =>
         {
