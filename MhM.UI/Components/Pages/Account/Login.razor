@@ -6,7 +6,7 @@
     <div>
         <div class="eyebrow">Konto</div>
         <h2>Anmeldung</h2>
-        <p class="muted">Mit E-Mail und Passwort im System anmelden.</p>
+        <p class="muted">Mit Nutzername oder E-Mail-Adresse anmelden.</p>
     </div>
 
     <div class="editor-badges">
@@ -33,14 +33,14 @@
 
                 <div class="form-grid">
                     <div class="field field-full">
-                        <label for="email">E-Mail</label>
-                        <InputText id="email" class="field-input" @bind-Value="model.Email" />
+                        <label for="email">Nutzername oder E-Mail</label>
+                        <InputText id="email" autocomplete="username" class="field-input" @bind-Value="model.Email" />
                         <ValidationMessage For="() => model.Email" />
                     </div>
 
                     <div class="field field-full">
                         <label for="password">Passwort</label>
-                        <InputText id="password" type="password" class="field-input" @bind-Value="model.Password" />
+                        <InputText id="password" type="password" autocomplete="current-password" class="field-input" @bind-Value="model.Password" />
                         <ValidationMessage For="() => model.Password" />
                     </div>
 
@@ -71,8 +71,8 @@
 
         <div class="preview-meta">
             <div>
-                <strong>E-Mail</strong>
-                <span class="muted">Mit der registrierten Adresse anmelden.</span>
+                <strong>Zugang</strong>
+                <span class="muted">Mit Nutzername oder registrierter E-Mail anmelden.</span>
             </div>
             <div>
                 <strong>Sitzung</strong>

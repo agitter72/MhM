@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Routing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.JSInterop;
+using System.Security.Claims;
 
 namespace MhM.UI.Components.Layout;
 
@@ -29,6 +30,9 @@ public partial class MainLayout : IAsyncDisposable
     protected int unreadNotificationCount;
     protected bool isNotificationCenterOpen;
     protected ElementReference notificationCenterElement;
+    protected string currentDisplayName = string.Empty;
+    protected string currentUsername = string.Empty;
+    protected DateTime? currentProfileImageUpdatedUtc;
 
     private Guid? currentAppUserId;
     private PeriodicTimer? notificationRefreshTimer;
@@ -139,6 +143,9 @@ public partial class MainLayout : IAsyncDisposable
     private async Task<bool> TryLoadCurrentUserAsync(CancellationToken cancellationToken)
     {
         currentAppUserId = null;
+        currentDisplayName = string.Empty;
+        currentUsername = string.Empty;
+        currentProfileImageUpdatedUtc = null;
 
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var principal = authState.User;
@@ -148,18 +155,26 @@ public partial class MainLayout : IAsyncDisposable
             return false;
         }
 
-        var email = principal.Identity.Name?.Trim();
-        if (string.IsNullOrWhiteSpace(email))
+        var identityUserId = principal.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrWhiteSpace(identityUserId))
         {
             return false;
         }
 
         await using var db = await DbFactory.CreateDbContextAsync(cancellationToken);
-        currentAppUserId = await db.AppUsers
+        var user = await db.AppUsers
             .AsNoTracking()
-            .Where(x => x.Email == email)
-            .Select(x => (Guid?)x.Id)
+            .Where(x => x.IdentityUserId == identityUserId)
+            .Select(x => new { x.Id, x.DisplayName, x.Username, x.ProfileImageUpdatedUtc })
             .FirstOrDefaultAsync(cancellationToken);
+
+        if (user is not null)
+        {
+            currentAppUserId = user.Id;
+            currentDisplayName = user.DisplayName;
+            currentUsername = user.Username;
+            currentProfileImageUpdatedUtc = user.ProfileImageUpdatedUtc;
+        }
 
         return currentAppUserId.HasValue;
     }

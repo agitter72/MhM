@@ -45,8 +45,15 @@
                     </div>
 
                     <div class="field field-full">
+                        <label for="username">Nutzername</label>
+                        <InputText id="username" autocomplete="username" class="field-input" @bind-Value="model.Username" />
+                        <small class="field-hint">3–30 Kleinbuchstaben, Zahlen, Punkte oder Unterstriche. Jeder Nutzername ist einmalig.</small>
+                        <ValidationMessage For="() => model.Username" />
+                    </div>
+
+                    <div class="field field-full">
                         <label for="email">E-Mail</label>
-                        <InputText id="email" class="field-input" @bind-Value="model.Email" />
+                        <InputText id="email" type="email" autocomplete="email" class="field-input" @bind-Value="model.Email" />
                         <ValidationMessage For="() => model.Email" />
                     </div>
                 </div>
@@ -82,13 +89,13 @@
                 <div class="form-grid">
                     <div class="field field-full">
                         <label for="password">Passwort</label>
-                        <InputText id="password" type="password" class="field-input" @bind-Value="model.Password" />
+                        <InputText id="password" type="password" autocomplete="new-password" class="field-input" @bind-Value="model.Password" />
                         <ValidationMessage For="() => model.Password" />
                     </div>
 
                     <div class="field field-full">
                         <label for="confirmPassword">Passwort bestätigen</label>
-                        <InputText id="confirmPassword" type="password" class="field-input" @bind-Value="model.ConfirmPassword" />
+                        <InputText id="confirmPassword" type="password" autocomplete="new-password" class="field-input" @bind-Value="model.ConfirmPassword" />
                         <ValidationMessage For="() => model.ConfirmPassword" />
                     </div>
                 </div>
@@ -113,7 +120,7 @@
         <div class="preview-meta">
             <div>
                 <strong>Persönliches Profil</strong>
-                <span class="muted">Name und Standort werden direkt erfasst.</span>
+                <span class="muted">Name, eindeutiger Nutzername und Standort werden direkt erfasst.</span>
             </div>
             <div>
                 <strong>Sicherer Zugang</strong>

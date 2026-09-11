@@ -11,6 +11,12 @@ public sealed class PersonalProfileUpdate
     [Required, MaxLength(100)]
     public string LastName { get; set; } = string.Empty;
 
+    [Username]
+    public string Username { get; set; } = string.Empty;
+
+    [MaxLength(500)]
+    public string Description { get; set; } = string.Empty;
+
     [Required, EmailAddress, MaxLength(256)]
     public string Email { get; set; } = string.Empty;
 
@@ -24,7 +30,33 @@ public sealed class PersonalProfileUpdate
     public string City { get; set; } = string.Empty;
 }
 
-public sealed record ProfileUpdateResult(bool Success, string Message, string? Phone = null);
+public sealed record ProfileUpdateResult(bool Success, string Message, string? Phone = null, string? Username = null);
+
+public sealed class UsernameAttribute : ValidationAttribute
+{
+    public UsernameAttribute()
+    {
+        ErrorMessage = "Der Nutzername muss 3 bis 30 Zeichen lang sein und darf nur Kleinbuchstaben, Zahlen, Punkte und Unterstriche enthalten.";
+    }
+
+    public override bool IsValid(object? value) => UsernameRules.TryNormalize(value?.ToString(), out _);
+}
+
+public static partial class UsernameRules
+{
+    [GeneratedRegex("^[a-z0-9](?:[a-z0-9._]{1,28}[a-z0-9])?$", RegexOptions.CultureInvariant)]
+    private static partial Regex ValidUsernameRegex();
+
+    public static bool TryNormalize(string? value, out string normalized)
+    {
+        normalized = value?.Trim().ToLowerInvariant() ?? string.Empty;
+        return ValidUsernameRegex().IsMatch(normalized)
+            && !normalized.Contains("..", StringComparison.Ordinal)
+            && !normalized.Contains("__", StringComparison.Ordinal)
+            && !normalized.Contains("._", StringComparison.Ordinal)
+            && !normalized.Contains("_.", StringComparison.Ordinal);
+    }
+}
 
 public sealed class InternationalPhoneAttribute : ValidationAttribute
 {

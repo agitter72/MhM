@@ -1,8 +1,8 @@
-@page "/mein"
+@page "/einstellungen"
 @attribute [Authorize]
 @using Microsoft.AspNetCore.Authorization
 
-<PageTitle>Mein Bereich</PageTitle>
+<PageTitle>Einstellungen</PageTitle>
 
 @if (isLoading)
 {
@@ -14,18 +14,21 @@ else
 {
     <section class="mein-header panel">
         <div>
-            <div class="eyebrow">Privater Bereich</div>
-            <h1>Mein Bereich</h1>
-            <p class="muted">Verwalte deine Aufträge, Helferprofil- und Kontodaten.</p>
+            <div class="eyebrow">Konto</div>
+            <h1>Einstellungen</h1>
+            <p class="muted">Verwalte Profil, Aufträge, Helferdaten, Zugang und private Kontaktinformationen.</p>
         </div>
-        <a class="btn btn-danger mein-logout" href="/account/logoff">
-            <Icon CustomIconName="bi bi-box-arrow-right" />
-            Abmelden
-        </a>
+        <div class="mein-header-actions">
+            <a class="btn btn-secondary" href="/profil"><Icon CustomIconName="bi bi-person" /> Öffentliches Profil</a>
+            <form method="post" action="/account/logoff">
+                <AntiforgeryToken />
+                <button class="btn btn-danger mein-logout" type="submit"><Icon CustomIconName="bi bi-box-arrow-right" /> Abmelden</button>
+            </form>
+        </div>
     </section>
 
     <section class="panel mein-tabs-shell">
-        <div class="mein-tabs" role="tablist" aria-label="Mein Bereich Tabs">
+        <div class="mein-tabs" role="tablist" aria-label="Einstellungen">
             <button type="button"
                     role="tab"
                     class="mein-tab @(activeTab == MeinTab.OwnListings ? "is-active" : null)"
@@ -174,6 +177,27 @@ else
                 <article class="panel-form">
                     <h2>Persönliche Daten</h2>
 
+                    <div class="profile-image-editor">
+                        @if (currentAppUserId.HasValue)
+                        {
+                            <ProfileAvatar UserId="currentAppUserId.Value" DisplayName="@currentDisplayName" HasImage="profileImageUpdatedUtc.HasValue" ImageVersion="profileImageUpdatedUtc?.Ticks ?? 0" CssClass="settings-avatar" />
+                        }
+                        <div>
+                            <strong>Profilbild</strong>
+                            <p class="muted">JPEG oder PNG; maximal 5 MB, 4096 × 4096 Pixel und 16 Megapixel. Standort- und Autorenmetadaten werden entfernt.</p>
+                            <div class="profile-image-actions">
+                                <label class="btn btn-secondary profile-image-upload">
+                                    Bild auswählen
+                                    <InputFile accept="image/jpeg,image/png" OnChange="SaveProfileImageAsync" />
+                                </label>
+                                @if (profileImageUpdatedUtc.HasValue)
+                                {
+                                    <button type="button" class="btn btn-light" @onclick="RemoveProfileImageAsync" disabled="@savingProfileImage">Entfernen</button>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
                     @if (!string.IsNullOrWhiteSpace(personalError))
                     {
                         <div class="alert-error">@personalError</div>
@@ -201,6 +225,20 @@ else
                             </div>
 
                             <div class="field field-full">
+                                <label for="username">Nutzername</label>
+                                <InputText id="username" autocomplete="username" class="field-input" @bind-Value="personalData.Username" />
+                                <small class="field-hint">Einmalig und höchstens alle 30 Tage änderbar.</small>
+                                <ValidationMessage For="() => personalData.Username" />
+                            </div>
+
+                            <div class="field field-full">
+                                <label for="description">Öffentliche Beschreibung</label>
+                                <InputTextArea id="description" class="field-input field-textarea" rows="4" maxlength="500" @bind-Value="personalData.Description" />
+                                <small class="field-hint">Keine Telefonnummern, Adressen oder anderen sensiblen Daten veröffentlichen.</small>
+                                <ValidationMessage For="() => personalData.Description" />
+                            </div>
+
+                            <div class="field field-full">
                                 <label for="email">E-Mail</label>
                                 <InputText id="email" class="field-input" @bind-Value="personalData.Email" />
                                 <ValidationMessage For="() => personalData.Email" />
@@ -217,7 +255,7 @@ else
                                            maxlength="26"
                                            oninput="window.phoneInput.format(this)"
                                            @bind-Value="personalData.Phone" />
-                                <small class="field-hint">Mit Ländervorwahl, z. B. +49 für Deutschland.</small>
+                                <small class="field-hint">Mit Ländervorwahl, z. B. +49 für Deutschland. Diese Angabe ist nicht öffentlich.</small>
                                 <ValidationMessage For="() => personalData.Phone" />
                             </div>
 

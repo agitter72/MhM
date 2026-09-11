@@ -1,0 +1,95 @@
+@page "/profil"
+@page "/profil/{Username}"
+
+<PageTitle>@(profile is null ? "Profil" : $"{profile.DisplayName} (@{profile.Username})")</PageTitle>
+
+@if (isLoading)
+{
+    <section class="panel"><p class="muted">Profil wird geladen…</p></section>
+}
+else if (profile is null)
+{
+    <section class="panel profile-not-found">
+        <Icon CustomIconName="bi bi-person-x" />
+        <h1>Profil nicht gefunden</h1>
+        <p class="muted">Dieser Nutzer existiert nicht oder ist nicht mehr verfügbar.</p>
+    </section>
+}
+else
+{
+    <div class="profile-page">
+        <div class="profile-overview @(profile.HelperProfile is null ? "profile-overview--single" : null)">
+        <section class="panel profile-header">
+            <div class="profile-header-top">
+                <ProfileAvatar UserId="profile.Id" DisplayName="@profile.DisplayName" HasImage="profile.ProfileImageUpdatedUtc.HasValue" ImageVersion="profile.ProfileImageUpdatedUtc?.Ticks ?? 0" CssClass="profile-page-avatar" />
+                @if (isOwnProfile)
+                {
+                    <a class="btn btn-secondary profile-edit-button" href="/einstellungen?tab=personal"><Icon CustomIconName="bi bi-gear" /> Profil bearbeiten</a>
+                }
+            </div>
+            <div class="profile-identity-block">
+                <h1>@profile.DisplayName</h1>
+                <p class="profile-username">@@@profile.Username</p>
+                <p class="profile-description">@(string.IsNullOrWhiteSpace(profile.Description) ? "Noch keine Profilbeschreibung." : profile.Description)</p>
+                <div class="profile-meta">
+                    <span><Icon CustomIconName="bi bi-geo-alt" /> @profile.City</span>
+                    <span><Icon CustomIconName="bi bi-calendar3" /> Dabei seit @profile.CreatedUtc.ToLocalTime().ToString("MMMM yyyy")</span>
+                    @if (profile.IsVerified)
+                    {
+                        <span class="profile-verified"><Icon CustomIconName="bi bi-patch-check-fill" /> Verifiziert</span>
+                    }
+                </div>
+            </div>
+        </section>
+
+        @if (profile.HelperProfile is not null)
+        {
+            <section class="panel profile-helper">
+                <div class="profile-helper-heading">
+                    <span class="profile-helper-icon" aria-hidden="true"><Icon CustomIconName="bi bi-tools" /></span>
+                    <div><span class="eyebrow">Helferprofil</span><h2>@profile.HelperProfile.Title</h2></div>
+                    <span class="profile-rating" title="@helperReviewCount Bewertung@(helperReviewCount == 1 ? string.Empty : "en")">
+                        <Icon CustomIconName="bi bi-star-fill" />
+                        <strong>@(helperRating?.ToString("0.0") ?? "Neu")</strong>
+                        @if (helperReviewCount > 0)
+                        {
+                            <span>(@helperReviewCount)</span>
+                        }
+                    </span>
+                </div>
+                <p class="profile-helper-description">@profile.HelperProfile.Description</p>
+                @if (GetHelperSkills(profile.HelperProfile).Count > 0)
+                {
+                    <div class="profile-skill-list" aria-label="Fähigkeiten">
+                        @foreach (var skill in GetHelperSkills(profile.HelperProfile))
+                        {
+                            <span>@skill</span>
+                        }
+                    </div>
+                }
+                <dl class="profile-helper-facts">
+                    <div><dt><Icon CustomIconName="bi bi-cash-coin" /> Stundensatz</dt><dd>@(profile.HelperProfile.HourlyRate?.ToString("N2") ?? "Nach Absprache")@(profile.HelperProfile.HourlyRate.HasValue ? " €" : null)</dd></div>
+                    <div><dt><Icon CustomIconName="bi bi-geo-alt" /> Einsatzradius</dt><dd>@profile.HelperProfile.RadiusKm km</dd></div>
+                    <div><dt><Icon CustomIconName="bi bi-arrow-left-right" /> Tausch</dt><dd>@(profile.HelperProfile.OffersBarter ? "Möglich" : "Nicht angeboten")</dd></div>
+                    <div><dt><Icon CustomIconName="bi bi-check2-circle" /> Aufträge</dt><dd>@acceptedHelperListingCount angenommen</dd></div>
+                </dl>
+            </section>
+        }
+        </div>
+
+        <section class="profile-listings">
+            <div class="profile-section-heading">
+                <div><span class="eyebrow">Aufträge</span><h2>Aufträge von @profile.DisplayName</h2></div>
+                <span class="badge-soft">@listings.Count</span>
+            </div>
+            @if (listings.Count == 0)
+            {
+                <div class="panel"><p class="muted">Noch keine öffentlichen Aufträge vorhanden.</p></div>
+            }
+            else
+            {
+                <AuftraegeKarten Items="listings" ShowRequester="false" />
+            }
+        </section>
+    </div>
+}

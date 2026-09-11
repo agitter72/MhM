@@ -88,6 +88,9 @@ public partial class AuftragVergabe
             applicationRows.Add(new ApplicationRow(
                 ApplicantId: app.ApplicantId,
                 ApplicantName: app.Applicant.DisplayName,
+                ApplicantUsername: app.Applicant.Username,
+                ApplicantDescription: app.Applicant.Description,
+                ProfileImageUpdatedUtc: app.Applicant.ProfileImageUpdatedUtc,
                 Status: app.Status,
                 ProposedPrice: app.ProposedPrice,
                 DistanceKm: ranked?.DistanceKm,
@@ -162,6 +165,9 @@ public partial class AuftragVergabe
     protected sealed record ApplicationRow(
         Guid ApplicantId,
         string ApplicantName,
+        string ApplicantUsername,
+        string ApplicantDescription,
+        DateTime? ProfileImageUpdatedUtc,
         ListingApplicationStatus Status,
         decimal? ProposedPrice,
         double? DistanceKm,

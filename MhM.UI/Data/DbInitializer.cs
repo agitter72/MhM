@@ -22,16 +22,36 @@ public static class DbInitializer
             new Category { Name = "Seniorenhilfe", Slug = "seniorenhilfe" }
         };
 
-        // Create requesters
-        var requesters = Enumerable.Range(1, 12)
-            .Select(i => new AppUser
+        var requesterSeeds = new[]
+        {
+            ("Anna Keller", "anna.keller", "Ich packe gern selbst mit an und suche gelegentlich Unterstützung rund um Haus und Garten."),
+            ("Jonas Wagner", "jonas.wagner", "Berufstätiger Familienvater aus Würzburg."),
+            ("Miriam Schneider", "miriam.schneider", "Organisiert, zuverlässig und meistens zeitlich flexibel."),
+            ("David Fischer", "david.fischer", "Freundlicher Auftraggeber mit klaren Absprachen."),
+            ("Lea Hoffmann", "lea.hoffmann", "Neu in Würzburg und dankbar für Hilfe im Alltag."),
+            ("Felix Braun", "felix.braun", "Ich freue mich über tatkräftige Unterstützung bei kleinen Projekten."),
+            ("Sophie Richter", "sophie.richter", "Faire Bezahlung und ein respektvoller Umgang sind mir wichtig."),
+            ("Lukas Weber", "lukas.weber", "Suche regelmäßig Hilfe für Haushalt und Technik."),
+            ("Nina Schäfer", "nina.schaefer", "Planbare Aufgaben, verlässliche Termine und nette Zusammenarbeit."),
+            ("Paul Neumann", "paul.neumann", "Privater Auftraggeber aus dem Raum Würzburg."),
+            ("Laura König", "laura.koenig", "Ich beschreibe meine Aufträge möglichst genau und antworte schnell."),
+            ("Daniel Hartmann", "daniel.hartmann", "Gelegentliche Unterstützung bei Transport und Garten gesucht.")
+        };
+
+        var requesters = requesterSeeds
+            .Select((seed, index) => new AppUser
             {
-                DisplayName = $"Anfrageperson {i}",
-                Email = $"anfrage{i}@mhm.local",
-                Phone = $"0170 1000{i:000}",
-                PostalCode = $"970{70 + (i % 10)}",
+                DisplayName = seed.Item1,
+                Username = seed.Item2,
+                NormalizedUsername = seed.Item2.ToUpperInvariant(),
+                Description = seed.Item3,
+                Email = $"{seed.Item2}@mhm.local",
+                Phone = $"0170 1000{index + 1:000}",
+                PostalCode = $"970{70 + ((index + 1) % 10)}",
                 City = "Würzburg",
-                Role = UserRole.Privatperson
+                Role = UserRole.Privatperson,
+                IsVerified = index % 3 == 0,
+                CreatedUtc = DateTime.UtcNow.AddDays(-(120 + index * 17))
             })
             .ToList();
 
@@ -39,6 +59,8 @@ public static class DbInitializer
         var helperUser = new AppUser
         {
             DisplayName = "Max Hilft",
+            Username = "max.hilft",
+            NormalizedUsername = "MAX.HILFT",
             Email = "max.hilft@mhm.local",
             Phone = "0171 555444",
             PostalCode = "97074",

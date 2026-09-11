@@ -5,6 +5,7 @@ using MhM.UI.Models;
 using MhM.UI.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.Data.SqlClient;
@@ -14,6 +15,7 @@ using System.Globalization;
 using System.ComponentModel.DataAnnotations;
 using System.Net;
 using System.Security.Claims;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -33,6 +35,20 @@ builder.Services.AddRazorComponents()
 
 builder.Services.AddAuthorization();
 builder.Services.AddCascadingAuthenticationState();
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy("account", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 10,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0,
+                AutoReplenishment = true
+            }));
+});
 
 //builder.Services.AddDbContext<MhMDbContext>(options =>
 //    options.UseSqlServer(
@@ -119,6 +135,9 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.ExpireTimeSpan = TimeSpan.FromDays(7);
     options.Cookie.Name = "MhM.Auth";
     options.Cookie.IsEssential = true;
+    options.Cookie.HttpOnly = true;
+    options.Cookie.SameSite = SameSiteMode.Lax;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
 });
 
 var supportedCultures = new[]
@@ -184,6 +203,7 @@ app.UseRequestLocalization(requestLocalizationOptions);
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 app.UseHttpsRedirection();
 app.UseAntiforgery();
+app.UseRateLimiter();
 
 // Add authentication and authorization middleware
 app.UseAuthentication();
@@ -230,23 +250,26 @@ app.MapPost("/account/logon", async (HttpContext context, UserManager<Applicatio
         return;
     }
 
-    var user = await userManager.FindByEmailAsync(form.Email);
+    var identifier = form.Email.Trim();
+    var user = identifier.Contains('@')
+        ? await userManager.FindByEmailAsync(identifier)
+        : await userManager.FindByNameAsync(identifier.ToLowerInvariant());
 
     if (user == null)
     {
         context.Response.StatusCode = 401;
-        await context.Response.WriteAsync("User not found");
+        await context.Response.WriteAsync("Invalid credentials");
         return;
     }
 
     if (user.IsActive == false)
     {
-        context.Response.StatusCode = 403;
-        await context.Response.WriteAsync("User not active");
+        context.Response.StatusCode = 401;
+        await context.Response.WriteAsync("Invalid credentials");
         return;
     }
 
-    var result = await signInManager.PasswordSignInAsync(user, form.Password, form.RememberMe, lockoutOnFailure: false);
+    var result = await signInManager.PasswordSignInAsync(user, form.Password, form.RememberMe, lockoutOnFailure: true);
     if (result.Succeeded)
     {
         await context.Response.WriteAsync("OK");
@@ -256,14 +279,14 @@ app.MapPost("/account/logon", async (HttpContext context, UserManager<Applicatio
         context.Response.StatusCode = 401;
         await context.Response.WriteAsync("Invalid credentials");
     }
-});
+}).RequireRateLimiting("account");
 
-app.MapGet("account/logoff", async (HttpContext context, SignInManager<ApplicationIdentityUser> signInManager) =>
+app.MapPost("account/logoff", async (HttpContext context, SignInManager<ApplicationIdentityUser> signInManager, IAntiforgery antiforgery) =>
 {
+    await antiforgery.ValidateRequestAsync(context);
     await signInManager.SignOutAsync();
-    //await context.Response.WriteAsync("OK");
-    context.Response.Redirect("/");
-});
+    return Results.LocalRedirect("/");
+}).RequireAuthorization();
 
 app.MapPost("/account/profile", async (
     PersonalProfileUpdate profile,
@@ -303,10 +326,37 @@ app.MapPost("/account/profile", async (
     }
 
     var originalEmail = identityUser.Email;
-    var appUser = await db.AppUsers.FirstOrDefaultAsync(x => x.Email == originalEmail);
+    var appUser = await db.AppUsers.FirstOrDefaultAsync(x => x.IdentityUserId == identityUserId)
+        ?? await db.AppUsers.FirstOrDefaultAsync(x => x.Email == originalEmail);
     if (appUser is null)
     {
         return Results.Json(new ProfileUpdateResult(false, "AppUser-Profil nicht gefunden."), statusCode: 404);
+    }
+
+    if (!UsernameRules.TryNormalize(profile.Username, out var username))
+    {
+        return Results.Json(
+            new ProfileUpdateResult(false, "Der Nutzername ist ungültig."),
+            statusCode: StatusCodes.Status400BadRequest);
+    }
+
+    var usernameChanged = !string.Equals(appUser.NormalizedUsername, username.ToUpperInvariant(), StringComparison.Ordinal);
+    if (usernameChanged && appUser.UsernameChangedUtc is { } changedUtc && changedUtc.AddDays(30) > DateTime.UtcNow)
+    {
+        var availableUtc = changedUtc.AddDays(30);
+        return Results.Json(
+            new ProfileUpdateResult(false, $"Der Nutzername kann erst ab {availableUtc.ToLocalTime():dd.MM.yyyy} wieder geändert werden."),
+            statusCode: StatusCodes.Status409Conflict);
+    }
+
+    var normalizedUsername = normalizer.NormalizeName(username) ?? username.ToUpperInvariant();
+    var usernameInUse = await db.Users.AnyAsync(x => x.Id != identityUserId && x.NormalizedUserName == normalizedUsername)
+        || await db.AppUsers.AnyAsync(x => x.Id != appUser.Id && x.NormalizedUsername == normalizedUsername);
+    if (usernameInUse)
+    {
+        return Results.Json(
+            new ProfileUpdateResult(false, "Dieser Nutzername ist bereits vergeben."),
+            statusCode: StatusCodes.Status409Conflict);
     }
 
     var email = profile.Email.Trim();
@@ -328,23 +378,58 @@ app.MapPost("/account/profile", async (
     identityUser.LastName = lastName;
     identityUser.Email = email;
     identityUser.NormalizedEmail = normalizedEmail;
-    identityUser.UserName = email;
-    identityUser.NormalizedUserName = normalizer.NormalizeName(email);
+    identityUser.UserName = username;
+    identityUser.NormalizedUserName = normalizedUsername;
     identityUser.PhoneNumber = normalizedPhone;
     identityUser.SecurityStamp = Guid.NewGuid().ToString();
     identityUser.ConcurrencyStamp = Guid.NewGuid().ToString();
 
     appUser.DisplayName = string.IsNullOrWhiteSpace(displayName) ? email : displayName;
+    appUser.IdentityUserId = identityUserId;
+    appUser.Username = username;
+    appUser.NormalizedUsername = normalizedUsername;
+    appUser.Description = profile.Description.Trim();
+    if (usernameChanged)
+    {
+        appUser.UsernameChangedUtc = DateTime.UtcNow;
+    }
     appUser.Email = email;
     appUser.Phone = normalizedPhone;
     appUser.PostalCode = profile.PostalCode.Trim();
     appUser.City = profile.City.Trim();
 
-    await db.SaveChangesAsync();
+    try
+    {
+        // SaveChanges uses a transaction for all tracked changes. Keeping the identity
+        // and app profile update in this single call also works with SQL retry strategies.
+        await db.SaveChangesAsync();
+    }
+    catch (DbUpdateException)
+    {
+        return Results.Json(
+            new ProfileUpdateResult(false, "Nutzername oder E-Mail-Adresse werden bereits verwendet."),
+            statusCode: StatusCodes.Status409Conflict);
+    }
     await signInManager.RefreshSignInAsync(identityUser);
 
-    return Results.Json(new ProfileUpdateResult(true, "Persönliche Daten wurden gespeichert.", normalizedPhone));
+    return Results.Json(new ProfileUpdateResult(true, "Persönliche Daten wurden gespeichert.", normalizedPhone, username));
 }).RequireAuthorization();
+
+app.MapGet("/api/profile-images/{userId:guid}", async (Guid userId, HttpContext context, IDbContextFactory<MhMDbContext> dbFactory) =>
+{
+    await using var db = await dbFactory.CreateDbContextAsync();
+    var image = await db.ProfileImages
+        .AsNoTracking()
+        .Where(x => x.UserId == userId)
+        .Select(x => new { x.Data, x.ContentType, x.UploadedUtc })
+        .FirstOrDefaultAsync();
+    if (image is null)
+        return Results.NotFound();
+
+    context.Response.Headers.CacheControl = "public,max-age=300";
+    context.Response.Headers.XContentTypeOptions = "nosniff";
+    return Results.File(image.Data, image.ContentType);
+});
 
 app.MapGet("/api/listing-images/{id:guid}", async (Guid id, IDbContextFactory<MhMDbContext> dbFactory) =>
 {

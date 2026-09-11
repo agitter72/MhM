@@ -92,7 +92,14 @@ else
                     @foreach (var row in FilteredApplicationRows)
                     {
                         <tr>
-                            <td data-label="Helfer">@row.ApplicantName</td>
+                            <td data-label="Helfer">
+                                <ProfileIdentityLink UserId="row.ApplicantId"
+                                                     DisplayName="@row.ApplicantName"
+                                                     Username="@row.ApplicantUsername"
+                                                     Description="@row.ApplicantDescription"
+                                                     HasImage="row.ProfileImageUpdatedUtc.HasValue"
+                                                     ImageVersion="row.ProfileImageUpdatedUtc?.Ticks ?? 0" />
+                            </td>
                             <td data-label="Status">
                                 <span class="@GetStatusBadgeClass(row.Status)">
                                     @GetStatusText(row.Status)

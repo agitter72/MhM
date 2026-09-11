@@ -55,13 +55,15 @@ else
 
             <aside class="auftrag-detail-summary">
                 <section class="panel requester-card">
-                    <div class="requester-avatar" role="img" aria-label="Profilbild von @item.Requester.DisplayName">
-                        @GetInitials(item.Requester.DisplayName)
-                    </div>
                     <div>
                         <span class="detail-kicker">Auftrag erstellt von</span>
-                        <strong>@item.Requester.DisplayName</strong>
-                        <span>@item.Requester.City</span>
+                        <ProfileIdentityLink UserId="item.Requester.Id"
+                                             DisplayName="@item.Requester.DisplayName"
+                                             Username="@item.Requester.Username"
+                                             Description="@item.Requester.Description"
+                                             HasImage="item.Requester.ProfileImageUpdatedUtc.HasValue"
+                                             ImageVersion="item.Requester.ProfileImageUpdatedUtc?.Ticks ?? 0" />
+                        <span class="muted">@item.Requester.City</span>
                     </div>
                 </section>
 

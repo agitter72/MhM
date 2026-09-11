@@ -1,0 +1,62 @@
+.profile-identity-direct,
+.profile-identity-preview-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: .65rem;
+    color: var(--text);
+    text-align: left;
+    text-decoration: none;
+}
+
+.profile-identity-preview-trigger {
+    display: none;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    font: inherit;
+}
+
+.profile-identity-copy { display: grid; min-width: 0; }
+.profile-identity-copy strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.profile-identity-copy span { color: var(--muted); font-size: .85rem; }
+
+.profile-preview-backdrop,
+.profile-preview-sheet { display: none; }
+
+@media (max-width: 768px) {
+    .profile-identity-direct { display: none; }
+    .profile-identity-preview-trigger { display: inline-flex; cursor: pointer; }
+    .profile-preview-backdrop {
+        display: block;
+        position: fixed;
+        inset: 0;
+        z-index: 1190;
+        border: 0;
+        background: rgb(0 0 0 / .48);
+    }
+    .profile-preview-sheet {
+        display: block;
+        position: fixed;
+        z-index: 1200;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        padding: .5rem 1rem calc(1rem + env(safe-area-inset-bottom));
+        border-radius: 1.25rem 1.25rem 0 0;
+        background: var(--panel);
+        box-shadow: 0 -12px 40px rgb(0 0 0 / .24);
+        animation: profile-sheet-in .2s ease-out;
+    }
+    .profile-preview-handle { width: 2.5rem; height: .25rem; margin: 0 auto .85rem; border-radius: 999px; background: var(--line); }
+    .profile-preview-close { position: absolute; top: .75rem; right: 1rem; display: grid; place-items: center; width: 2rem; height: 2rem; border: 0; border-radius: 50%; background: var(--surface-2); color: var(--text); }
+    .profile-preview-content { display: grid; grid-template-columns: auto 1fr; gap: .75rem; color: var(--text); text-decoration: none; }
+    .profile-preview-content h3, .profile-preview-content p { margin: 0; }
+    .profile-preview-username { color: var(--muted); }
+    .profile-preview-description, .profile-preview-action { grid-column: 1 / -1; }
+    .profile-preview-description { line-height: 1.55; }
+    .profile-preview-action { color: var(--primary); font-weight: 700; }
+}
+
+@keyframes profile-sheet-in { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+@media (prefers-reduced-motion: reduce) { .profile-preview-sheet { animation: none; } }

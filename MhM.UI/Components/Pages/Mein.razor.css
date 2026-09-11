@@ -9,6 +9,12 @@
 .mein-header p {
     margin-bottom: 0;
 }
+.mein-header-actions, .profile-image-actions { display: flex; flex-wrap: wrap; gap: .5rem; }
+.profile-image-editor { display: flex; align-items: center; gap: 1rem; margin: 1rem 0 1.5rem; padding: 1rem; border: 1px solid var(--line); border-radius: var(--radius-md); }
+.profile-image-editor ::deep .settings-avatar { width: 6rem; height: 6rem; font-size: 1.4rem; }
+.profile-image-editor p { margin: .25rem 0 .65rem; }
+.profile-image-upload { position: relative; overflow: hidden; cursor: pointer; }
+.profile-image-upload ::deep input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
 
 @media (max-width: 560px) {
     .mein-header {
@@ -16,8 +22,10 @@
     }
 
     .mein-logout {
-        width: 100%;
+        flex: 1;
     }
+    .mein-header-actions { width: 100%; }
+    .profile-image-editor { align-items: flex-start; }
 }
 
 .mein-tabs-shell {

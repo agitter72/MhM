@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.JSInterop;
 using MhM.UI.Models;
+using MhM.UI.Services;
+using Microsoft.AspNetCore.Components.Forms;
 
 namespace MhM.UI.Components.Pages;
 
@@ -54,6 +56,7 @@ public partial class Mein
     protected bool savingPersonal;
     protected bool savingHelper;
     protected bool savingPassword;
+    protected bool savingProfileImage;
 
     protected string? personalError;
     protected string? personalSuccess;
@@ -64,6 +67,8 @@ public partial class Mein
 
     private string? currentIdentityUserId;
     private Guid? currentAppUserId;
+    protected string currentDisplayName = string.Empty;
+    protected DateTime? profileImageUpdatedUtc;
 
     protected override async Task OnInitializedAsync()
     {
@@ -112,7 +117,8 @@ public partial class Mein
 
         var appUser = await db.AppUsers
             .Include(x => x.HelperProfile)
-            .FirstOrDefaultAsync(x => x.Email == identityUser.Email);
+            .FirstOrDefaultAsync(x => x.IdentityUserId == identityUser.Id)
+            ?? await db.AppUsers.Include(x => x.HelperProfile).FirstOrDefaultAsync(x => x.Email == identityUser.Email);
 
         if (appUser is null)
         {
@@ -122,11 +128,15 @@ public partial class Mein
         }
 
         currentAppUserId = appUser.Id;
+        currentDisplayName = appUser.DisplayName;
+        profileImageUpdatedUtc = appUser.ProfileImageUpdatedUtc;
 
         personalData = new PersonalDataModel
         {
             FirstName = identityUser.FirstName ?? string.Empty,
             LastName = identityUser.LastName ?? string.Empty,
+            Username = appUser.Username,
+            Description = appUser.Description,
             Email = identityUser.Email ?? appUser.Email,
             Phone = identityUser.PhoneNumber ?? appUser.Phone ?? string.Empty,
             PostalCode = appUser.PostalCode,
@@ -199,7 +209,8 @@ public partial class Mein
             }
 
             personalData.Phone = result.Phone;
-            Navigation.NavigateTo("/mein?tab=personal&saved=1", forceLoad: true);
+            personalData.Username = result.Username ?? personalData.Username;
+            Navigation.NavigateTo("/einstellungen?tab=personal&saved=1", forceLoad: true);
         }
         catch (Exception ex)
         {
@@ -208,6 +219,104 @@ public partial class Mein
         finally
         {
             savingPersonal = false;
+        }
+    }
+
+    protected async Task SaveProfileImageAsync(InputFileChangeEventArgs args)
+    {
+        if (savingProfileImage || !currentAppUserId.HasValue)
+            return;
+
+        savingProfileImage = true;
+        personalError = null;
+        personalSuccess = null;
+        try
+        {
+            if (args.FileCount != 1)
+            {
+                personalError = "Bitte genau ein Profilbild auswählen.";
+                return;
+            }
+
+            var file = args.File;
+            await using var stream = file.OpenReadStream(ProfileImageSecurity.MaxFileSizeBytes);
+            using var buffer = new MemoryStream((int)Math.Min(file.Size, ProfileImageSecurity.MaxFileSizeBytes));
+            await stream.CopyToAsync(buffer);
+            var data = buffer.ToArray();
+            if (!ProfileImageSecurity.TryValidate(data, out var contentType, out var validationError))
+            {
+                personalError = validationError;
+                return;
+            }
+            if (!ProfileImageSecurity.TryRemoveMetadata(data, contentType, out data))
+            {
+                personalError = "Metadaten konnten nicht sicher aus dem Profilbild entfernt werden.";
+                return;
+            }
+
+            await using var db = await DbFactory.CreateDbContextAsync();
+            var appUser = await db.AppUsers.FirstOrDefaultAsync(x => x.Id == currentAppUserId.Value);
+            if (appUser is null)
+            {
+                personalError = "Profil nicht gefunden.";
+                return;
+            }
+
+            var image = await db.ProfileImages.FirstOrDefaultAsync(x => x.UserId == appUser.Id);
+            if (image is null)
+            {
+                image = new ProfileImage { UserId = appUser.Id };
+                db.ProfileImages.Add(image);
+            }
+            image.Data = data;
+            image.ContentType = contentType;
+            image.UploadedUtc = DateTime.UtcNow;
+            appUser.ProfileImageUpdatedUtc = image.UploadedUtc;
+            await db.SaveChangesAsync();
+            profileImageUpdatedUtc = image.UploadedUtc;
+            personalSuccess = "Profilbild wurde gespeichert.";
+        }
+        catch (IOException)
+        {
+            personalError = "Das Profilbild ist zu groß oder konnte nicht gelesen werden.";
+        }
+        catch
+        {
+            personalError = "Das Profilbild konnte nicht gespeichert werden.";
+        }
+        finally
+        {
+            savingProfileImage = false;
+        }
+    }
+
+    protected async Task RemoveProfileImageAsync()
+    {
+        if (savingProfileImage || !currentAppUserId.HasValue)
+            return;
+
+        savingProfileImage = true;
+        personalError = null;
+        try
+        {
+            await using var db = await DbFactory.CreateDbContextAsync();
+            var image = await db.ProfileImages.FirstOrDefaultAsync(x => x.UserId == currentAppUserId.Value);
+            var appUser = await db.AppUsers.FirstOrDefaultAsync(x => x.Id == currentAppUserId.Value);
+            if (image is not null)
+                db.ProfileImages.Remove(image);
+            if (appUser is not null)
+                appUser.ProfileImageUpdatedUtc = null;
+            await db.SaveChangesAsync();
+            profileImageUpdatedUtc = null;
+            personalSuccess = "Profilbild wurde entfernt.";
+        }
+        catch
+        {
+            personalError = "Das Profilbild konnte nicht entfernt werden.";
+        }
+        finally
+        {
+            savingProfileImage = false;
         }
     }
 
@@ -343,7 +452,7 @@ public partial class Mein
 
     private static string BuildMeinUrl(MeinTab tab, ListingApplicationStatus? status)
     {
-        var url = $"/mein?tab={ToTabQuery(tab)}";
+        var url = $"/einstellungen?tab={ToTabQuery(tab)}";
 
         if (tab == MeinTab.Applications && status.HasValue)
         {
@@ -463,6 +572,12 @@ public partial class Mein
 
         [Required, MaxLength(100)]
         public string LastName { get; set; } = string.Empty;
+
+        [Username]
+        public string Username { get; set; } = string.Empty;
+
+        [MaxLength(500)]
+        public string Description { get; set; } = string.Empty;
 
         [Required, EmailAddress]
         public string Email { get; set; } = string.Empty;

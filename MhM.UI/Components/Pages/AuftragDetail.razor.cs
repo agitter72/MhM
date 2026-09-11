@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
+using System.Security.Claims;
 
 namespace MhM.UI.Components.Pages;
 
@@ -500,7 +501,7 @@ public partial class AuftragDetail
 
             appliedListingIds.Add(item.Id);
             applicationCount++;
-            Navigation.NavigateTo("/mein?tab=applications&status=eingereicht");
+            Navigation.NavigateTo("/einstellungen?tab=applications&status=eingereicht");
         }
         finally
         {
@@ -669,13 +670,13 @@ public partial class AuftragDetail
         if (principal.Identity?.IsAuthenticated != true)
             return;
 
-        var email = principal.Identity.Name?.Trim();
-        if (string.IsNullOrWhiteSpace(email))
+        var identityUserId = principal.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier);
+        if (string.IsNullOrWhiteSpace(identityUserId))
             return;
 
         var user = await db.AppUsers
             .AsNoTracking()
-            .FirstOrDefaultAsync(x => x.Email == email);
+            .FirstOrDefaultAsync(x => x.IdentityUserId == identityUserId);
 
         if (user is null)
             return;

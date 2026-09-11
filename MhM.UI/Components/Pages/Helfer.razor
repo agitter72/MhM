@@ -133,7 +133,12 @@ else
             {
                 <article class="panel">
                     <h2>@item.Title</h2>
-                    <p><strong>@T["Helpers.Name"]:</strong> @item.User.DisplayName</p>
+                    <ProfileIdentityLink UserId="item.User.Id"
+                                         DisplayName="@item.User.DisplayName"
+                                         Username="@item.User.Username"
+                                         Description="@item.User.Description"
+                                         HasImage="item.User.ProfileImageUpdatedUtc.HasValue"
+                                         ImageVersion="item.User.ProfileImageUpdatedUtc?.Ticks ?? 0" />
                     <p>@item.Description</p>
                     <p><strong>@T["Helpers.Skills"]:</strong> @item.Skills</p>
                     <p><strong>@T["Helpers.Radius"]:</strong> @item.RadiusKm km</p>

@@ -13,6 +13,7 @@ public class MhMDbContext : IdentityDbContext<ApplicationIdentityUser>
 
     public DbSet<AppUser> AppUsers => Set<AppUser>();
     public DbSet<HelperProfile> HelperProfiles => Set<HelperProfile>();
+    public DbSet<ProfileImage> ProfileImages => Set<ProfileImage>();
     public DbSet<Category> Categories => Set<Category>();
     public DbSet<Listing> Listings => Set<Listing>();
     public DbSet<ListingImage> ListingImages => Set<ListingImage>();   // NEU
@@ -31,11 +32,28 @@ public class MhMDbContext : IdentityDbContext<ApplicationIdentityUser>
         users.ToTable("Users");
         users.HasKey(x => x.Id);
         users.Property(x => x.DisplayName).HasMaxLength(120).IsRequired();
+        users.Property(x => x.IdentityUserId).HasMaxLength(450);
+        users.Property(x => x.Username).HasMaxLength(30).IsRequired();
+        users.Property(x => x.NormalizedUsername).HasMaxLength(30).IsRequired();
+        users.Property(x => x.Description).HasMaxLength(500).IsRequired();
         users.Property(x => x.Email).HasMaxLength(256).IsRequired();
         users.Property(x => x.Phone).HasMaxLength(50);
         users.Property(x => x.PostalCode).HasMaxLength(20).IsRequired();
         users.Property(x => x.City).HasMaxLength(120).IsRequired();
         users.HasIndex(x => x.Email).IsUnique();
+        users.HasIndex(x => x.IdentityUserId).IsUnique().HasFilter("[IdentityUserId] IS NOT NULL");
+        users.HasIndex(x => x.NormalizedUsername).IsUnique();
+
+        var profileImages = modelBuilder.Entity<ProfileImage>();
+        profileImages.ToTable("ProfileImages");
+        profileImages.HasKey(x => x.Id);
+        profileImages.Property(x => x.ContentType).HasMaxLength(50).IsRequired();
+        profileImages.Property(x => x.Data).IsRequired();
+        profileImages.HasIndex(x => x.UserId).IsUnique();
+        profileImages.HasOne(x => x.User)
+            .WithOne(x => x.ProfileImage)
+            .HasForeignKey<ProfileImage>(x => x.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         var helperProfiles = modelBuilder.Entity<HelperProfile>();
         helperProfiles.ToTable("HelperProfiles");

@@ -42,9 +42,13 @@
 
             <AuthorizeView>
                 <Authorized>
-                    <NavLink href="/mein" class="sidebar-link" @onclick="CloseMobileNav">
+                    <NavLink href="/profil" class="sidebar-link" @onclick="CloseMobileNav">
                         <span class="sidebar-link-icon"><Icon CustomIconName="bi bi-person" /></span>
-                        <span class="sidebar-link-label">Mein</span>
+                        <span class="sidebar-link-label">Profil</span>
+                    </NavLink>
+                    <NavLink href="/einstellungen" class="sidebar-link" @onclick="CloseMobileNav">
+                        <span class="sidebar-link-icon"><Icon CustomIconName="bi bi-gear" /></span>
+                        <span class="sidebar-link-label">Einstellungen</span>
                     </NavLink>
                 </Authorized>
                 <NotAuthorized>
@@ -139,11 +143,14 @@
                             }
                         </div>
 
-                        <a class="user-pill" href="/mein" aria-label="Mein Profil öffnen">
-                            <div class="user-pill-avatar"><Icon CustomIconName="bi bi-person-fill" /></div>
+                        <a class="user-pill" href="/profil" aria-label="Mein Profil öffnen">
+                            @if (currentAppUserId.HasValue)
+                            {
+                                <ProfileAvatar UserId="currentAppUserId.Value" DisplayName="@currentDisplayName" HasImage="currentProfileImageUpdatedUtc.HasValue" ImageVersion="currentProfileImageUpdatedUtc?.Ticks ?? 0" CssClass="user-pill-avatar" />
+                            }
                             <div>
-                                <strong>@authState.User.Identity?.Name</strong>
-                                <div class="muted">Angemeldet</div>
+                                <strong>@(string.IsNullOrWhiteSpace(currentDisplayName) ? authState.User.Identity?.Name : currentDisplayName)</strong>
+                                <div class="muted">@(string.IsNullOrWhiteSpace(currentUsername) ? "Angemeldet" : $"@{currentUsername}")</div>
                             </div>
                         </a>
                     </Authorized>

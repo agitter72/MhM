@@ -116,17 +116,15 @@ public partial class Helfer
             return;
         }
 
-        var email = authState.User.FindFirstValue(ClaimTypes.Email)
-            ?? authState.User.Identity?.Name;
-
-        if (string.IsNullOrWhiteSpace(email))
+        var identityUserId = authState.User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrWhiteSpace(identityUserId))
         {
             return;
         }
 
         currentUser = await db.AppUsers
             .Include(x => x.HelperProfile)
-            .FirstOrDefaultAsync(x => x.Email == email);
+            .FirstOrDefaultAsync(x => x.IdentityUserId == identityUserId);
 
         currentHelperProfile = currentUser?.HelperProfile;
 
