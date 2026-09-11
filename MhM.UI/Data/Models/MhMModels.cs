@@ -30,6 +30,12 @@ public enum ListingApplicationStatus
     Abgelehnt = 3
 }
 
+public enum UserNotificationType
+{
+    Auftragsvergabe = 1,
+    ChatNachricht = 2
+}
+
 public sealed class AppUser
 {
     public Guid Id { get; set; } = Guid.NewGuid();
@@ -136,6 +142,7 @@ public sealed class Conversation
     public AppUser Requester { get; set; } = default!;
     public AppUser Helper { get; set; } = default!;
     public ICollection<Message> Messages { get; set; } = [];
+    public ICollection<UserNotification> Notifications { get; set; } = [];
 }
 
 public sealed class Message
@@ -143,11 +150,39 @@ public sealed class Message
     public Guid Id { get; set; } = Guid.NewGuid();
     public Guid ConversationId { get; set; }
     public Guid SenderUserId { get; set; }
+    public Guid RecipientUserId { get; set; }
     public string Content { get; set; } = string.Empty;
     public DateTime SentUtc { get; set; } = DateTime.UtcNow;
+    public DateTime? DeliveredUtc { get; set; }
+    public DateTime? ReadUtc { get; set; }
 
     public Conversation Conversation { get; set; } = default!;
     public AppUser SenderUser { get; set; } = default!;
+    public AppUser RecipientUser { get; set; } = default!;
+    public ICollection<UserNotification> Notifications { get; set; } = [];
+}
+
+public sealed class UserNotification
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public UserNotificationType Type { get; set; } = UserNotificationType.ChatNachricht;
+    public Guid RecipientUserId { get; set; }
+    public Guid? SenderUserId { get; set; }
+    public Guid ListingId { get; set; }
+    public Guid? ConversationId { get; set; }
+    public Guid? MessageId { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public string Content { get; set; } = string.Empty;
+    public string LinkUrl { get; set; } = string.Empty;
+    public DateTime CreatedUtc { get; set; } = DateTime.UtcNow;
+    public DateTime? DeliveredUtc { get; set; }
+    public DateTime? ReadUtc { get; set; }
+
+    public AppUser RecipientUser { get; set; } = default!;
+    public AppUser? SenderUser { get; set; }
+    public Listing Listing { get; set; } = default!;
+    public Conversation? Conversation { get; set; }
+    public Message? Message { get; set; }
 }
 
 public sealed class Review

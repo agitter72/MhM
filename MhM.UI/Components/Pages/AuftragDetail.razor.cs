@@ -369,6 +369,9 @@ public partial class AuftragDetail
         await LoadCurrentUserAsync(db);
         await LoadReviewStateAsync(db);
         await LoadSubmittedReviewsAsync(db);
+        await LoadChatStateAsync(db);
+        await EnsureListingNotificationsReadAsync();
+        await RestartChatRefreshLoopAsync();
 
         //SeedApplicationModel();
         isLoading = false;
@@ -628,6 +631,7 @@ public partial class AuftragDetail
     private async Task LoadCurrentUserAsync(MhMDbContext db)
     {
         currentUserId = null;
+        currentUserDisplayName = null;
         currentUserCanApply = false;
         appliedListingIds.Clear();
 
@@ -649,6 +653,7 @@ public partial class AuftragDetail
             return;
 
         currentUserId = user.Id;
+        currentUserDisplayName = user.DisplayName;
         currentUserCanApply = user.Role == UserRole.Helfer;
 
         if (!currentUserCanApply)

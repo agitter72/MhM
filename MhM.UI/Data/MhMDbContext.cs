@@ -19,6 +19,7 @@ public class MhMDbContext : IdentityDbContext<ApplicationIdentityUser>
     public DbSet<ListingApplication> ListingApplications => Set<ListingApplication>();
     public DbSet<Conversation> Conversations => Set<Conversation>();
     public DbSet<Message> Messages => Set<Message>();
+    public DbSet<UserNotification> UserNotifications => Set<UserNotification>();
     public DbSet<Review> Reviews => Set<Review>();
     public DbSet<ReviewCategoryRating> ReviewCategoryRatings => Set<ReviewCategoryRating>();
 
@@ -111,6 +112,7 @@ public class MhMDbContext : IdentityDbContext<ApplicationIdentityUser>
         var conversations = modelBuilder.Entity<Conversation>();
         conversations.ToTable("Conversations");
         conversations.HasKey(x => x.Id);
+        conversations.HasIndex(x => new { x.ListingId, x.RequesterId, x.HelperId }).IsUnique();
         conversations.HasOne(x => x.Listing)
             .WithMany(x => x.Conversations)
             .HasForeignKey(x => x.ListingId)
@@ -128,6 +130,8 @@ public class MhMDbContext : IdentityDbContext<ApplicationIdentityUser>
         messages.ToTable("Messages");
         messages.HasKey(x => x.Id);
         messages.Property(x => x.Content).HasMaxLength(4000).IsRequired();
+        messages.HasIndex(x => new { x.ConversationId, x.SentUtc });
+        messages.HasIndex(x => new { x.RecipientUserId, x.ReadUtc, x.DeliveredUtc });
         messages.HasOne(x => x.Conversation)
             .WithMany(x => x.Messages)
             .HasForeignKey(x => x.ConversationId)
@@ -135,6 +139,44 @@ public class MhMDbContext : IdentityDbContext<ApplicationIdentityUser>
         messages.HasOne(x => x.SenderUser)
             .WithMany()
             .HasForeignKey(x => x.SenderUserId)
+            .OnDelete(DeleteBehavior.Restrict);
+        messages.HasOne(x => x.RecipientUser)
+            .WithMany()
+            .HasForeignKey(x => x.RecipientUserId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        var notifications = modelBuilder.Entity<UserNotification>();
+        notifications.ToTable("UserNotifications");
+        notifications.HasKey(x => x.Id);
+        notifications.Property(x => x.Type)
+            .HasConversion<int>()
+            .IsRequired();
+        notifications.Property(x => x.Title).HasMaxLength(160).IsRequired();
+        notifications.Property(x => x.Content).HasMaxLength(2000).IsRequired();
+        notifications.Property(x => x.LinkUrl).HasMaxLength(512).IsRequired();
+        notifications.HasIndex(x => new { x.RecipientUserId, x.ReadUtc, x.DeliveredUtc, x.CreatedUtc });
+        notifications.HasIndex(x => x.MessageId)
+            .IsUnique()
+            .HasFilter("[MessageId] IS NOT NULL");
+        notifications.HasOne(x => x.RecipientUser)
+            .WithMany()
+            .HasForeignKey(x => x.RecipientUserId)
+            .OnDelete(DeleteBehavior.Restrict);
+        notifications.HasOne(x => x.SenderUser)
+            .WithMany()
+            .HasForeignKey(x => x.SenderUserId)
+            .OnDelete(DeleteBehavior.Restrict);
+        notifications.HasOne(x => x.Listing)
+            .WithMany()
+            .HasForeignKey(x => x.ListingId)
+            .OnDelete(DeleteBehavior.Restrict);
+        notifications.HasOne(x => x.Conversation)
+            .WithMany(x => x.Notifications)
+            .HasForeignKey(x => x.ConversationId)
+            .OnDelete(DeleteBehavior.SetNull);
+        notifications.HasOne(x => x.Message)
+            .WithMany(x => x.Notifications)
+            .HasForeignKey(x => x.MessageId)
             .OnDelete(DeleteBehavior.Restrict);
 
         var reviews = modelBuilder.Entity<Review>();

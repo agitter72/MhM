@@ -18,3 +18,121 @@
         right: 0.75rem;
         top: 0.5rem;
     }
+
+.notification-center {
+    position: relative;
+}
+
+.notification-toggle {
+    position: relative;
+}
+
+.notification-badge {
+    position: absolute;
+    top: -0.35rem;
+    right: -0.35rem;
+    min-width: 1.35rem;
+    height: 1.35rem;
+    padding: 0 0.3rem;
+    border-radius: 999px;
+    background: #dc2626;
+    color: #fff;
+    font-size: 0.72rem;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--panel);
+}
+
+.notification-popover {
+    position: absolute;
+    top: calc(100% + 0.75rem);
+    right: 0;
+    width: min(24rem, calc(100vw - 2rem));
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    overflow: hidden;
+    z-index: 50;
+}
+
+.notification-popover-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.9rem 1rem;
+    border-bottom: 1px solid var(--line);
+}
+
+.notification-empty {
+    padding: 1rem;
+    color: var(--muted);
+}
+
+.notification-list {
+    display: grid;
+    max-height: 24rem;
+    overflow-y: auto;
+}
+
+.notification-item {
+    display: grid;
+    gap: 0.35rem;
+    padding: 0.9rem 1rem;
+    text-decoration: none;
+    color: inherit;
+    border-bottom: 1px solid var(--line);
+    background: transparent;
+}
+
+.notification-item:last-child {
+    border-bottom: 0;
+}
+
+.notification-item:hover {
+    background: var(--panel-2);
+}
+
+.notification-item--unread {
+    background: color-mix(in srgb, var(--brand) 8%, var(--panel));
+}
+
+.notification-item-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+    color: var(--muted);
+    font-size: 0.82rem;
+}
+
+.notification-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    color: var(--text);
+    font-weight: 600;
+}
+
+.notification-item-title {
+    font-weight: 700;
+    color: var(--text);
+}
+
+.notification-item-text {
+    color: var(--muted);
+    line-height: 1.4;
+}
+
+@media (max-width: 640px) {
+    .notification-popover {
+        right: -3rem;
+    }
+}

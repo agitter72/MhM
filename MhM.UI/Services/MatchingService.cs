@@ -4,7 +4,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace MhM.UI.Services;
 
-public sealed class MatchingService(IDbContextFactory<MhMDbContext> dbFactory) : IMatchingService
+public sealed class MatchingService(
+    IDbContextFactory<MhMDbContext> dbFactory,
+    INotificationService notificationService) : IMatchingService
 {
     public async Task<IReadOnlyList<MatchCandidate>> GetTopCandidatesForListingAsync(
         Guid listingId,
@@ -122,6 +124,7 @@ public sealed class MatchingService(IDbContextFactory<MhMDbContext> dbFactory) :
             await using var tx = await retryDb.Database.BeginTransactionAsync(cancellationToken);
 
             var listing = await retryDb.Listings
+                .Include(x => x.Requester)
                 .FirstOrDefaultAsync(x => x.Id == listingId, cancellationToken)
                 ?? throw new InvalidOperationException("Auftrag nicht gefunden.");
 
@@ -174,12 +177,22 @@ public sealed class MatchingService(IDbContextFactory<MhMDbContext> dbFactory) :
             {
                 Conversation = conversation,
                 SenderUserId = listing.RequesterId,
+                RecipientUserId = helperUserId,
                 Content = $"✅ Auftrag „{listing.Title}“ wurde vergeben. Bitte Details im Chat abstimmen.",
                 SentUtc = DateTime.UtcNow
             });
 
             await retryDb.SaveChangesAsync(cancellationToken);
             await tx.CommitAsync(cancellationToken);
+
+            await notificationService.CreateAssignmentNotificationAsync(
+                listingId,
+                conversation.Id,
+                listing.RequesterId,
+                helperUserId,
+                listing.Requester.DisplayName,
+                listing.Title,
+                cancellationToken);
         });
     }
 

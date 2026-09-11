@@ -157,5 +157,44 @@ window.pageNavigation = {
     }
 };
 
+window.appNotifications = {
+    requestPermission: async function () {
+        if (!("Notification" in window)) {
+            return "unsupported";
+        }
+
+        if (Notification.permission === "granted") {
+            return "granted";
+        }
+
+        if (Notification.permission === "denied") {
+            return "denied";
+        }
+
+        return await Notification.requestPermission();
+    },
+    showIfAllowed: function (title, body, url, tag) {
+        if (!("Notification" in window) || Notification.permission !== "granted") {
+            return false;
+        }
+
+        const notification = new Notification(title, {
+            body: body,
+            tag: tag,
+            renotify: false
+        });
+
+        notification.onclick = function () {
+            window.focus();
+            if (url) {
+                window.location.href = url;
+            }
+            notification.close();
+        };
+
+        return true;
+    }
+};
+
 window.addEventListener("scroll", window.pageNavigation.updateReturnToTop, { passive: true });
 document.addEventListener("DOMContentLoaded", window.pageNavigation.updateReturnToTop);

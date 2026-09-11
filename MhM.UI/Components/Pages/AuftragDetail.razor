@@ -176,6 +176,72 @@ else
                 <div class="listing-alert listing-alert-success">@reviewSuccess</div>
             }
 
+            @if (!string.IsNullOrWhiteSpace(chatError))
+            {
+                <div class="listing-alert listing-alert-error">@chatError</div>
+            }
+
+            @if (canUseChat && conversationId.HasValue)
+            {
+                <section class="panel auftrag-detail-data-panel chat-panel">
+                    <div class="chat-panel-header">
+                        <div>
+                            <h3>Chat zum Auftrag</h3>
+                            <p>Direkter Austausch mit @chatParticipantName</p>
+                        </div>
+                        <span class="badge-soft">@chatMessages.Count Nachricht@(chatMessages.Count == 1 ? string.Empty : "en")</span>
+                    </div>
+
+                    <div class="chat-thread" aria-live="polite">
+                        @if (chatMessages.Count == 0)
+                        {
+                            <div class="chat-empty-state">Noch keine Nachrichten vorhanden.</div>
+                        }
+                        else
+                        {
+                            @foreach (var message in chatMessages)
+                            {
+                                var isOwnMessage = IsOwnMessage(message);
+
+                                <article class="chat-message @(isOwnMessage ? "chat-message--own" : "chat-message--other")">
+                                    <div class="chat-message-meta">
+                                        <span class="chat-message-author">@message.SenderDisplayName</span>
+                                        <time datetime="@message.SentUtc.ToString("O")">@message.SentUtc.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</time>
+                                    </div>
+
+                                    <div class="chat-message-bubble">@message.Content</div>
+
+                                    @if (isOwnMessage)
+                                    {
+                                        <div class="chat-message-state">@GetMessageStateText(message)</div>
+                                    }
+                                </article>
+                            }
+                        }
+                    </div>
+
+                    <EditForm Model="chatInput"
+                              OnValidSubmit="SendChatMessageAsync"
+                              FormName="@GetChatFormName(conversationId.Value)">
+                        <DataAnnotationsValidator />
+
+                        <div class="chat-composer">
+                            <div class="field field--full">
+                                <label>Neue Nachricht</label>
+                                <InputTextArea @bind-Value="chatInput.Message" class="field-input field-textarea chat-composer-input" rows="3" />
+                                <ValidationMessage For="() => chatInput.Message" />
+                            </div>
+
+                            <div class="chat-composer-actions">
+                                <button type="submit" class="btn btn-primary" disabled="@isSendingChatMessage">
+                                    @(isSendingChatMessage ? "Nachricht wird gesendet …" : "Nachricht senden")
+                                </button>
+                            </div>
+                        </div>
+                    </EditForm>
+                </section>
+            }
+
             @if (requesterCompletionBlockedByPreferredDate)
             {
                 <div class="listing-alert listing-alert-error">

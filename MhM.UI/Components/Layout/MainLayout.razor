@@ -104,6 +104,54 @@
                 <AuthorizeView>
                     <Authorized Context="authState">
                         <a class="btn btn-secondary topbar-helper" href="/helfer">@T["Nav.ActivateHelper"]</a>
+
+                        <div class="notification-center">
+                            <button class="notification-toggle btn btn-light"
+                                    type="button"
+                                    aria-label="Benachrichtigungen"
+                                    aria-expanded="@isNotificationCenterOpen"
+                                    @onclick="ToggleNotificationCenterAsync">
+                                <span aria-hidden="true">🔔</span>
+                                @if (unreadNotificationCount > 0)
+                                {
+                                    <span class="notification-badge">@(unreadNotificationCount > 99 ? "99+" : unreadNotificationCount)</span>
+                                }
+                            </button>
+
+                            @if (isNotificationCenterOpen)
+                            {
+                                <div class="notification-popover">
+                                    <div class="notification-popover-header">
+                                        <strong>Benachrichtigungen</strong>
+                                        <span class="muted">@unreadNotificationCount ungelesen</span>
+                                    </div>
+
+                                    @if (notificationItems.Count == 0)
+                                    {
+                                        <div class="notification-empty">Keine Benachrichtigungen vorhanden.</div>
+                                    }
+                                    else
+                                    {
+                                        <div class="notification-list">
+                                            @foreach (var notification in notificationItems)
+                                            {
+                                                <a class="notification-item @(notification.ReadUtc is null ? "notification-item--unread" : null)"
+                                                   href="@notification.LinkUrl"
+                                                   @onclick="CloseNotificationCenter">
+                                                    <div class="notification-item-head">
+                                                        <span class="notification-pill">@GetNotificationTypeLabel(notification)</span>
+                                                        <time datetime="@notification.CreatedUtc.ToString("O")">@FormatNotificationTimestamp(notification.CreatedUtc)</time>
+                                                    </div>
+                                                    <div class="notification-item-title">@notification.Title</div>
+                                                    <div class="notification-item-text">@notification.Content</div>
+                                                </a>
+                                            }
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </div>
+
                         <a class="btn btn-secondary" href="/account/logoff">Abmelden</a>
                         <div class="user-pill">
                             <div class="user-pill-avatar">👤</div>
