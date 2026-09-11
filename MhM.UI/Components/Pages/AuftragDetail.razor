@@ -16,15 +16,21 @@ else
 
     <div class="auftrag-detail-page">
         <section class="panel auftrag-detail-header">
-            <div>
-                <div class="eyebrow">Auftrag</div>
+            <div class="auftrag-detail-heading">
+                <div class="listing-chip-row">
+                    <span class="badge-soft">@T.Enum(item.Status)</span>
+                    <span class="badge-soft">@T.Enum(item.CompensationType)</span>
+                </div>
                 <h1>@item.Title</h1>
             </div>
 
             <div class="listing-card-actions">
-                <a class="btn btn-secondary" href="/auftraege">Zurück</a>
-                <a class="btn btn-secondary" href="@($"/auftraege/{item.Id}/bearbeiten")">Bearbeiten</a>
-                <a class="btn btn-primary" href="@($"/auftraege/{item.Id}/vergabe")">Vergabe</a>
+                <a class="btn btn-secondary" href="/auftraege"><Icon CustomIconName="bi bi-arrow-left" /> Zurück</a>
+                @if (currentUserId == item.RequesterId)
+                {
+                    <a class="btn btn-secondary" href="@($"/auftraege/{item.Id}/bearbeiten")"><Icon CustomIconName="bi bi-pencil" /> Bearbeiten</a>
+                    <a class="btn btn-primary" href="@($"/auftraege/{item.Id}/vergabe")"><Icon CustomIconName="bi bi-person-check" /> Vergabe</a>
+                }
             </div>
         </section>
 
@@ -40,78 +46,48 @@ else
                     else
                     {
                         <div class="listing-card-placeholder">
-                            <span>Kein Bild verfügbar</span>
+                            <Icon CustomIconName="bi bi-image" />
+                            <span>Kein Bild vorhanden</span>
                         </div>
                     }
                 </div>
             </section>
 
-            <section class="panel auftrag-detail-data-panel">
-                <div class="listing-chip-row">
-                    <label>Vergütung: </label><span class="badge-soft">@T.Enum(item.CompensationType)</span>
-                    <label>Status: </label><span class="badge-soft">@T.Enum(item.Status)</span>
-                </div>
+            <aside class="auftrag-detail-summary">
+                <section class="panel requester-card">
+                    <div class="requester-avatar" role="img" aria-label="Profilbild von @item.Requester.DisplayName">
+                        @GetInitials(item.Requester.DisplayName)
+                    </div>
+                    <div>
+                        <span class="detail-kicker">Auftrag erstellt von</span>
+                        <strong>@item.Requester.DisplayName</strong>
+                        <span>@item.Requester.City</span>
+                    </div>
+                </section>
+
+                <section class="panel auftrag-facts">
+                    <h2>Auf einen Blick</h2>
+                    <dl>
+                        <div><dt><Icon CustomIconName="bi bi-tag" /> Kategorie</dt><dd>@item.Category.Name</dd></div>
+                        <div><dt><Icon CustomIconName="bi bi-geo-alt" /> Ort</dt><dd>@item.PostalCode @item.City</dd></div>
+                        <div><dt><Icon CustomIconName="bi bi-cash-coin" /> Budget</dt><dd>@FormatBudget(item)</dd></div>
+                        <div><dt><Icon CustomIconName="bi bi-calendar-event" /> Wunschtermin</dt><dd>@(item.PreferredDateUtc?.ToLocalTime().ToString("dd.MM.yyyy, HH:mm") ?? "Flexibel")</dd></div>
+                        <div><dt><Icon CustomIconName="bi bi-people" /> Bewerbungen</dt><dd>@applicationCount</dd></div>
+                        <div><dt><Icon CustomIconName="bi bi-clock" /> Erstellt</dt><dd>@item.CreatedUtc.ToLocalTime().ToString("dd.MM.yyyy")</dd></div>
+                    </dl>
+                </section>
+            </aside>
+
+            <section class="panel auftrag-description">
+                <span class="detail-kicker">Beschreibung</span>
+                <h2>Worum geht es?</h2>
+                <p>@item.Description</p>
             </section>
 
-            <section class="panel auftrag-detail-data-panel">
-                <div class="listing-card-body">
-                    <table class="auftrag-detail-table">
-                        <tbody>
-                            <tr>
-                                <th colspan="2">Worum gehts:</th>
-                            </tr>
-                            <tr>
-                                <td colspan="2" class="left">@item.Description</td>
-                            </tr>
-                            <tr>
-                                <th>Kategorie</th>
-                                <td>@item.Category.Name</td>
-                            </tr>
-                            <tr>
-                                <th>Erstellt von</th>
-                                <td>@item.Requester.DisplayName</td>
-                            </tr>
-                            <tr>
-                                <th>Ort</th>
-                                <td>@item.PostalCode @item.City</td>
-                            </tr>
-                            <tr>
-                                <th>Koordinaten</th>
-                                <td>@item.Latitude, @item.Longitude</td>
-                            </tr>
-                            <tr>
-                                <th>Vergütung</th>
-                                <td>@T.Enum(item.CompensationType)</td>
-                            </tr>
-                            <tr>
-                                <th>Status</th>
-                                <td>@T.Enum(item.Status)</td>
-                            </tr>
-                            <tr>
-                                <th>Budget</th>
-                                <td>@(item.BudgetMin?.ToString("N2")) € - @(item.BudgetMax?.ToString("N2")) €</td>
-                            </tr>
-                            <tr>
-                                <th>Wunschtermin</th>
-                                <td>@(item.PreferredDateUtc?.ToLocalTime().ToString("dd.MM.yyyy HH:mm") ?? "-")</td>
-                            </tr>
-                            <tr>
-                                <th>Erstellt am</th>
-                                <td>@item.CreatedUtc.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</td>
-                            </tr>
-                            <tr>
-                                <th>Bewerbungen</th>
-                                <td>@applicationCount</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </section>
-
-            <section class="panel auftrag-detail-data-panel">
-                @if (CanApplyToListing(item) && !HasApplied(item.Id))
-                {
-                    <section class="listing-application listing-application--accent">
+            @if (CanApplyToListing(item) && !HasApplied(item.Id))
+            {
+                <section class="panel auftrag-detail-data-panel auftrag-application-panel">
+                    <div class="listing-application listing-application--accent">
                         <h3>Für Auftrag bewerben</h3>
 
                         <EditForm Model="applyModel"
@@ -143,18 +119,19 @@ else
                                 </div>
                             </div>
                             <button type="submit" class="btn btn-primary" disabled="@isApplying">
+                                <Icon CustomIconName="bi bi-send" />
                                 @(isApplying ? "Bewerbung wird gesendet …" : "Jetzt bewerben")
                             </button>
                         </EditForm>
-                    </section>
-                }
-                else if (HasApplied(item.Id) && !canReviewHelper)
-                {
-                    <div class="listing-alert listing-alert-success">
-                        <strong>Du hast dich bereits auf diesen Auftrag beworben.</strong>
                     </div>
-                }
-            </section>
+                </section>
+            }
+            else if (HasApplied(item.Id) && !canReviewHelper)
+            {
+                <div class="listing-alert listing-alert-success auftrag-detail-wide">
+                    <strong>Du hast dich bereits auf diesen Auftrag beworben.</strong>
+                </div>
+            }
 
             @if (!string.IsNullOrWhiteSpace(applyError))
             {
@@ -288,14 +265,14 @@ else
                     @if (helperReviewFromRequester is not null)
                     {
                         <article class="review-summary-card">
-                            <h4>@helperReviewFromRequester.ReviewerRole → @helperReviewFromRequester.RevieweeRole</h4>
-                            <p class="review-summary-stars">@ToStars(helperReviewFromRequester.Stars)</p>
+                            <h4>@helperReviewFromRequester.ReviewerRole <Icon CustomIconName="bi bi-arrow-right" /> @helperReviewFromRequester.RevieweeRole</h4>
+                            <p class="review-summary-stars"><StarRatingDisplay Value="@helperReviewFromRequester.Stars" /></p>
                             <p class="review-summary-date">@helperReviewFromRequester.CreatedUtc.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</p>
 
                             <ul class="review-summary-list">
                                 @foreach (var c in helperReviewFromRequester.Categories)
                                 {
-                                    <li><strong>@c.Label:</strong> @ToStars(c.Stars)</li>
+                                    <li><strong>@c.Label:</strong> <StarRatingDisplay Value="@c.Stars" /></li>
                                 }
                             </ul>
                         </article>
@@ -304,14 +281,14 @@ else
                     @if (requesterReviewFromHelper is not null)
                     {
                         <article class="review-summary-card">
-                            <h4>@requesterReviewFromHelper.ReviewerRole → @requesterReviewFromHelper.RevieweeRole</h4>
-                            <p class="review-summary-stars">@ToStars(requesterReviewFromHelper.Stars)</p>
+                            <h4>@requesterReviewFromHelper.ReviewerRole <Icon CustomIconName="bi bi-arrow-right" /> @requesterReviewFromHelper.RevieweeRole</h4>
+                            <p class="review-summary-stars"><StarRatingDisplay Value="@requesterReviewFromHelper.Stars" /></p>
                             <p class="review-summary-date">@requesterReviewFromHelper.CreatedUtc.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</p>
 
                             <ul class="review-summary-list">
                                 @foreach (var c in requesterReviewFromHelper.Categories)
                                 {
-                                    <li><strong>@c.Label:</strong> @ToStars(c.Stars)</li>
+                                    <li><strong>@c.Label:</strong> <StarRatingDisplay Value="@c.Stars" /></li>
                                 }
                             </ul>
                         </article>

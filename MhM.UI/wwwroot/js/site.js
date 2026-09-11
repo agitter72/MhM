@@ -196,5 +196,40 @@ window.appNotifications = {
     }
 };
 
+window.popover = {
+    outsideClickHandler: null,
+    escapeHandler: null,
+    registerOutsideClick: function (element, dotNetReference) {
+        this.unregisterOutsideClick();
+        if (!element) return;
+
+        this.outsideClickHandler = event => {
+            if (!element.contains(event.target)) {
+                dotNetReference.invokeMethodAsync("CloseNotificationCenterFromOutsideAsync").catch(() => { });
+                this.unregisterOutsideClick();
+            }
+        };
+        this.escapeHandler = event => {
+            if (event.key === "Escape") {
+                dotNetReference.invokeMethodAsync("CloseNotificationCenterFromOutsideAsync").catch(() => { });
+                this.unregisterOutsideClick();
+            }
+        };
+
+        document.addEventListener("pointerdown", this.outsideClickHandler, true);
+        document.addEventListener("keydown", this.escapeHandler, true);
+    },
+    unregisterOutsideClick: function () {
+        if (this.outsideClickHandler) {
+            document.removeEventListener("pointerdown", this.outsideClickHandler, true);
+        }
+        if (this.escapeHandler) {
+            document.removeEventListener("keydown", this.escapeHandler, true);
+        }
+        this.outsideClickHandler = null;
+        this.escapeHandler = null;
+    }
+};
+
 window.addEventListener("scroll", window.pageNavigation.updateReturnToTop, { passive: true });
 document.addEventListener("DOMContentLoaded", window.pageNavigation.updateReturnToTop);

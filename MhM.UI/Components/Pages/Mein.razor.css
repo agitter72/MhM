@@ -1,5 +1,23 @@
 .mein-header {
     margin-bottom: 1rem;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.mein-header p {
+    margin-bottom: 0;
+}
+
+@media (max-width: 560px) {
+    .mein-header {
+        flex-direction: column;
+    }
+
+    .mein-logout {
+        width: 100%;
+    }
 }
 
 .mein-tabs-shell {

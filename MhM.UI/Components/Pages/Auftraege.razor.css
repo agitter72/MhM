@@ -31,6 +31,29 @@
     gap: 1rem;
 }
 
+.mobile-filter-toggle {
+    display: none;
+}
+
+.category-filter-dropdown summary {
+    font-weight: 600;
+    cursor: pointer;
+}
+
+@media (min-width: 981px) {
+    .auftraege-sidebar[hidden] {
+        display: block;
+    }
+
+    .category-filter-dropdown:not([open]) > .category-checklist {
+        display: grid;
+    }
+
+    .category-filter-dropdown > summary {
+        display: none;
+    }
+}
+
 .budget-fields {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -59,12 +82,61 @@
 }
 
 @media (max-width: 980px) {
+    .mobile-filter-toggle {
+        display: flex;
+        justify-content: space-between;
+        width: 100%;
+    }
+
     .auftraege-layout {
         grid-template-columns: 1fr;
     }
 
-    .budget-fields {
+    .auftraege-sidebar {
+        padding: 1rem;
+    }
+
+    .auftraege-filter-form {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.75rem;
+    }
+
+    .category-filter-dropdown,
+    .listing-filter-actions {
+        grid-column: 1 / -1;
+    }
+
+    .category-filter-dropdown {
+        padding: 0.8rem;
+        border: 1px solid var(--line);
+        border-radius: var(--radius-sm);
+        background: var(--input-bg);
+    }
+
+    .category-filter-dropdown[open] summary {
+        margin-bottom: 0.75rem;
+    }
+
+    .category-checklist {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        max-height: 200px;
+    }
+
+    .auftraege-filter-form .field-input {
+        min-height: 42px;
+        padding: 0.6rem 0.75rem;
+        border-radius: 12px;
+    }
+}
+
+@media (max-width: 560px) {
+    .auftraege-filter-form {
         grid-template-columns: 1fr;
+    }
+
+    .category-filter-dropdown,
+    .listing-filter-actions {
+        grid-column: auto;
     }
 }
 
@@ -72,6 +144,14 @@
     color: var(--muted);
     font-size: 0.92rem;
     font-weight: 600;
+}
+
+@media (min-width: 981px) {
+    .listing-results-summary {
+        width: min(100%, 300px);
+        padding-inline: 0.25rem;
+        margin-bottom: -0.65rem;
+    }
 }
 
 .infinite-scroll-sentinel,

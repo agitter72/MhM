@@ -28,12 +28,14 @@ public partial class MainLayout : IAsyncDisposable
     protected readonly List<UserNotificationListItem> notificationItems = [];
     protected int unreadNotificationCount;
     protected bool isNotificationCenterOpen;
+    protected ElementReference notificationCenterElement;
 
     private Guid? currentAppUserId;
     private PeriodicTimer? notificationRefreshTimer;
     private CancellationTokenSource? notificationRefreshCts;
     private Task? notificationRefreshTask;
     private bool navigationSubscribed;
+    private DotNetObjectReference<MainLayout>? notificationOutsideClickReference;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -58,12 +60,31 @@ public partial class MainLayout : IAsyncDisposable
         if (isNotificationCenterOpen)
         {
             await RefreshNotificationsAsync();
+            notificationOutsideClickReference ??= DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("popover.registerOutsideClick", notificationCenterElement, notificationOutsideClickReference);
+        }
+        else
+        {
+            await JS.InvokeVoidAsync("popover.unregisterOutsideClick");
         }
     }
 
-    protected void CloseNotificationCenter()
+    protected async Task CloseNotificationCenterAsync()
     {
         isNotificationCenterOpen = false;
+        await JS.InvokeVoidAsync("popover.unregisterOutsideClick");
+    }
+
+    [JSInvokable]
+    public Task CloseNotificationCenterFromOutsideAsync()
+    {
+        if (!isNotificationCenterOpen)
+        {
+            return Task.CompletedTask;
+        }
+
+        isNotificationCenterOpen = false;
+        return InvokeAsync(StateHasChanged);
     }
 
     protected static string GetNotificationTypeLabel(UserNotificationListItem notification)
@@ -175,6 +196,7 @@ public partial class MainLayout : IAsyncDisposable
         isNotificationCenterOpen = false;
         _ = InvokeAsync(async () =>
         {
+            await JS.InvokeVoidAsync("popover.unregisterOutsideClick");
             await RefreshNotificationsAsync();
             StateHasChanged();
         });
@@ -216,6 +238,20 @@ public partial class MainLayout : IAsyncDisposable
         {
             Navigation.LocationChanged -= HandleLocationChanged;
             navigationSubscribed = false;
+        }
+
+        if (notificationOutsideClickReference is not null)
+        {
+            try
+            {
+                await JS.InvokeVoidAsync("popover.unregisterOutsideClick");
+            }
+            catch (JSDisconnectedException)
+            {
+            }
+
+            notificationOutsideClickReference.Dispose();
+            notificationOutsideClickReference = null;
         }
 
         await StopNotificationPollingAsync();

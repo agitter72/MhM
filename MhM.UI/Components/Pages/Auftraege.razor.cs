@@ -12,6 +12,9 @@ namespace MhM.UI.Components.Pages;
 public partial class Auftraege : IAsyncDisposable
 {
     private const int LoadBatchSize = 10;
+    protected bool areFiltersOpen;
+
+    protected void ToggleFilters() => areFiltersOpen = !areFiltersOpen;
 
     [Inject]
     protected IDbContextFactory<MhMDbContext> DbFactory { get; set; } = default!;
