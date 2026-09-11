@@ -6,7 +6,7 @@
                 class="carousel-arrow carousel-arrow-prev"
                 @onclick="Prev"
                 disabled="@(Images.Count <= 1)"
-                aria-label="Vorheriges Bild">&#8249;</button>
+                aria-label="Vorheriges Bild"><Icon CustomIconName="bi bi-chevron-left" /></button>
 
         <div class="carousel-image-wrapper">
             <img src="/api/listing-images/@Images[_index].Id"
@@ -19,7 +19,7 @@
                 class="carousel-arrow carousel-arrow-next"
                 @onclick="Next"
                 disabled="@(Images.Count <= 1)"
-                aria-label="Nächstes Bild">&#8250;</button>
+                aria-label="Nächstes Bild"><Icon CustomIconName="bi bi-chevron-right" /></button>
 
         <p class="carousel-counter muted">@(_index + 1) / @Images.Count</p>
 
@@ -28,7 +28,7 @@
             <button type="button"
                     class="btn-icon btn-danger carousel-delete"
                     title="Bild löschen"
-                    @onclick="DeleteCurrentAsync">&#x2715;</button>
+                    @onclick="DeleteCurrentAsync"><Icon CustomIconName="bi bi-trash3" /></button>
         }
     </div>
 

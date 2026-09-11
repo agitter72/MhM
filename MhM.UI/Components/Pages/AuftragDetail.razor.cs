@@ -394,6 +394,34 @@ public partial class AuftragDetail
            && listing.Status == ListingStatus.Offen
            && listing.RequesterId != currentUserId.Value;
 
+    protected static string FormatBudget(Listing listing)
+    {
+        if (listing.BudgetMin.HasValue && listing.BudgetMax.HasValue)
+        {
+            return $"{listing.BudgetMin:N0}–{listing.BudgetMax:N0} €";
+        }
+
+        if (listing.BudgetMin.HasValue)
+        {
+            return $"Ab {listing.BudgetMin:N0} €";
+        }
+
+        if (listing.BudgetMax.HasValue)
+        {
+            return $"Bis {listing.BudgetMax:N0} €";
+        }
+
+        return "Nach Absprache";
+    }
+
+    protected static string GetInitials(string displayName)
+    {
+        var parts = displayName.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        return parts.Length == 0
+            ? "?"
+            : string.Concat(parts.Take(2).Select(part => char.ToUpperInvariant(part[0])));
+    }
+
     protected bool HasApplied(Guid listingId) => appliedListingIds.Contains(listingId);
 
     protected string GetApplyFormName(Guid listingId) => $"apply-listing-{listingId:N}";
@@ -769,12 +797,6 @@ public partial class AuftragDetail
         }
 
         return new ParsedReviewComment(string.IsNullOrWhiteSpace(commentPart) ? null : commentPart, ratings);
-    }
-
-    private static string ToStars(int stars)
-    {
-        var safeStars = Math.Clamp(stars, 0, 5);
-        return new string('★', safeStars) + new string('☆', 5 - safeStars);
     }
 
     protected sealed record ReviewCategoryViewModel(string Label, int Stars);

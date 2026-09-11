@@ -1,52 +1,161 @@
 .auftrag-detail-page {
     width: 100%;
-    max-width: 700px;
+    max-width: 1180px;
     margin: 0 auto;
+    display: grid;
+    gap: 1rem;
+}
+
+.auftrag-detail-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.auftrag-detail-heading {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.auftrag-detail-heading h1 {
+    margin: 0;
 }
 
 .auftrag-detail-content {
     display: grid;
-    grid-template-rows: 1fr auto auto;
-    gap: 0.1rem;
-    align-items: start;
+    grid-template-columns: minmax(0, 1.55fr) minmax(290px, 0.85fr);
+    gap: 1rem;
+    align-items: stretch;
 }
 
-.auftrag-detail-media-panel,
-.auftrag-detail-data-panel {
+.auftrag-detail-content > * {
+    grid-column: 1 / -1;
+}
+
+.auftrag-detail-media-panel {
+    grid-column: 1;
+    padding: 0.75rem;
+    overflow: hidden;
     height: 100%;
 }
 
-.auftrag-detail-table {
-    width: 100%;
-    border-collapse: collapse;
+.auftrag-detail-summary {
+    grid-column: 2;
+    display: grid;
+    grid-template-rows: auto 1fr;
+    gap: 1rem;
+    height: 100%;
+}
+
+.requester-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.requester-avatar {
+    width: 58px;
+    height: 58px;
+    flex: 0 0 58px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: var(--primary);
+    color: var(--primary-foreground);
+    font-size: 1.5rem;
+}
+
+.requester-card > div:last-child {
+    display: grid;
+    gap: 0.2rem;
+}
+
+.requester-card span,
+.detail-kicker {
+    color: var(--muted);
+    font-size: 0.84rem;
+}
+
+.detail-kicker {
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    font-weight: 700;
+}
+
+.auftrag-facts h2,
+.auftrag-description h2 {
+    margin: 0 0 1rem;
+    font-size: 1.2rem;
+}
+
+.auftrag-facts dl {
+    display: grid;
+    gap: 0;
     margin: 0;
 }
 
-.auftrag-detail-table tr + tr {
+.auftrag-facts dl > div {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.7rem 0;
     border-top: 1px solid var(--line);
 }
 
-.auftrag-detail-table th,
-.auftrag-detail-table td {
-    padding: 0.75rem 0;
-    vertical-align: top;
+.auftrag-facts dt {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--muted);
 }
 
-.auftrag-detail-table td[colspan="2"] {
-    text-align: left;
-}
-
-.auftrag-detail-table th {
-    width: 42%;
-    text-align: left;
-    font-weight: 700;
-    color: var(--text);
-}
-
-.auftrag-detail-table td {
-    width: 58%;
+.auftrag-facts dd {
+    margin: 0;
     text-align: right;
+    font-weight: 600;
+}
+
+.auftrag-description {
+    min-height: 180px;
+}
+
+.auftrag-description p {
+    margin: 0;
     color: var(--text);
+    line-height: 1.7;
+    white-space: pre-wrap;
+}
+
+.auftrag-description .detail-kicker {
+    display: block;
+    margin-bottom: 0.35rem;
+}
+
+.auftrag-detail-media-panel .listing-card-media,
+.auftrag-detail-media-panel .listing-card-media-inner,
+.auftrag-detail-media-panel .listing-card-placeholder {
+    min-height: 420px;
+    height: 100%;
+}
+
+.auftrag-detail-media-panel ::deep .carousel {
+    height: 100%;
+    grid-template-rows: minmax(0, 1fr) auto;
+}
+
+.auftrag-detail-media-panel ::deep .carousel-frame,
+.auftrag-detail-media-panel ::deep .carousel-image-wrapper {
+    height: 100%;
+}
+
+.auftrag-detail-media-panel .listing-card-placeholder {
+    display: grid;
+    place-items: center;
+    align-content: center;
+    gap: 0.65rem;
+    color: var(--muted);
+    font-size: 1.1rem;
 }
 
 .auftrag-detail-apply-grid {
@@ -161,12 +270,39 @@
 }
 
 @media (max-width: 900px) {
+    .auftrag-detail-content {
+        grid-template-columns: 1fr;
+    }
+
+    .auftrag-detail-media-panel,
+    .auftrag-detail-summary {
+        grid-column: 1;
+    }
+
     .auftrag-detail-apply-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
     }
 }
 
 @media (max-width: 640px) {
+    .auftrag-detail-header {
+        flex-direction: column;
+    }
+
+    .auftrag-detail-header .listing-card-actions {
+        width: 100%;
+    }
+
+    .auftrag-detail-apply-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    .auftrag-detail-media-panel .listing-card-media,
+    .auftrag-detail-media-panel .listing-card-media-inner,
+    .auftrag-detail-media-panel .listing-card-placeholder {
+        min-height: 240px;
+    }
+
     .chat-panel-header {
         flex-direction: column;
         align-items: flex-start;

@@ -178,7 +178,7 @@ public sealed class MatchingService(
                 Conversation = conversation,
                 SenderUserId = listing.RequesterId,
                 RecipientUserId = helperUserId,
-                Content = $"✅ Auftrag „{listing.Title}“ wurde vergeben. Bitte Details im Chat abstimmen.",
+                Content = $"Auftrag „{listing.Title}“ wurde vergeben. Bitte Details im Chat abstimmen.",
                 SentUtc = DateTime.UtcNow
             });
 

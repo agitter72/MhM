@@ -17,7 +17,7 @@
                             title="@($"{currentStar} Sterne")"
                             aria-label="@($"{category.Label}: {currentStar} Sterne")"
                             @onclick="() => SetRating(category.Key, currentStar)">
-                        ★
+                        <Icon CustomIconName="@(isActive ? "bi bi-star-fill" : "bi bi-star")" />
                     </button>
                 }
             </div>

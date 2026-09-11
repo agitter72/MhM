@@ -12,8 +12,25 @@
         <a class="btn btn-primary" href="/auftraege/neu">@T["Listings.New"]</a>
     </section>
 
+    @if (items is not null && items.Count > 0)
+    {
+        <div class="listing-results-summary" aria-live="polite">
+            @items.Count von @totalItems @(totalItems == 1 ? "Auftrag" : "Aufträgen") angezeigt
+        </div>
+    }
+
+    <button type="button"
+            class="btn btn-secondary mobile-filter-toggle"
+            aria-expanded="@areFiltersOpen"
+            aria-controls="listing-filters"
+            @onclick="ToggleFilters">
+        <Icon CustomIconName="bi bi-funnel" />
+        Filter @(areFiltersOpen ? "ausblenden" : "anzeigen")
+        <Icon CustomIconName="@(areFiltersOpen ? "bi bi-chevron-up" : "bi bi-chevron-down")" />
+    </button>
+
     <div class="auftraege-layout">
-        <aside class="panel auftraege-sidebar">
+        <aside id="listing-filters" class="panel auftraege-sidebar" hidden="@(!areFiltersOpen)">
             <form method="get" action="/auftraege" class="auftraege-filter-form">
                 <div class="field">
                     <label for="q">Suchbegriff</label>
@@ -61,8 +78,8 @@
                            class="listing-range" />
                 </div>
 
-                <div class="field">
-                    <label>Kategorien</label>
+                <details class="field category-filter-dropdown">
+                    <summary>Kategorien auswählen</summary>
                     <div class="category-checklist">
                         @foreach (var category in categories)
                         {
@@ -73,7 +90,7 @@
                             </label>
                         }
                     </div>
-                </div>
+                </details>
 
                 <div class="listing-filter-actions">
                     <button type="submit" class="btn btn-primary">Suchen</button>
@@ -83,14 +100,6 @@
         </aside>
 
         <section class="auftraege-results">
-            @*Todo: Ggf entfernen*@
-            @if (false && IsGeoSearchActive)
-            {
-                <div class="listing-alert listing-alert-info">
-                    <strong>Geo filter active:</strong> @Latitude, @Longitude, @EffectiveRadiusKm km
-                </div>
-            }
-
             @if (!string.IsNullOrWhiteSpace(applyError))
             {
                 <div class="listing-alert listing-alert-error">@applyError</div>
@@ -111,9 +120,6 @@
             }
             else
             {
-                <div class="listing-results-summary" aria-live="polite">
-                    @items.Count von @totalItems @(totalItems == 1 ? "Auftrag" : "Aufträgen") angezeigt
-                </div>
                 <div class="listing-list">
                     <AuftraegeKarten Items="items" />
                 </div>

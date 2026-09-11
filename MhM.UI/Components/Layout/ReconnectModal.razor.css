@@ -91,7 +91,7 @@
 
 #components-reconnect-modal button {
     border: 0;
-    background: linear-gradient(135deg, var(--primary), var(--primary-2));
+    background: var(--primary);
     color: var(--primary-foreground);
     padding: 4px 24px;
     border-radius: 4px;
