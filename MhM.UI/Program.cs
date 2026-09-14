@@ -354,6 +354,27 @@ app.MapGet("/api/listing-images/{id:guid}", async (Guid id, IDbContextFactory<Mh
     return Results.File(image.Data, image.ContentType, image.FileName);
 });//.RequireAuthorization();
 
+app.MapGet("/api/profile-images/user/{userId:guid}", async (Guid userId, IDbContextFactory<MhMDbContext> dbFactory) =>
+{
+    await using var db = await dbFactory.CreateDbContextAsync();
+    var user = await db.AppUsers
+        .AsNoTracking()
+        .Where(x => x.Id == userId)
+        .Select(x => new { x.ProfileImageData, x.ProfileImageContentType })
+        .FirstOrDefaultAsync();
+
+    if (user?.ProfileImageData is not { Length: > 0 })
+    {
+        return Results.NotFound();
+    }
+
+    var contentType = string.IsNullOrWhiteSpace(user.ProfileImageContentType)
+        ? "image/jpeg"
+        : user.ProfileImageContentType;
+
+    return Results.File(user.ProfileImageData, contentType);
+});
+
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();

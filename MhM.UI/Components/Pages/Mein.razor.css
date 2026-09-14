@@ -122,3 +122,35 @@
     background: var(--primary, #0d6efd);
     color: #fff;
 }
+
+.mein-helper-avatar-editor {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    align-items: center;
+}
+
+.mein-helper-avatar-preview,
+.mein-helper-avatar-fallback {
+    width: 88px;
+    height: 88px;
+    border-radius: 50%;
+}
+
+.mein-helper-avatar-preview {
+    object-fit: cover;
+    border: 1px solid var(--line);
+}
+
+.mein-helper-avatar-fallback {
+    display: grid;
+    place-items: center;
+    background: var(--primary);
+    color: #fff;
+    font-size: 1.6rem;
+}
+
+.mein-helper-avatar-actions {
+    display: grid;
+    gap: 0.4rem;
+}

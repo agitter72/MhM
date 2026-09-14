@@ -156,6 +156,12 @@ public partial class Helfer
         }
     }
 
+    protected static bool HasProfileImage(AppUser user)
+        => user.ProfileImageData is { Length: > 0 };
+
+    protected static string GetProfileImageUrl(Guid userId)
+        => $"/api/profile-images/user/{userId}";
+
     protected sealed class HelperActivationModel
     {
         [Required, MaxLength(160)]

@@ -140,7 +140,16 @@
                         </div>
 
                         <a class="user-pill" href="/mein" aria-label="Mein Profil öffnen">
-                            <div class="user-pill-avatar"><Icon CustomIconName="bi bi-person-fill" /></div>
+                            <div class="user-pill-avatar">
+                                @if (currentUserProfileImageUrl is not null)
+                                {
+                                    <img src="@currentUserProfileImageUrl" alt="Profilbild" />
+                                }
+                                else
+                                {
+                                    <Icon CustomIconName="bi bi-person-fill" />
+                                }
+                            </div>
                             <div>
                                 <strong>@authState.User.Identity?.Name</strong>
                                 <div class="muted">Angemeldet</div>

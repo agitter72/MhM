@@ -3,6 +3,7 @@ using MhM.UI.Data;
 using MhM.UI.Data.Models;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.JSInterop;
@@ -18,6 +19,7 @@ public partial class Mein
     [Inject] protected SignInManager<ApplicationIdentityUser> SignInManager { get; set; } = default!;
     [Inject] protected NavigationManager Navigation { get; set; } = default!;
     [Inject] protected IJSRuntime JS { get; set; } = default!;
+    [Inject] protected IConfiguration Configuration { get; set; } = default!;
 
     [SupplyParameterFromQuery(Name = "tab")]
     public string? TabQuery { get; set; }
@@ -61,9 +63,24 @@ public partial class Mein
     protected string? helperSuccess;
     protected string? passwordError;
     protected string? passwordSuccess;
+    protected bool isUploadingHelperImage;
+    protected bool helperHasProfileImage;
 
     private string? currentIdentityUserId;
     private Guid? currentAppUserId;
+
+    private long MaxHelperImageBytes =>
+        Math.Max(1, Configuration.GetValue<long?>("ProfileImages:MaxFileSizeBytes") ?? 3 * 1024 * 1024);
+
+    protected long MaxHelperImageMegabytes =>
+        Math.Max(1, (long)Math.Ceiling(MaxHelperImageBytes / 1024d / 1024d));
+
+    private static readonly HashSet<string> AllowedHelperImageContentTypes =
+    [
+        "image/jpeg",
+        "image/png",
+        "image/webp"
+    ];
 
     protected override async Task OnInitializedAsync()
     {
@@ -122,6 +139,7 @@ public partial class Mein
         }
 
         currentAppUserId = appUser.Id;
+        helperHasProfileImage = appUser.ProfileImageData is { Length: > 0 };
 
         personalData = new PersonalDataModel
         {
@@ -265,6 +283,117 @@ public partial class Mein
             savingHelper = false;
         }
     }
+
+    protected async Task OnHelperImageSelectedAsync(InputFileChangeEventArgs e)
+    {
+        if (isUploadingHelperImage || !currentAppUserId.HasValue)
+        {
+            return;
+        }
+
+        helperError = null;
+        helperSuccess = null;
+        var file = e.File;
+
+        if (file is null)
+        {
+            return;
+        }
+
+        if (!AllowedHelperImageContentTypes.Contains(file.ContentType))
+        {
+            helperError = "Bitte ein Bild im Format JPG, PNG oder WebP auswählen.";
+            return;
+        }
+
+        var maxHelperImageBytes = MaxHelperImageBytes;
+
+        if (file.Size <= 0 || file.Size > maxHelperImageBytes)
+        {
+            helperError = $"Das Profilbild darf maximal {MaxHelperImageMegabytes} MB groß sein.";
+            return;
+        }
+
+        isUploadingHelperImage = true;
+
+        try
+        {
+            await using var db = await DbFactory.CreateDbContextAsync();
+            var appUser = await db.AppUsers.FirstOrDefaultAsync(x => x.Id == currentAppUserId.Value);
+            if (appUser is null)
+            {
+                helperError = "AppUser-Profil nicht gefunden.";
+                return;
+            }
+
+            await using var stream = file.OpenReadStream(maxHelperImageBytes);
+            using var memory = new MemoryStream();
+            await stream.CopyToAsync(memory);
+
+            appUser.ProfileImageData = memory.ToArray();
+            appUser.ProfileImageContentType = file.ContentType;
+
+            await db.SaveChangesAsync();
+
+            helperHasProfileImage = true;
+            helperSuccess = "Profilbild wurde gespeichert.";
+        }
+        catch (Exception ex)
+        {
+            helperError = $"Profilbild konnte nicht gespeichert werden: {ex.Message}";
+        }
+        finally
+        {
+            isUploadingHelperImage = false;
+        }
+    }
+
+    protected async Task RemoveHelperImageAsync()
+    {
+        if (isUploadingHelperImage || !currentAppUserId.HasValue)
+        {
+            return;
+        }
+
+        helperError = null;
+        helperSuccess = null;
+        isUploadingHelperImage = true;
+
+        try
+        {
+            await using var db = await DbFactory.CreateDbContextAsync();
+            var appUser = await db.AppUsers.FirstOrDefaultAsync(x => x.Id == currentAppUserId.Value);
+            if (appUser is null)
+            {
+                helperError = "AppUser-Profil nicht gefunden.";
+                return;
+            }
+
+            appUser.ProfileImageData = null;
+            appUser.ProfileImageContentType = null;
+
+            await db.SaveChangesAsync();
+
+            helperHasProfileImage = false;
+            helperSuccess = "Profilbild wurde entfernt.";
+        }
+        catch (Exception ex)
+        {
+            helperError = $"Profilbild konnte nicht entfernt werden: {ex.Message}";
+        }
+        finally
+        {
+            isUploadingHelperImage = false;
+        }
+    }
+
+    protected string? GetCurrentHelperImageUrl()
+        => currentAppUserId.HasValue && helperHasProfileImage
+            ? BuildProfileImageUrl(currentAppUserId.Value)
+            : null;
+
+    private static string BuildProfileImageUrl(Guid userId)
+        => $"/api/profile-images/user/{userId}";
 
     protected async Task ChangePasswordAsync()
     {

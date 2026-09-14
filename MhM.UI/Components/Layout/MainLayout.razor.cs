@@ -29,6 +29,7 @@ public partial class MainLayout : IAsyncDisposable
     protected int unreadNotificationCount;
     protected bool isNotificationCenterOpen;
     protected ElementReference notificationCenterElement;
+    protected string? currentUserProfileImageUrl;
 
     private Guid? currentAppUserId;
     private PeriodicTimer? notificationRefreshTimer;
@@ -139,6 +140,7 @@ public partial class MainLayout : IAsyncDisposable
     private async Task<bool> TryLoadCurrentUserAsync(CancellationToken cancellationToken)
     {
         currentAppUserId = null;
+        currentUserProfileImageUrl = null;
 
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var principal = authState.User;
@@ -155,14 +157,24 @@ public partial class MainLayout : IAsyncDisposable
         }
 
         await using var db = await DbFactory.CreateDbContextAsync(cancellationToken);
-        currentAppUserId = await db.AppUsers
+        var userData = await db.AppUsers
             .AsNoTracking()
             .Where(x => x.Email == email)
-            .Select(x => (Guid?)x.Id)
+            .Select(x => new { x.Id, HasProfileImage = x.ProfileImageData != null && x.ProfileImageData.Length > 0 })
             .FirstOrDefaultAsync(cancellationToken);
 
-        return currentAppUserId.HasValue;
+        if (userData is null)
+        {
+            return false;
+        }
+
+        currentAppUserId = userData.Id;
+        currentUserProfileImageUrl = userData.HasProfileImage ? BuildProfileImageUrl(userData.Id) : null;
+        return true;
     }
+
+    protected static string BuildProfileImageUrl(Guid userId)
+        => $"/api/profile-images/user/{userId}";
 
     private async Task StartNotificationPollingAsync()
     {

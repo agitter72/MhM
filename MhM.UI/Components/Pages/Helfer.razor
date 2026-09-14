@@ -12,7 +12,7 @@ else
 {
     @if (isAuthenticated)
     {
-        <section class="editor-grid" style="margin-bottom:1.5rem;">
+        <section class="editor-grid helpers-editor-grid">
             <article class="panel panel-form">
                 <EditForm Model="activation" OnValidSubmit="ActivateAsync" FormName="HelperActivationForm">
                     <DataAnnotationsValidator />
@@ -116,7 +116,7 @@ else
     }
     else
     {
-        <section class="panel" style="margin-bottom:1.5rem;">
+        <section class="panel helpers-login-panel">
             <h3>@T["Helpers.LoginRequiredHeadline"]</h3>
             <p class="muted">@T["Helpers.LoginRequiredText"]</p>
         </section>
@@ -128,12 +128,26 @@ else
     }
     else
     {
-        <div style="display:grid;gap:1rem;">
+        <div class="helpers-list">
             @foreach (var item in items)
             {
-                <article class="panel">
-                    <h2>@item.Title</h2>
-                    <p><strong>@T["Helpers.Name"]:</strong> @item.User.DisplayName</p>
+                <article class="panel helper-card">
+                    <div class="helper-card-header">
+                        <div class="helper-card-avatar">
+                            @if (HasProfileImage(item.User))
+                            {
+                                <img src="@GetProfileImageUrl(item.UserId)" alt="Profilbild von @item.User.DisplayName" />
+                            }
+                            else
+                            {
+                                <Icon CustomIconName="bi bi-person-fill" />
+                            }
+                        </div>
+                        <div>
+                            <h2>@item.Title</h2>
+                            <p><strong>@T["Helpers.Name"]:</strong> @item.User.DisplayName</p>
+                        </div>
+                    </div>
                     <p>@item.Description</p>
                     <p><strong>@T["Helpers.Skills"]:</strong> @item.Skills</p>
                     <p><strong>@T["Helpers.Radius"]:</strong> @item.RadiusKm km</p>

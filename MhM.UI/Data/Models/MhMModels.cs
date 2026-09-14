@@ -49,6 +49,8 @@ public sealed class AppUser
     public UserRole Role { get; set; } = UserRole.Privatperson;
     public bool IsVerified { get; set; }
     public DateTime CreatedUtc { get; set; } = DateTime.UtcNow;
+    public byte[]? ProfileImageData { get; set; }
+    public string? ProfileImageContentType { get; set; }
 
     public HelperProfile? HelperProfile { get; set; }
     public ICollection<Listing> Listings { get; set; } = [];

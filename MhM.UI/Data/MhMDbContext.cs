@@ -35,6 +35,8 @@ public class MhMDbContext : IdentityDbContext<ApplicationIdentityUser>
         users.Property(x => x.Phone).HasMaxLength(50);
         users.Property(x => x.PostalCode).HasMaxLength(20).IsRequired();
         users.Property(x => x.City).HasMaxLength(120).IsRequired();
+        users.Property(x => x.ProfileImageData);
+        users.Property(x => x.ProfileImageContentType).HasMaxLength(100);
         users.HasIndex(x => x.Email).IsUnique();
 
         var helperProfiles = modelBuilder.Entity<HelperProfile>();
