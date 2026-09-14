@@ -4,6 +4,7 @@ using MhM.UI.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace MhM.UI.Migrations
 {
     [DbContext(typeof(MhMDbContext))]
-    partial class MhMDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260911131702_AddPublicProfilesAndUsernames")]
+    partial class AddPublicProfilesAndUsernames
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -160,13 +163,6 @@ namespace MhM.UI.Migrations
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
-
-                    b.Property<string>("ProfileImageContentType")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<byte[]>("ProfileImageData")
-                        .HasColumnType("varbinary(max)");
 
                     b.Property<DateTime?>("ProfileImageUpdatedUtc")
                         .HasColumnType("datetime2");

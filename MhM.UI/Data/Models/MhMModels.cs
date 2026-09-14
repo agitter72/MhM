@@ -39,7 +39,13 @@ public enum UserNotificationType
 public sealed class AppUser
 {
     public Guid Id { get; set; } = Guid.NewGuid();
+    public string? IdentityUserId { get; set; }
     public string DisplayName { get; set; } = string.Empty;
+    public string Username { get; set; } = string.Empty;
+    public string NormalizedUsername { get; set; } = string.Empty;
+    public DateTime? UsernameChangedUtc { get; set; }
+    public string Description { get; set; } = string.Empty;
+    public DateTime? ProfileImageUpdatedUtc { get; set; }
     public string Email { get; set; } = string.Empty;
     public string? Phone { get; set; }
     public string PostalCode { get; set; } = string.Empty;
@@ -53,7 +59,19 @@ public sealed class AppUser
     public string? ProfileImageContentType { get; set; }
 
     public HelperProfile? HelperProfile { get; set; }
+    public ProfileImage? ProfileImage { get; set; }
     public ICollection<Listing> Listings { get; set; } = [];
+}
+
+public sealed class ProfileImage
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid UserId { get; set; }
+    public string ContentType { get; set; } = string.Empty;
+    public byte[] Data { get; set; } = [];
+    public DateTime UploadedUtc { get; set; } = DateTime.UtcNow;
+
+    public AppUser User { get; set; } = default!;
 }
 
 public sealed class HelperProfile

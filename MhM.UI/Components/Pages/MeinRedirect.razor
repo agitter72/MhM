@@ -1,0 +1,16 @@
+@page "/mein"
+@inject NavigationManager Navigation
+
+<PageTitle>Weiterleitung</PageTitle>
+<section class="panel"><p class="muted">Du wirst weitergeleitet…</p></section>
+
+@code {
+    protected override void OnInitialized()
+    {
+        var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
+        var destination = string.IsNullOrWhiteSpace(uri.Query)
+            ? "/profil"
+            : $"/einstellungen{uri.Query}";
+        Navigation.NavigateTo(destination, replace: true);
+    }
+}

@@ -136,7 +136,7 @@ else
                         <div class="helper-card-avatar">
                             @if (HasProfileImage(item.User))
                             {
-                                <img src="@GetProfileImageUrl(item.UserId)" alt="Profilbild von @item.User.DisplayName" />
+                                <img src="@GetProfileImageUrl(item.UserId, item.User.ProfileImageUpdatedUtc)" alt="Profilbild von @item.User.DisplayName" />
                             }
                             else
                             {

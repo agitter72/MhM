@@ -42,9 +42,13 @@
 
             <AuthorizeView>
                 <Authorized>
-                    <NavLink href="/mein" class="sidebar-link" @onclick="CloseMobileNav">
+                    <NavLink href="/profil" class="sidebar-link" @onclick="CloseMobileNav">
                         <span class="sidebar-link-icon"><Icon CustomIconName="bi bi-person" /></span>
-                        <span class="sidebar-link-label">Mein</span>
+                        <span class="sidebar-link-label">Profil</span>
+                    </NavLink>
+                    <NavLink href="/einstellungen" class="sidebar-link" @onclick="CloseMobileNav">
+                        <span class="sidebar-link-icon"><Icon CustomIconName="bi bi-person-square" /></span>
+                        <span class="sidebar-link-label">Mein Bereich</span>
                     </NavLink>
                 </Authorized>
                 <NotAuthorized>
@@ -151,8 +155,8 @@
                                 }
                             </div>
                             <div>
-                                <strong>@authState.User.Identity?.Name</strong>
-                                <div class="muted">Angemeldet</div>
+                                <strong>@(string.IsNullOrWhiteSpace(currentDisplayName) ? authState.User.Identity?.Name : currentDisplayName)</strong>
+                                <div class="muted">@(string.IsNullOrWhiteSpace(currentUsername) ? "Angemeldet" : $"@{currentUsername}")</div>
                             </div>
                         </a>
                     </Authorized>

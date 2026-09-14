@@ -4,7 +4,7 @@ namespace MhM.UI.Models
 {
     public class LoginModel
     {
-        [Required, EmailAddress]
+        [Required, MaxLength(256)]
         public string Email { get; set; } = string.Empty;
 
         [Required, DataType(DataType.Password)]

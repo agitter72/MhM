@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.JSInterop;
 using System.ComponentModel.DataAnnotations;
+using MhM.UI.Models;
 
 namespace MhM.UI.Components.Pages.Account;
 
@@ -29,12 +30,24 @@ public partial class Register
 
         try
         {
+            if (!UsernameRules.TryNormalize(model.Username, out var username))
+            {
+                errorMessage = "Der Nutzername ist ungültig.";
+                return;
+            }
+
+            if (await UserManager.FindByNameAsync(username) is not null)
+            {
+                errorMessage = "Dieser Nutzername ist bereits vergeben.";
+                return;
+            }
+
             var identityUser = new ApplicationIdentityUser
             {
-                UserName = model.Email,
-                Email = model.Email,
-                FirstName = model.FirstName,
-                LastName = model.LastName,
+                UserName = username,
+                Email = model.Email.Trim(),
+                FirstName = model.FirstName.Trim(),
+                LastName = model.LastName.Trim(),
                 IsActive = true,
                 CreatedAt = DateTime.UtcNow
             };
@@ -50,10 +63,13 @@ public partial class Register
             {
                 var appUser = new AppUser
                 {
-                    DisplayName = $"{model.FirstName} {model.LastName}".Trim(),
-                    Email = model.Email,
-                    PostalCode = model.PostalCode,
-                    City = model.City,
+                    IdentityUserId = identityUser.Id,
+                    DisplayName = $"{model.FirstName.Trim()} {model.LastName.Trim()}".Trim(),
+                    Username = username,
+                    NormalizedUsername = username.ToUpperInvariant(),
+                    Email = model.Email.Trim(),
+                    PostalCode = model.PostalCode.Trim(),
+                    City = model.City.Trim(),
                     Role = UserRole.Privatperson
                 };
 
@@ -68,7 +84,7 @@ public partial class Register
                 return;
             }
 
-            var loginRequestResult = await JS.InvokeAsync<bool>("requestLogin", "/account/logon", model.Email, model.Password);
+            var loginRequestResult = await JS.InvokeAsync<bool>("requestLogin", "/account/logon", username, model.Password);
             if (loginRequestResult)
             {
                 Nav.NavigateTo("/", forceLoad: true);
@@ -91,7 +107,10 @@ public partial class Register
         [Required, MaxLength(100)]
         public string LastName { get; set; } = string.Empty;
 
-        [Required, EmailAddress]
+        [Username]
+        public string Username { get; set; } = string.Empty;
+
+        [Required, EmailAddress, MaxLength(256)]
         public string Email { get; set; } = string.Empty;
 
         [Required, MaxLength(20)]

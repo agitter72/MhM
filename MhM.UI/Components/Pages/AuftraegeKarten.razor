@@ -13,28 +13,30 @@
     {
         @foreach (var item in Items)
         {
-            <a class="auftrag-karte-link" href="@($"/auftraege/{item.Id}")">
-                <article class="auftrag-karte">
-                    <div class="auftrag-karte-image">
-                        @if (item.Images.Count > 0)
-                        {
-                            <img src="/api/listing-images/@item.Images.ToList()[0].Id"
-                                 alt="@item.Images.ToList()[0].FileName"
-                                 title="@item.Images.ToList()[0].FileName"
-                                 class="auftrag-bild" />
-                        }
-                        else
-                        {
-                            <div class="auftrag-bild-placeholder">
-                                <span>Kein Bild</span>
-                            </div>
-                        }
-                    </div>
+            <article class="auftrag-karte">
+                <a class="auftrag-karte-link" href="@($"/auftraege/{item.Id}")" aria-label="Auftrag „@item.Title“ öffnen"></a>
 
-                    <div class="auftrag-karte-content">
-                        <h3 class="auftrag-karte-title">@item.Title</h3>
-                        <p class="auftrag-karte-location">@item.PostalCode @item.City</p>
-                        <div class="auftrag-karte-price">
+                <div class="auftrag-karte-image">
+                    @if (item.Images.Count > 0)
+                    {
+                        <img src="/api/listing-images/@item.Images.First().Id"
+                             alt="@item.Images.First().FileName"
+                             title="@item.Images.First().FileName"
+                             class="auftrag-bild" />
+                    }
+                    else
+                    {
+                        <div class="auftrag-bild-placeholder">
+                            <Icon CustomIconName="bi bi-image" />
+                            <span>Kein Bild</span>
+                        </div>
+                    }
+                </div>
+
+                <div class="auftrag-karte-content">
+                    <h3 class="auftrag-karte-title">@item.Title</h3>
+                    <p class="auftrag-karte-location"><Icon CustomIconName="bi bi-geo-alt" /> @item.PostalCode @item.City</p>
+                    <div class="auftrag-karte-price">
                             @if (item.BudgetMin.HasValue && item.BudgetMax.HasValue)
                             {
                                 <span>@item.BudgetMin.Value.ToString("N2") € - @item.BudgetMax.Value.ToString("N2") €</span>
@@ -43,10 +45,20 @@
                             {
                                 <span>bis @item.BudgetMax.Value.ToString("N2") €</span>
                             }
-                        </div>
                     </div>
-                </article>
-            </a>
+                    @if (ShowRequester)
+                    {
+                        <div class="auftrag-karte-requester">
+                            <ProfileIdentityLink UserId="item.Requester.Id"
+                                                 DisplayName="@item.Requester.DisplayName"
+                                                 Username="@item.Requester.Username"
+                                                 Description="@item.Requester.Description"
+                                                 HasImage="item.Requester.ProfileImageUpdatedUtc.HasValue"
+                                                 ImageVersion="item.Requester.ProfileImageUpdatedUtc?.Ticks ?? 0" />
+                        </div>
+                    }
+                </div>
+            </article>
         }
     }
 </div>
@@ -54,4 +66,7 @@
 @code {
     [Parameter]
     public List<Listing> Items { get; set; } = [];
+
+    [Parameter]
+    public bool ShowRequester { get; set; } = true;
 }
