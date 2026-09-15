@@ -112,7 +112,7 @@
 
             @if (items is null)
             {
-                <div class="panel">@T["General.Loading"]</div>
+                <LoadingSkeleton Variant="cards" Count="6" />
             }
             else if (items.Count == 0)
             {
@@ -127,8 +127,8 @@
                 @if (HasMoreItems)
                 {
                     <div class="infinite-scroll-sentinel" @ref="loadMoreSentinel" role="status" aria-live="polite">
-                        <span class="loading-dot" aria-hidden="true"></span>
-                        Weitere Aufträge werden geladen …
+                        <span class="visually-hidden">Weitere Aufträge werden geladen</span>
+                        <div class="loading-more-skeleton" aria-hidden="true"><span></span><span></span><span></span></div>
                     </div>
                 }
                 else if (totalItems > LoadBatchSize)

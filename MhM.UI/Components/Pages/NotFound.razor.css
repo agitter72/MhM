@@ -1,0 +1,16 @@
+.not-found-page { position: relative; min-height: clamp(32rem, calc(100vh - 12rem), 48rem); display: grid; place-items: center; overflow: hidden; padding: 3rem 1.5rem; border: 1px solid var(--panel-border); border-radius: var(--radius-xl); background: radial-gradient(circle at 50% 38%, color-mix(in srgb, var(--primary) 13%, var(--panel)) 0, var(--panel) 48%, var(--panel-2) 100%); box-shadow: var(--shadow); }
+.not-found-content { position: relative; z-index: 1; max-width: 42rem; text-align: center; }
+.not-found-code { display: flex; justify-content: center; align-items: center; gap: clamp(.1rem, 1vw, .65rem); color: var(--text); font-size: clamp(6.5rem, 20vw, 12rem); font-weight: 800; line-height: .85; letter-spacing: -.09em; }
+.not-found-zero { position: relative; display: grid; place-items: center; }
+.not-found-compass { position: absolute; left: 50%; top: 50%; display: grid; place-items: center; width: clamp(2.6rem, 7.2vw, 5rem); height: clamp(2.6rem, 7.2vw, 5rem); transform: translate(-50%, -50%); border-radius: 50%; background: var(--primary); color: #fff; font-size: clamp(1.25rem, 3.6vw, 2.5rem); box-shadow: 0 12px 34px color-mix(in srgb, var(--primary) 34%, transparent); }
+.not-found-compass-icon { display: grid; place-items: center; animation: compass-turn 4s ease-in-out infinite; }
+.not-found-page .eyebrow { margin: 2rem 0 .65rem; color: var(--primary); }
+.not-found-page h1 { margin-bottom: .8rem; font-size: clamp(1.7rem, 4vw, 2.5rem); }
+.not-found-page p { max-width: 36rem; margin: 0 auto; color: var(--muted); font-size: 1.05rem; line-height: 1.7; }
+.not-found-actions { display: flex; justify-content: center; flex-wrap: wrap; gap: .75rem; margin-top: 1.75rem; }
+.not-found-decoration { position: absolute; border: 1px solid color-mix(in srgb, var(--primary) 18%, transparent); border-radius: 50%; }
+.not-found-decoration-one { width: 24rem; height: 24rem; top: -14rem; right: -8rem; }
+.not-found-decoration-two { width: 16rem; height: 16rem; bottom: -9rem; left: -5rem; background: color-mix(in srgb, var(--primary) 5%, transparent); }
+@keyframes compass-turn { 0%, 100% { transform: rotate(-8deg); } 50% { transform: rotate(8deg); } }
+@media (prefers-reduced-motion: reduce) { .not-found-compass-icon { animation: none; } }
+@media (max-width: 520px) { .not-found-page { min-height: calc(100vh - 10rem); padding-inline: 1rem; } .not-found-actions { flex-direction: column; } .not-found-actions .btn { width: 100%; } }

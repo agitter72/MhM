@@ -6,9 +6,7 @@
 
 @if (isLoading)
 {
-    <section class="panel">
-        <p class="muted">@T["General.Loading"]</p>
-    </section>
+    <LoadingSkeleton Variant="editor" />
 }
 else if (!string.IsNullOrWhiteSpace(loadError))
 {

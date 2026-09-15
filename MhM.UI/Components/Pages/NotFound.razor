@@ -1,5 +1,26 @@
 ﻿@page "/not-found"
 @layout MainLayout
 
-<h3>Not Found</h3>
-<p>Sorry, the content you are looking for does not exist.</p>
+<PageTitle>Seite nicht gefunden</PageTitle>
+
+<section class="not-found-page" aria-labelledby="not-found-title">
+    <div class="not-found-decoration not-found-decoration-one" aria-hidden="true"></div>
+    <div class="not-found-decoration not-found-decoration-two" aria-hidden="true"></div>
+    <div class="not-found-content">
+        <div class="not-found-code" aria-hidden="true">
+            <span>4</span>
+            <div class="not-found-zero">
+                <span>0</span>
+                @* <div class="not-found-compass"><span class="not-found-compass-icon"><Icon CustomIconName="bi bi-compass" /></span></div> *@
+            </div>
+            <span>4</span>
+        </div>
+        <div class="eyebrow">Falsche Abzweigung</div>
+        <h1 id="not-found-title">Diese Seite gibt es hier nicht.</h1>
+        <p>Vielleicht wurde der Link geändert, die Seite entfernt oder die Adresse enthält einen Tippfehler.</p>
+        <div class="not-found-actions">
+            <a class="btn btn-primary" href="/"><Icon CustomIconName="bi bi-house-door" /> Zur Startseite</a>
+            <a class="btn btn-secondary" href="/auftraege"><Icon CustomIconName="bi bi-card-checklist" /> Aufträge entdecken</a>
+        </div>
+    </div>
+</section>

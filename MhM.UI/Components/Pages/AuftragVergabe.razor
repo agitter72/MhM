@@ -5,7 +5,7 @@
 
 @if (isLoading)
 {
-    <p>Lade Vergabevorschläge …</p>
+    <LoadingSkeleton Variant="table" />
 }
 else if (!string.IsNullOrWhiteSpace(error))
 {
