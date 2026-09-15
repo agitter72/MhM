@@ -3,7 +3,7 @@
 <div class="auftraege-karten-grid">
     @if (Items == null)
     {
-        <div class="panel">Lädt...</div>
+        <LoadingSkeleton Variant="cards" Count="6" />
     }
     else if (Items.Count == 0)
     {

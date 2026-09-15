@@ -71,6 +71,7 @@ public partial class Auftraege : IAsyncDisposable
 
     private List<Listing> filteredItems = [];
     private DotNetObjectReference<Auftraege>? dotNetReference;
+    private bool isDisposed;
 
     protected bool HasMoreItems => items is not null && items.Count < totalItems;
 
@@ -109,14 +110,33 @@ public partial class Auftraege : IAsyncDisposable
 
         if (firstRender && !Latitude.HasValue && !Longitude.HasValue)
         {
-            var location = await JS.InvokeAsync<BrowserLocationDto?>("browserLocation.getCurrent");
-            if (location is not null)
+            BrowserLocationDto? location;
+
+            try
+            {
+                location = await JS.InvokeAsync<BrowserLocationDto?>("browserLocation.getCurrent");
+            }
+            catch (TaskCanceledException)
+            {
+                // Navigation or a closed circuit can cancel a pending browser location request.
+                return;
+            }
+            catch (JSDisconnectedException)
+            {
+                // The browser connection ended while the location prompt was open.
+                return;
+            }
+
+            if (location is not null && !isDisposed)
             {
                 Latitude = location.Latitude;
                 Longitude = location.Longitude;
 
                 await LoadListingsAsync();
-                StateHasChanged();
+                if (!isDisposed)
+                {
+                    StateHasChanged();
+                }
             }
         }
     }
@@ -259,6 +279,8 @@ public partial class Auftraege : IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
+        isDisposed = true;
+
         if (dotNetReference is null)
         {
             return;
