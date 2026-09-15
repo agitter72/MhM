@@ -13,8 +13,8 @@ public sealed class ListingImageSettings
 public interface IListingImageService
 {
     Task<List<ListingImage>> GetImagesAsync(Guid listingId);
-    Task<(bool Success, string? Error)> AddImageAsync(Guid listingId, string fileName, string contentType, Stream data);
-    Task DeleteImageAsync(Guid imageId);
+    Task<(bool Success, string? Error)> AddImageAsync(Guid listingId, Guid actingUserId, bool isAdmin, string fileName, string contentType, Stream data);
+    Task DeleteImageAsync(Guid imageId, Guid actingUserId, bool isAdmin);
 }
 
 public sealed class ListingImageService(
@@ -22,7 +22,7 @@ public sealed class ListingImageService(
     ListingImageSettings settings) : IListingImageService
 {
     private static readonly HashSet<string> AllowedContentTypes =
-        ["image/jpeg", "image/png", "image/gif", "image/bmp"];
+        ["image/jpeg", "image/png"];
 
     public async Task<List<ListingImage>> GetImagesAsync(Guid listingId)
     {
@@ -35,15 +35,23 @@ public sealed class ListingImageService(
     }
 
     public async Task<(bool Success, string? Error)> AddImageAsync(
-        Guid listingId, string fileName, string contentType, Stream data)
+        Guid listingId, Guid actingUserId, bool isAdmin, string fileName, string contentType, Stream data)
     {
-        if (!AllowedContentTypes.Contains(contentType.ToLowerInvariant()))
-            return (false, "Ungültiger Dateityp. Erlaubt: jpg, png, gif, bmp.");
+        if (contentType is null || !AllowedContentTypes.Contains(contentType.ToLowerInvariant()))
+            return (false, "Ungültiger Dateityp. Erlaubt sind ausschließlich JPEG und PNG.");
 
         if (data.Length > settings.MaxFileSizeBytes)
             return (false, $"Die Datei ist zu groß. Maximal {settings.MaxFileSizeBytes / 1024 / 1024} MB erlaubt.");
 
         await using var db = await dbFactory.CreateDbContextAsync();
+
+        var listing = await db.Listings.AsNoTracking().FirstOrDefaultAsync(x => x.Id == listingId);
+        if (listing is null)
+            return (false, "Auftrag nicht gefunden.");
+        if (!isAdmin && listing.RequesterId != actingUserId)
+            return (false, "Du darfst die Bilder dieses Auftrags nicht verändern.");
+        if (listing.Status is not ListingStatus.Entwurf and not ListingStatus.Offen)
+            return (false, "Bilder können nach der Vergabe nicht mehr verändert werden.");
 
         var count = await db.ListingImages.CountAsync(x => x.ListingId == listingId);
         if (count >= settings.MaxCount)
@@ -51,13 +59,17 @@ public sealed class ListingImageService(
 
         using var ms = new MemoryStream();
         await data.CopyToAsync(ms);
+        var bytes = ms.ToArray();
+        if (!ProfileImageSecurity.TryValidate(bytes, out var detectedContentType, out var validationError) ||
+            !ProfileImageSecurity.TryRemoveMetadata(bytes, detectedContentType, out var sanitized))
+            return (false, validationError.Length == 0 ? "Das Bild konnte nicht sicher verarbeitet werden." : validationError);
 
         db.ListingImages.Add(new ListingImage
         {
             ListingId = listingId,
-            FileName = Path.GetFileName(fileName),
-            ContentType = contentType.ToLowerInvariant(),
-            Data = ms.ToArray(),
+            FileName = $"{Guid.NewGuid():N}{(detectedContentType == "image/png" ? ".png" : ".jpg")}",
+            ContentType = detectedContentType,
+            Data = sanitized,
             UploadedUtc = DateTime.UtcNow
         });
 
@@ -65,13 +77,17 @@ public sealed class ListingImageService(
         return (true, null);
     }
 
-    public async Task DeleteImageAsync(Guid imageId)
+    public async Task DeleteImageAsync(Guid imageId, Guid actingUserId, bool isAdmin)
     {
         await using var db = await dbFactory.CreateDbContextAsync();
 
-        var image = await db.ListingImages.FindAsync(imageId);
+        var image = await db.ListingImages.Include(x => x.Listing).FirstOrDefaultAsync(x => x.Id == imageId);
         if (image is not null)
         {
+            if (!isAdmin && image.Listing.RequesterId != actingUserId)
+                throw new UnauthorizedAccessException("Du darfst dieses Bild nicht löschen.");
+            if (image.Listing.Status is not ListingStatus.Entwurf and not ListingStatus.Offen)
+                throw new InvalidOperationException("Bilder können nach der Vergabe nicht mehr verändert werden.");
             db.ListingImages.Remove(image);
             await db.SaveChangesAsync();
         }

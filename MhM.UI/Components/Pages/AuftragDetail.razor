@@ -26,13 +26,65 @@ else
 
             <div class="listing-card-actions">
                 <a class="btn btn-secondary" href="/auftraege"><Icon CustomIconName="bi bi-arrow-left" /> Zurück</a>
-                @if (currentUserId == item.RequesterId)
+                @if (canManageListing)
                 {
                     <a class="btn btn-secondary" href="@($"/auftraege/{item.Id}/bearbeiten")"><Icon CustomIconName="bi bi-pencil" /> Bearbeiten</a>
-                    <a class="btn btn-primary" href="@($"/auftraege/{item.Id}/vergabe")"><Icon CustomIconName="bi bi-person-check" /> Vergabe</a>
+                    @if (currentUserId == item.RequesterId && item.Status == ListingStatus.Offen)
+                    {
+                        <a class="btn btn-primary" href="@($"/auftraege/{item.Id}/vergabe")"><Icon CustomIconName="bi bi-person-check" /> Vergabe</a>
+                    }
+                    @if (currentUserIsAdmin && item.Status != ListingStatus.Storniert)
+                    {
+                        <button type="button" class="btn btn-danger" @onclick="() => showAdminDeleteForm = !showAdminDeleteForm"><Icon CustomIconName="bi bi-trash3" /> Auftrag löschen</button>
+                    }
+                }
+                @if (currentUserId.HasValue && currentUserId != item.RequesterId)
+                {
+                    <button type="button" class="btn btn-danger" @onclick="() => showListingReportForm = !showListingReportForm">
+                        <Icon CustomIconName="bi bi-exclamation-triangle-fill fa-danger" /> Auftrag melden
+                    </button>
+                    <button type="button" class="btn btn-secondary" @onclick="ToggleRequesterBlockAsync">Auftraggeber blockieren / entblockieren</button>
                 }
             </div>
         </section>
+
+        @if (showListingReportForm)
+        {
+            <section class="inline-action-form report-form">
+                <div class="field">
+                    <label for="listing-report-reason">Meldegrund</label>
+                    <InputSelect id="listing-report-reason" @bind-Value="selectedListingReportReason" class="field-input">
+                        <option value="">Bitte auswählen</option>
+                        @foreach (var reason in ReportReasons.Listing) { <option value="@reason">@reason</option> }
+                    </InputSelect>
+                </div>
+                @if (selectedListingReportReason == ReportReasons.Other)
+                {
+                    <div class="field">
+                        <label for="listing-report-details">Was ist das Problem?</label>
+                        <InputTextArea id="listing-report-details" @bind-Value="listingReportDetails" class="field-input field-textarea" maxlength="2000" />
+                    </div>
+                }
+                <div class="button-group">
+                    <button type="button" class="btn btn-danger" @onclick="ReportListingAsync">Meldung absenden</button>
+                    <button type="button" class="btn btn-secondary" @onclick="() => showListingReportForm = false">Abbrechen</button>
+                </div>
+            </section>
+        }
+
+        @if (showAdminDeleteForm)
+        {
+            <section class="inline-action-form admin-delete-form">
+                <div class="field">
+                    <label for="admin-delete-reason">Begründung für den Auftraggeber (Pflichtfeld)</label>
+                    <InputTextArea id="admin-delete-reason" @bind-Value="adminDeleteReason" class="field-input field-textarea" maxlength="2000" />
+                </div>
+                <div class="button-group">
+                    <button type="button" class="btn btn-danger" @onclick="DeleteListingAsAdminAsync">Löschen bestätigen</button>
+                    <button type="button" class="btn btn-secondary" @onclick="() => showAdminDeleteForm = false">Abbrechen</button>
+                </div>
+            </section>
+        }
 
         <div class="auftrag-detail-content">
             <section class="panel auftrag-detail-media-panel">
@@ -221,6 +273,25 @@ else
                 </section>
             }
 
+            @if (!string.IsNullOrWhiteSpace(trustMessage)) { <div class="listing-alert listing-alert-success">@trustMessage</div> }
+            @if (agreement is not null)
+            {
+                <section class="panel auftrag-detail-data-panel">
+                    <h3>Verbindliche Vergabe-Zusammenfassung</h3>
+                    <p><strong>@agreement.Title</strong> · @agreement.LocationSummary</p>
+                    <p>@agreement.Description</p>
+                    <p><strong>Vereinbart:</strong> @agreement.CompensationType @(agreement.AgreedPrice.HasValue ? $"· {agreement.AgreedPrice:N2} €" : string.Empty) · Termin @(agreement.PreferredDateUtc?.ToLocalTime().ToString("dd.MM.yyyy HH:mm") ?? "flexibel")</p>
+                    <small class="muted">Unveränderlich gespeichert am @agreement.CreatedUtc.ToLocalTime().ToString("dd.MM.yyyy HH:mm") · Prüfsumme @agreement.AgreementHash[..12]</small>
+                </section>
+            }
+            @if (canStartWork || canReportCompletion || canReportProblem)
+            {
+                <div class="button-group auftrag-workflow-actions">
+                    @if (canStartWork) { <button class="btn btn-primary" @onclick="StartWorkAsync">Durchführung starten</button> }
+                    @if (canReportCompletion) { <button class="btn btn-primary" @onclick="ReportCompletionAsync">Abschluss melden</button> }
+                    @if (canReportProblem) { <button class="btn btn-secondary" @onclick="ReportProblemAsync">Problem melden</button> }
+                </div>
+            }
             @if (requesterCompletionBlockedByPreferredDate)
             {
                 <div class="listing-alert listing-alert-error">

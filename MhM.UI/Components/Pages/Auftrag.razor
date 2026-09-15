@@ -1,5 +1,6 @@
 @page "/auftraege/neu"
 @page "/auftraege/{Id:guid}/bearbeiten"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
 
 <PageTitle>@(IsEditMode ? T["TaskEdit.PageTitle.Edit"] : T["TaskEdit.PageTitle.New"])</PageTitle>
 
@@ -48,18 +49,6 @@ else
                     </div>
 
                     <div class="form-grid">
-                        <div class="field">
-                            <label for="requester">@T["TaskEdit.Requester"]</label>
-                            <InputSelect id="requester" @bind-Value="model.RequesterId" class="field-input">
-                                <option value="">@T["General.Select"]</option>
-                                @foreach (var user in requesters)
-                                {
-                                    <option value="@user.Id">@user.DisplayName (@user.City)</option>
-                                }
-                            </InputSelect>
-                            <ValidationMessage For="() => model.RequesterId" />
-                        </div>
-
                         <div class="field">
                             <label for="category">@T["TaskEdit.Category"]</label>
                             <InputSelect id="category" @bind-Value="model.CategoryId" class="field-input">
@@ -117,8 +106,8 @@ else
 
                         <div class="field">
                             <label for="status">@T["TaskEdit.Status"]</label>
-                            <InputSelect id="status" @bind-Value="model.Status" class="field-input">
-                                @foreach (var status in Enum.GetValues<ListingStatus>())
+                            <InputSelect id="status" @bind-Value="model.Status" class="field-input" disabled="@(IsEditMode && isAdmin && model.Status is not ListingStatus.Entwurf and not ListingStatus.Offen)">
+                                @foreach (var status in EditableStatuses)
                                 {
                                     <option value="@status">@T.Enum(status)</option>
                                 }
@@ -153,56 +142,53 @@ else
                     </div>
                 </div>
 
-                @* ── Bilder ──────────────────────────────────────────── *@
-                @if (IsEditMode)
-                {
-                    <div class="form-section">
-                        <div class="section-heading">
-                            <div class="eyebrow">Anhänge</div>
-                            <h3>Bilder zum Auftrag</h3>
+                <div class="form-section">
+                    <div class="section-heading">
+                        <div class="eyebrow">Anhänge</div>
+                        <h3>Bilder zum Auftrag</h3>
+                    </div>
+
+                    @if (existingImages.Count > 0)
+                    {
+                        <ImageCarousel Images="existingImages"
+                                       OnDelete="DeleteImageAsync" />
+                    }
+
+                    @if (pendingImages.Count > 0)
+                    {
+                        <div class="pending-image-list" aria-label="Neu ausgewählte Bilder">
+                            @foreach (var pending in pendingImages)
+                            {
+                                <div>
+                                    <span><Icon CustomIconName="bi bi-image" /> @pending.FileName</span>
+                                    <button type="button" class="btn btn-secondary" @onclick="() => RemovePendingImage(pending.Id)">Entfernen</button>
+                                </div>
+                            }
                         </div>
+                    }
 
-                        @* Vorhandene Bilder – Karussell *@
-                        @if (existingImages.Count > 0)
-                        {
-                            <ImageCarousel Images="existingImages"
-                                           OnDelete="DeleteImageAsync" />
-                        }
-
-                        @* Upload *@
-                        @if (existingImages.Count < maxImages)
-                        {
-                            <div class="field field-full">
-                                <label>
-                                    Bilder hinzufügen
-                                    <span class="muted">
-                                        (max. @maxImages Stück, je max. 5 MB – jpg, png, gif, bmp)
-                                    </span>
-                                </label>
-                                <InputFile OnChange="OnImagesSelectedAsync"
-                                           accept="image/jpeg,image/png,image/gif,image/bmp"
-                                           multiple
-                                           class="field-input" />
-                                @if (!string.IsNullOrWhiteSpace(imageUploadError))
-                                {
-                                    <div class="alert-error">@imageUploadError</div>
-                                }
-                            </div>
-                        }
-                        else
-                        {
-                            <p class="muted">Maximale Anzahl von @maxImages Bildern erreicht.</p>
-                        }
-                    </div>
-                }
-                else
-                {
-                    <div class="form-section">
-                        <p class="muted">
-                            Bilder können nach dem Speichern des Auftrags hinzugefügt werden.
-                        </p>
-                    </div>
-                }
+                    @if (existingImages.Count + pendingImages.Count < maxImages)
+                    {
+                        <div class="field field-full">
+                            <label>
+                                Bilder hinzufügen
+                                <span class="muted">(max. @maxImages Stück, je max. 5 MB – JPEG oder PNG)</span>
+                            </label>
+                            <InputFile OnChange="OnImagesSelectedAsync"
+                                       accept="image/jpeg,image/png"
+                                       multiple
+                                       class="field-input" />
+                            @if (!string.IsNullOrWhiteSpace(imageUploadError))
+                            {
+                                <div class="alert-error">@imageUploadError</div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="muted">Maximale Anzahl von @maxImages Bildern erreicht.</p>
+                    }
+                </div>
 
                 <div class="form-actions">
                     <button type="submit" class="btn btn-primary">@T["General.Save"]</button>

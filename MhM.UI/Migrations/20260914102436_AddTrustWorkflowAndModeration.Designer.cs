@@ -4,6 +4,7 @@ using MhM.UI.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace MhM.UI.Migrations
 {
     [DbContext(typeof(MhMDbContext))]
-    partial class MhMDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260914102436_AddTrustWorkflowAndModeration")]
+    partial class AddTrustWorkflowAndModeration
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -239,62 +242,6 @@ namespace MhM.UI.Migrations
                         .IsUnique();
 
                     b.ToTable("Users", (string)null);
-                });
-
-            modelBuilder.Entity("MhM.UI.Data.Models.AssignmentAgreement", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<decimal?>("AgreedPrice")
-                        .HasPrecision(10, 2)
-                        .HasColumnType("decimal(10,2)");
-
-                    b.Property<string>("AgreementHash")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
-
-                    b.Property<int>("CompensationType")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("CreatedUtc")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasMaxLength(3000)
-                        .HasColumnType("nvarchar(3000)");
-
-                    b.Property<Guid>("HelperId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("ListingId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("LocationSummary")
-                        .IsRequired()
-                        .HasMaxLength(160)
-                        .HasColumnType("nvarchar(160)");
-
-                    b.Property<DateTime?>("PreferredDateUtc")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid>("RequesterId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(160)
-                        .HasColumnType("nvarchar(160)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ListingId")
-                        .IsUnique();
-
-                    b.ToTable("AssignmentAgreements", (string)null);
                 });
 
             modelBuilder.Entity("MhM.UI.Data.Models.Category", b =>
@@ -676,12 +623,11 @@ namespace MhM.UI.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("ListingId");
+
                     b.HasIndex("RevieweeId");
 
                     b.HasIndex("ReviewerId");
-
-                    b.HasIndex("ListingId", "ReviewerId", "RevieweeId")
-                        .IsUnique();
 
                     b.ToTable("Reviews", null, t =>
                         {
@@ -941,17 +887,6 @@ namespace MhM.UI.Migrations
                     b.HasKey("UserId", "LoginProvider", "Name");
 
                     b.ToTable("AspNetUserTokens", (string)null);
-                });
-
-            modelBuilder.Entity("MhM.UI.Data.Models.AssignmentAgreement", b =>
-                {
-                    b.HasOne("MhM.UI.Data.Models.Listing", "Listing")
-                        .WithOne()
-                        .HasForeignKey("MhM.UI.Data.Models.AssignmentAgreement", "ListingId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Listing");
                 });
 
             modelBuilder.Entity("MhM.UI.Data.Models.ContentReport", b =>

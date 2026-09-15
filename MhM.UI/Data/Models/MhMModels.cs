@@ -7,6 +7,22 @@ public enum UserRole
     Unternehmen = 3
 }
 
+public static class PlatformRoles
+{
+    public const string Admin = "Admin";
+}
+
+[Flags]
+public enum VerificationLevel
+{
+    None = 0,
+    Email = 1,
+    Phone = 2,
+    Identity = 4,
+    Business = 8,
+    Qualification = 16
+}
+
 public enum CompensationType
 {
     Bezahlung = 1,
@@ -18,10 +34,17 @@ public enum ListingStatus
 {
     Entwurf = 1,
     Offen = 2,
-    InBearbeitung = 3,
+    Vergeben = 3,
     Abgeschlossen = 4,
-    Storniert = 5
+    Storniert = 5,
+    InDurchfuehrung = 6,
+    AbschlussGemeldet = 7,
+    ProblemGemeldet = 8,
+    Abgebrochen = 9
 }
+
+public enum ReportStatus { Offen = 1, InPruefung = 2, Erledigt = 3, Abgelehnt = 4 }
+public enum ReportTargetType { Nutzer = 1, Auftrag = 2, Nachricht = 3, Bewertung = 4, Bild = 5 }
 
 public enum ListingApplicationStatus
 {
@@ -33,7 +56,33 @@ public enum ListingApplicationStatus
 public enum UserNotificationType
 {
     Auftragsvergabe = 1,
-    ChatNachricht = 2
+    ChatNachricht = 2,
+    Moderation = 3
+}
+
+public static class ReportReasons
+{
+    public const string Other = "Sonstiges";
+
+    public static readonly IReadOnlyList<string> Listing =
+    [
+        "Gefährlich",
+        "Unpassend oder obszön",
+        "Betrug oder irreführend",
+        "Diskriminierend oder beleidigend",
+        "Verbotene Tätigkeit",
+        Other
+    ];
+
+    public static readonly IReadOnlyList<string> User =
+    [
+        "Belästigung",
+        "Betrug oder Identitätstäuschung",
+        "Unpassendes Profil",
+        "Diskriminierendes oder beleidigendes Verhalten",
+        "Spam",
+        Other
+    ];
 }
 
 public sealed class AppUser
@@ -54,6 +103,7 @@ public sealed class AppUser
     public double? Longitude { get; set; }
     public UserRole Role { get; set; } = UserRole.Privatperson;
     public bool IsVerified { get; set; }
+    public VerificationLevel Verifications { get; set; }
     public DateTime CreatedUtc { get; set; } = DateTime.UtcNow;
     public byte[]? ProfileImageData { get; set; }
     public string? ProfileImageContentType { get; set; }
@@ -219,6 +269,59 @@ public sealed class Review
     public AppUser Reviewee { get; set; } = default!;
 
     public ICollection<ReviewCategoryRating> CategoryRatings { get; set; } = [];
+}
+
+public sealed class AssignmentAgreement
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid ListingId { get; set; }
+    public Guid RequesterId { get; set; }
+    public Guid HelperId { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public decimal? AgreedPrice { get; set; }
+    public CompensationType CompensationType { get; set; }
+    public DateTime? PreferredDateUtc { get; set; }
+    public string LocationSummary { get; set; } = string.Empty;
+    public string AgreementHash { get; set; } = string.Empty;
+    public DateTime CreatedUtc { get; set; } = DateTime.UtcNow;
+    public Listing Listing { get; set; } = default!;
+}
+
+public sealed class UserBlock
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid BlockingUserId { get; set; }
+    public Guid BlockedUserId { get; set; }
+    public DateTime CreatedUtc { get; set; } = DateTime.UtcNow;
+    public AppUser BlockingUser { get; set; } = default!;
+    public AppUser BlockedUser { get; set; } = default!;
+}
+
+public sealed class ContentReport
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid ReporterUserId { get; set; }
+    public ReportTargetType TargetType { get; set; }
+    public Guid TargetId { get; set; }
+    public string Reason { get; set; } = string.Empty;
+    public string Details { get; set; } = string.Empty;
+    public ReportStatus Status { get; set; } = ReportStatus.Offen;
+    public DateTime CreatedUtc { get; set; } = DateTime.UtcNow;
+    public DateTime? ResolvedUtc { get; set; }
+    public string? ResolvedByIdentityUserId { get; set; }
+    public AppUser ReporterUser { get; set; } = default!;
+}
+
+public sealed class AdminAuditLog
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public string ActorIdentityUserId { get; set; } = string.Empty;
+    public string Action { get; set; } = string.Empty;
+    public string TargetType { get; set; } = string.Empty;
+    public string TargetId { get; set; } = string.Empty;
+    public string Details { get; set; } = string.Empty;
+    public DateTime CreatedUtc { get; set; } = DateTime.UtcNow;
 }
 
 public sealed class ReviewCategoryRating

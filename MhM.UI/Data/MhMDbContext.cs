@@ -18,11 +18,15 @@ public class MhMDbContext : IdentityDbContext<ApplicationIdentityUser>
     public DbSet<Listing> Listings => Set<Listing>();
     public DbSet<ListingImage> ListingImages => Set<ListingImage>();   // NEU
     public DbSet<ListingApplication> ListingApplications => Set<ListingApplication>();
+    public DbSet<AssignmentAgreement> AssignmentAgreements => Set<AssignmentAgreement>();
     public DbSet<Conversation> Conversations => Set<Conversation>();
     public DbSet<Message> Messages => Set<Message>();
     public DbSet<UserNotification> UserNotifications => Set<UserNotification>();
     public DbSet<Review> Reviews => Set<Review>();
     public DbSet<ReviewCategoryRating> ReviewCategoryRatings => Set<ReviewCategoryRating>();
+    public DbSet<UserBlock> UserBlocks => Set<UserBlock>();
+    public DbSet<ContentReport> ContentReports => Set<ContentReport>();
+    public DbSet<AdminAuditLog> AdminAuditLogs => Set<AdminAuditLog>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -42,6 +46,7 @@ public class MhMDbContext : IdentityDbContext<ApplicationIdentityUser>
         users.Property(x => x.City).HasMaxLength(120).IsRequired();
         users.Property(x => x.ProfileImageData);
         users.Property(x => x.ProfileImageContentType).HasMaxLength(100);
+        users.Property(x => x.Verifications).HasConversion<int>();
         users.HasIndex(x => x.Email).IsUnique();
         users.HasIndex(x => x.IdentityUserId).IsUnique().HasFilter("[IdentityUserId] IS NOT NULL");
         users.HasIndex(x => x.NormalizedUsername).IsUnique();
@@ -129,6 +134,17 @@ public class MhMDbContext : IdentityDbContext<ApplicationIdentityUser>
             .HasForeignKey(x => x.ApplicantId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        var agreements = modelBuilder.Entity<AssignmentAgreement>();
+        agreements.ToTable("AssignmentAgreements");
+        agreements.HasKey(x => x.Id);
+        agreements.HasIndex(x => x.ListingId).IsUnique();
+        agreements.Property(x => x.Title).HasMaxLength(160).IsRequired();
+        agreements.Property(x => x.Description).HasMaxLength(3000).IsRequired();
+        agreements.Property(x => x.AgreedPrice).HasPrecision(10, 2);
+        agreements.Property(x => x.LocationSummary).HasMaxLength(160).IsRequired();
+        agreements.Property(x => x.AgreementHash).HasMaxLength(64).IsRequired();
+        agreements.HasOne(x => x.Listing).WithOne().HasForeignKey<AssignmentAgreement>(x => x.ListingId).OnDelete(DeleteBehavior.Cascade);
+
         var conversations = modelBuilder.Entity<Conversation>();
         conversations.ToTable("Conversations");
         conversations.HasKey(x => x.Id);
@@ -202,6 +218,7 @@ public class MhMDbContext : IdentityDbContext<ApplicationIdentityUser>
         var reviews = modelBuilder.Entity<Review>();
         reviews.ToTable("Reviews");
         reviews.HasKey(x => x.Id);
+        reviews.HasIndex(x => new { x.ListingId, x.ReviewerId, x.RevieweeId }).IsUnique();
         reviews.ToTable(t => t.HasCheckConstraint("CK_Reviews_Stars", "[Stars] >= 1 AND [Stars] <= 5"));
 
         reviews.HasOne(x => x.Listing)
@@ -229,6 +246,33 @@ public class MhMDbContext : IdentityDbContext<ApplicationIdentityUser>
             .WithMany(x => x.CategoryRatings)
             .HasForeignKey(x => x.ReviewId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        var blocks = modelBuilder.Entity<UserBlock>();
+        blocks.ToTable("UserBlocks");
+        blocks.HasKey(x => x.Id);
+        blocks.HasIndex(x => new { x.BlockingUserId, x.BlockedUserId }).IsUnique();
+        blocks.ToTable(t => t.HasCheckConstraint("CK_UserBlocks_NotSelf", "[BlockingUserId] <> [BlockedUserId]"));
+        blocks.HasOne(x => x.BlockingUser).WithMany().HasForeignKey(x => x.BlockingUserId).OnDelete(DeleteBehavior.Restrict);
+        blocks.HasOne(x => x.BlockedUser).WithMany().HasForeignKey(x => x.BlockedUserId).OnDelete(DeleteBehavior.Restrict);
+
+        var reports = modelBuilder.Entity<ContentReport>();
+        reports.ToTable("ContentReports");
+        reports.HasKey(x => x.Id);
+        reports.Property(x => x.Reason).HasMaxLength(120).IsRequired();
+        reports.Property(x => x.Details).HasMaxLength(2000).IsRequired();
+        reports.Property(x => x.ResolvedByIdentityUserId).HasMaxLength(450);
+        reports.HasIndex(x => new { x.Status, x.CreatedUtc });
+        reports.HasOne(x => x.ReporterUser).WithMany().HasForeignKey(x => x.ReporterUserId).OnDelete(DeleteBehavior.Restrict);
+
+        var audit = modelBuilder.Entity<AdminAuditLog>();
+        audit.ToTable("AdminAuditLogs");
+        audit.HasKey(x => x.Id);
+        audit.Property(x => x.ActorIdentityUserId).HasMaxLength(450).IsRequired();
+        audit.Property(x => x.Action).HasMaxLength(100).IsRequired();
+        audit.Property(x => x.TargetType).HasMaxLength(100).IsRequired();
+        audit.Property(x => x.TargetId).HasMaxLength(450).IsRequired();
+        audit.Property(x => x.Details).HasMaxLength(2000).IsRequired();
+        audit.HasIndex(x => x.CreatedUtc);
 
         modelBuilder.Entity<ApplicationIdentityUser>(entity =>
         {

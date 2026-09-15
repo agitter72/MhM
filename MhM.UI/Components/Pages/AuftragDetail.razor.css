@@ -6,6 +6,27 @@
     gap: 1rem;
 }
 
+.inline-action-form {
+    display: grid;
+    gap: 1rem;
+    padding: 1rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+    background: var(--panel);
+}
+
+.report-form,
+.admin-delete-form {
+    border-color: var(--danger-line);
+    background: var(--danger-bg);
+}
+
+.button-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .75rem;
+}
+
 .auftrag-detail-header {
     display: flex;
     align-items: flex-start;

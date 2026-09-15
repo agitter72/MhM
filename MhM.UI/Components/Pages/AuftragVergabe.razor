@@ -1,4 +1,5 @@
 @page "/auftraege/{Id:guid}/vergabe"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
 
 <PageTitle>Vergabe</PageTitle>
 
@@ -81,7 +82,7 @@ else
                     <tr>
                         <th>Helfer</th>
                         <th>Status</th>
-                        <th>Gesamtscore</th>
+                        <th>Passung</th>
                         <th>Distanz</th>
                         <th>Preis</th>
                         <th>Details</th>
@@ -105,19 +106,13 @@ else
                                     @GetStatusText(row.Status)
                                 </span>
                             </td>
-                            <td data-label="Gesamtscore">@(row.TotalScore?.ToString("N1") ?? "—")</td>
+                            <td data-label="Passung">@GetMatchReasons(row)</td>
                             <td data-label="Distanz">@(row.DistanceKm?.ToString("N1") + " km" ?? "n/a")</td>
                             <td data-label="Preis">@(row.ProposedPrice?.ToString("N2") + " €" ?? "n/a")</td>
                             <td data-label="Details">
                                 @if (row.TotalScore.HasValue)
                                 {
-                                    <span>
-                                        D:@(row.DistanceScore?.ToString("N0") ?? "—")
-                                        | B:@(row.RatingScore?.ToString("N0") ?? "—")
-                                        | P:@(row.PriceScore?.ToString("N0") ?? "—")
-                                        | Z:@(row.ReliabilityScore?.ToString("N0") ?? "—")
-                                        | V:@(row.VerificationScore?.ToString("N0") ?? "—")
-                                    </span>
+                                    <span>Erklärbare Kriterien statt öffentlicher Scheinpräzision</span>
                                 }
                                 else
                                 {

@@ -24,10 +24,16 @@ public interface IMatchingService
     Task AssignListingAsync(
         Guid listingId,
         Guid helperUserId,
+        Guid actingUserId,
+        bool isAdmin = false,
         CancellationToken cancellationToken = default);
 
     Task CompleteListingByRequesterAsync(
         Guid listingId,
         Guid requesterUserId,
         CancellationToken cancellationToken = default);
+
+    Task StartListingAsync(Guid listingId, Guid helperUserId, CancellationToken cancellationToken = default);
+    Task ReportCompletionAsync(Guid listingId, Guid helperUserId, CancellationToken cancellationToken = default);
+    Task ConfirmCompletionAsync(Guid listingId, Guid requesterUserId, CancellationToken cancellationToken = default);
 }

@@ -33,6 +33,17 @@ public partial class AuftragDetail
 
     protected bool canRequesterCompleteAndReview;
     protected bool requesterCompletionBlockedByPreferredDate;
+    protected bool canStartWork;
+    protected bool canReportCompletion;
+    protected bool canReportProblem;
+    protected bool canManageListing;
+    protected bool currentUserIsAdmin;
+    protected string? trustMessage;
+    protected bool showListingReportForm;
+    protected string selectedListingReportReason = string.Empty;
+    protected string listingReportDetails = string.Empty;
+    protected bool showAdminDeleteForm;
+    protected string adminDeleteReason = string.Empty;
 
     // Methoden anpassen
     protected Task SubmitHelperReviewAsync(ReviewSubmission submission)
@@ -85,14 +96,14 @@ public partial class AuftragDetail
             completeListingIfAllowed &&
             target == ReviewTarget.Helper &&
             reviewerId == listing.RequesterId &&
-            listing.Status == ListingStatus.InBearbeitung &&
+            listing.Status == ListingStatus.AbschlussGemeldet &&
             preferredDateReached;
 
         if (listing.Status != ListingStatus.Abgeschlossen && !canCompleteListingNow)
         {
             if (target == ReviewTarget.Helper &&
                 reviewerId == listing.RequesterId &&
-                listing.Status == ListingStatus.InBearbeitung &&
+                listing.Status == ListingStatus.AbschlussGemeldet &&
                 !preferredDateReached)
             {
                 reviewError = $"Der Auftrag kann erst ab {FormatDateLocal(listing.PreferredDateUtc)} beendet und bewertet werden.";
@@ -182,19 +193,8 @@ public partial class AuftragDetail
         }
         else
         {
-            existing.Stars = stars;
-            existing.CreatedUtc = DateTime.UtcNow;
-            existing.CategoryRatings.Clear();
-
-            foreach (var category in categories)
-            {
-                existing.CategoryRatings.Add(new ReviewCategoryRating
-                {
-                    ReviewId = existing.Id,
-                    CategoryKey = category.Key,
-                    Stars = submission.Ratings[category.Key]
-                });
-            }
+            reviewError = "Eine abgegebene Bewertung kann nur durch den Support geändert werden.";
+            return;
         }
 
         if (canCompleteListingNow)
@@ -246,6 +246,9 @@ public partial class AuftragDetail
         hasReviewedRequester = false;
         canRequesterCompleteAndReview = false;
         requesterCompletionBlockedByPreferredDate = false;
+        canStartWork = false;
+        canReportCompletion = false;
+        canReportProblem = false;
         acceptedHelperId = null;
 
         if (item is null || !currentUserId.HasValue)
@@ -262,6 +265,9 @@ public partial class AuftragDetail
 
         var isRequester = currentUserId.Value == item.RequesterId;
         var isAcceptedHelper = currentUserId.Value == acceptedHelperId.Value;
+        canStartWork = isAcceptedHelper && item.Status == ListingStatus.Vergeben;
+        canReportCompletion = isAcceptedHelper && item.Status == ListingStatus.InDurchfuehrung;
+        canReportProblem = (isRequester || isAcceptedHelper) && item.Status is ListingStatus.Vergeben or ListingStatus.InDurchfuehrung or ListingStatus.AbschlussGemeldet;
 
         if (isRequester)
         {
@@ -286,13 +292,13 @@ public partial class AuftragDetail
         var preferredDateReached = IsPreferredDateReached(item.PreferredDateUtc);
 
         canRequesterCompleteAndReview =
-            item.Status == ListingStatus.InBearbeitung &&
+            item.Status == ListingStatus.AbschlussGemeldet &&
             isRequester &&
             preferredDateReached &&
             !hasReviewedHelper;
 
         requesterCompletionBlockedByPreferredDate =
-            item.Status == ListingStatus.InBearbeitung &&
+            item.Status == ListingStatus.AbschlussGemeldet &&
             isRequester &&
             !preferredDateReached;
 
@@ -344,6 +350,7 @@ public partial class AuftragDetail
 
     protected ReviewViewModel? helperReviewFromRequester;
     protected ReviewViewModel? requesterReviewFromHelper;
+    protected AssignmentAgreement? agreement;
 
     protected override async Task OnParametersSetAsync()
     {
@@ -352,6 +359,11 @@ public partial class AuftragDetail
         applySuccess = null;
         reviewError = null;
         reviewSuccess = null;
+        showListingReportForm = false;
+        selectedListingReportReason = string.Empty;
+        listingReportDetails = string.Empty;
+        showAdminDeleteForm = false;
+        adminDeleteReason = string.Empty;
 
         await using var db = await DbFactory.CreateDbContextAsync();
 
@@ -361,14 +373,21 @@ public partial class AuftragDetail
             .Include(x => x.Images)
             .FirstOrDefaultAsync(x => x.Id == ListingId);
 
-        if (item is not null)
+        await LoadCurrentUserAsync(db);
+        canManageListing = item is not null && currentUserId.HasValue && (item.RequesterId == currentUserId || currentUserIsAdmin);
+        if (item?.Status is ListingStatus.Entwurf or ListingStatus.Storniert && !canManageListing)
+            item = null;
+
+        if (item is not null && canManageListing)
         {
             applicationCount = await db.ListingApplications
                 .CountAsync(x => x.ListingId == item.Id);
         }
 
-        await LoadCurrentUserAsync(db);
         await LoadReviewStateAsync(db);
+        agreement = item is not null && currentUserId.HasValue && (canManageListing || currentUserId == acceptedHelperId)
+            ? await db.AssignmentAgreements.AsNoTracking().FirstOrDefaultAsync(x => x.ListingId == item.Id)
+            : null;
         await LoadSubmittedReviewsAsync(db);
         await LoadChatStateAsync(db);
         await EnsureListingNotificationsReadAsync();
@@ -479,6 +498,15 @@ public partial class AuftragDetail
             var exists = await db.ListingApplications
                 .AnyAsync(x => x.ListingId == item.Id && x.ApplicantId == currentUserId.Value);
 
+            var blocked = await db.UserBlocks.AnyAsync(x =>
+                (x.BlockingUserId == currentUserId.Value && x.BlockedUserId == listing.RequesterId) ||
+                (x.BlockingUserId == listing.RequesterId && x.BlockedUserId == currentUserId.Value));
+            if (blocked)
+            {
+                applyError = "Eine Blockierung verhindert neue Kontakte zwischen diesen Konten.";
+                return;
+            }
+
             if (exists)
             {
                 appliedListingIds.Add(item.Id);
@@ -509,154 +537,6 @@ public partial class AuftragDetail
         }
     }
 
-    private async Task SaveReviewAsync(ReviewSubmission submission, ReviewTarget target)
-    {
-        reviewError = null;
-        reviewSuccess = null;
-
-        if (item is null || !currentUserId.HasValue)
-        {
-            reviewError = "Bewertung konnte nicht gespeichert werden.";
-            return;
-        }
-
-        await using var db = await DbFactory.CreateDbContextAsync();
-
-        var listing = await db.Listings
-            .AsNoTracking()
-            .FirstOrDefaultAsync(x => x.Id == item.Id);
-
-        if (listing is null)
-        {
-            reviewError = "Auftrag nicht gefunden.";
-            return;
-        }
-
-        if (listing.Status != ListingStatus.Abgeschlossen)
-        {
-            reviewError = "Bewertungen sind erst nach Auftragsbeendigung möglich.";
-            return;
-        }
-
-        var acceptedId = await db.ListingApplications
-            .AsNoTracking()
-            .Where(x => x.ListingId == listing.Id && x.Status == ListingApplicationStatus.Angenommen)
-            .Select(x => (Guid?)x.ApplicantId)
-            .FirstOrDefaultAsync();
-
-        if (!acceptedId.HasValue)
-        {
-            reviewError = "Es wurde kein angenommener Helfer gefunden.";
-            return;
-        }
-
-        var reviewerId = currentUserId.Value;
-        Guid revieweeId;
-        IReadOnlyList<ReviewCategory> categories;
-
-        switch (target)
-        {
-            case ReviewTarget.Helper:
-                if (reviewerId != listing.RequesterId)
-                {
-                    reviewError = "Nur der Auftraggeber kann den Helfer bewerten.";
-                    return;
-                }
-
-                revieweeId = acceptedId.Value;
-                categories = _helperReviewCategories;
-                break;
-
-            case ReviewTarget.Requester:
-                if (reviewerId != acceptedId.Value)
-                {
-                    reviewError = "Nur der angenommene Helfer kann den Auftraggeber bewerten.";
-                    return;
-                }
-
-                revieweeId = listing.RequesterId;
-                categories = _requesterReviewCategories;
-                break;
-
-            default:
-                reviewError = "Ungültiger Bewertungstyp.";
-                return;
-        }
-
-        if (reviewerId == revieweeId)
-        {
-            reviewError = "Selbstbewertung ist nicht erlaubt.";
-            return;
-        }
-
-        if (categories.Any(c => !submission.Ratings.TryGetValue(c.Key, out var v) || v is < 1 or > 5))
-        {
-            reviewError = "Bitte alle Bewertungskategorien mit 1 bis 5 Sternen ausfüllen.";
-            return;
-        }
-
-        var stars = Math.Clamp((int)Math.Round(submission.AverageRating, MidpointRounding.AwayFromZero), 1, 5);
-
-        var existing = await db.Reviews
-            .Include(x => x.CategoryRatings)
-            .FirstOrDefaultAsync(x =>
-                x.ListingId == listing.Id &&
-                x.ReviewerId == reviewerId &&
-                x.RevieweeId == revieweeId);
-
-        if (existing is null)
-        {
-            existing = new Review
-            {
-                ListingId = listing.Id,
-                ReviewerId = reviewerId,
-                RevieweeId = revieweeId,
-                Stars = stars,
-                CreatedUtc = DateTime.UtcNow
-            };
-
-            foreach (var category in categories)
-            {
-                existing.CategoryRatings.Add(new ReviewCategoryRating
-                {
-                    CategoryKey = category.Key,
-                    Stars = submission.Ratings[category.Key]
-                });
-            }
-
-            db.Reviews.Add(existing);
-        }
-        else
-        {
-            existing.Stars = stars;
-            existing.CreatedUtc = DateTime.UtcNow;
-
-            existing.CategoryRatings.Clear();
-            foreach (var category in categories)
-            {
-                existing.CategoryRatings.Add(new ReviewCategoryRating
-                {
-                    ReviewId = existing.Id,
-                    CategoryKey = category.Key,
-                    Stars = submission.Ratings[category.Key]
-                });
-            }
-        }
-
-        await db.SaveChangesAsync();
-
-        if (target == ReviewTarget.Helper)
-        {
-            hasReviewedHelper = true;
-            reviewSuccess = "Die Helfer-Bewertung wurde gespeichert.";
-        }
-        else
-        {
-            hasReviewedRequester = true;
-            reviewSuccess = "Die Auftraggeber-Bewertung wurde gespeichert.";
-        }
-    }
-
     private async Task LoadCurrentUserAsync(MhMDbContext db)
     {
         currentUserId = null;
@@ -666,6 +546,7 @@ public partial class AuftragDetail
 
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var principal = authState.User;
+        currentUserIsAdmin = principal.IsInRole(PlatformRoles.Admin);
 
         if (principal.Identity?.IsAuthenticated != true)
             return;
@@ -700,6 +581,120 @@ public partial class AuftragDetail
         }
     }
 
+    protected async Task StartWorkAsync() => await ChangeHelperStatusAsync(start: true);
+    protected async Task ReportCompletionAsync() => await ChangeHelperStatusAsync(start: false);
+
+    private async Task ChangeHelperStatusAsync(bool start)
+    {
+        if (!currentUserId.HasValue || item is null) return;
+        try
+        {
+            if (start) await MatchingService.StartListingAsync(item.Id, currentUserId.Value);
+            else await MatchingService.ReportCompletionAsync(item.Id, currentUserId.Value);
+            item.Status = start ? ListingStatus.InDurchfuehrung : ListingStatus.AbschlussGemeldet;
+            await using var db = await DbFactory.CreateDbContextAsync();
+            await LoadReviewStateAsync(db);
+            trustMessage = start ? "Durchführung wurde gestartet." : "Abschluss wurde gemeldet. Der Auftraggeber kann ihn nun bestätigen.";
+        }
+        catch (Exception) { trustMessage = "Der Statuswechsel konnte nicht ausgeführt werden."; }
+    }
+
+    protected async Task ReportListingAsync()
+    {
+        if (!currentUserId.HasValue || item is null) return;
+        if (!ReportReasons.Listing.Contains(selectedListingReportReason))
+        {
+            trustMessage = "Bitte wähle einen Meldegrund aus.";
+            return;
+        }
+        if (selectedListingReportReason == ReportReasons.Other && string.IsNullOrWhiteSpace(listingReportDetails))
+        {
+            trustMessage = "Bitte beschreibe bei ‚Sonstiges‘, was das Problem ist.";
+            return;
+        }
+        await using var db = await DbFactory.CreateDbContextAsync();
+        var duplicate = await db.ContentReports.AnyAsync(x => x.ReporterUserId == currentUserId && x.TargetType == ReportTargetType.Auftrag && x.TargetId == item.Id && x.Status != ReportStatus.Erledigt && x.Status != ReportStatus.Abgelehnt);
+        if (!duplicate)
+        {
+            db.ContentReports.Add(new ContentReport
+            {
+                ReporterUserId = currentUserId.Value,
+                TargetType = ReportTargetType.Auftrag,
+                TargetId = item.Id,
+                Reason = selectedListingReportReason,
+                Details = selectedListingReportReason == ReportReasons.Other ? listingReportDetails.Trim() : string.Empty
+            });
+            await db.SaveChangesAsync();
+        }
+        showListingReportForm = false;
+        trustMessage = duplicate ? "Du hast diesen Auftrag bereits gemeldet." : "Meldung wurde sicher an die Administration übermittelt.";
+    }
+
+    protected async Task DeleteListingAsAdminAsync()
+    {
+        if (!currentUserIsAdmin || item is null) return;
+        var reason = adminDeleteReason.Trim();
+        if (reason.Length == 0)
+        {
+            trustMessage = "Eine Begründung für die Löschung ist erforderlich.";
+            return;
+        }
+
+        await using var db = await DbFactory.CreateDbContextAsync();
+        var listing = await db.Listings.FirstOrDefaultAsync(x => x.Id == item.Id);
+        if (listing is null) return;
+        listing.Status = ListingStatus.Storniert;
+        db.UserNotifications.Add(new UserNotification
+        {
+            Type = UserNotificationType.Moderation,
+            RecipientUserId = listing.RequesterId,
+            ListingId = listing.Id,
+            Title = "Auftrag durch Moderation entfernt",
+            Content = $"Dein Auftrag ‚{listing.Title}‘ wurde entfernt. Begründung: {reason}",
+            LinkUrl = $"/auftraege/{listing.Id}"
+        });
+        var actorIdentityId = (await AuthenticationStateProvider.GetAuthenticationStateAsync()).User.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
+        db.AdminAuditLogs.Add(new AdminAuditLog
+        {
+            ActorIdentityUserId = actorIdentityId,
+            Action = "ListingDeleted",
+            TargetType = "Listing",
+            TargetId = listing.Id.ToString(),
+            Details = reason
+        });
+        var openReports = await db.ContentReports.Where(x => x.TargetType == ReportTargetType.Auftrag && x.TargetId == listing.Id && x.Status != ReportStatus.Erledigt && x.Status != ReportStatus.Abgelehnt).ToListAsync();
+        foreach (var report in openReports) { report.Status = ReportStatus.Erledigt; report.ResolvedUtc = DateTime.UtcNow; report.ResolvedByIdentityUserId = actorIdentityId; }
+        await db.SaveChangesAsync();
+        item.Status = ListingStatus.Storniert;
+        showAdminDeleteForm = false;
+        trustMessage = "Der Auftrag wurde entfernt und der Auftraggeber mit der Begründung benachrichtigt.";
+    }
+
+    protected async Task ReportProblemAsync()
+    {
+        if (!currentUserId.HasValue || item is null || !canReportProblem) return;
+        await using var db = await DbFactory.CreateDbContextAsync();
+        var listing = await db.Listings.FirstOrDefaultAsync(x => x.Id == item.Id);
+        var helperId = await db.ListingApplications.Where(x => x.ListingId == item.Id && x.Status == ListingApplicationStatus.Angenommen).Select(x => (Guid?)x.ApplicantId).FirstOrDefaultAsync();
+        if (listing is null || !helperId.HasValue || (currentUserId != listing.RequesterId && currentUserId != helperId)) return;
+        if (listing.Status is not (ListingStatus.Vergeben or ListingStatus.InDurchfuehrung or ListingStatus.AbschlussGemeldet)) return;
+        listing.Status = ListingStatus.ProblemGemeldet;
+        db.ContentReports.Add(new ContentReport { ReporterUserId = currentUserId.Value, TargetType = ReportTargetType.Auftrag, TargetId = item.Id, Reason = "Problem im Auftragsablauf", Details = "Ein Beteiligter hat einen Konfliktfall eröffnet. Vereinbarung und Chat müssen erhalten bleiben." });
+        await db.SaveChangesAsync();
+        item.Status = ListingStatus.ProblemGemeldet; canReportProblem = false;
+        trustMessage = "Problemfall wurde eröffnet. Vereinbarung und Chat bleiben für die Klärung erhalten.";
+    }
+
+    protected async Task ToggleRequesterBlockAsync()
+    {
+        if (!currentUserId.HasValue || item is null || currentUserId == item.RequesterId) return;
+        await using var db = await DbFactory.CreateDbContextAsync();
+        var block = await db.UserBlocks.FirstOrDefaultAsync(x => x.BlockingUserId == currentUserId && x.BlockedUserId == item.RequesterId);
+        if (block is null) { db.UserBlocks.Add(new UserBlock { BlockingUserId = currentUserId.Value, BlockedUserId = item.RequesterId }); trustMessage = "Nutzer wurde blockiert. Bestehende Verträge und Konfliktchats bleiben erhalten."; }
+        else { db.UserBlocks.Remove(block); trustMessage = "Blockierung wurde aufgehoben."; }
+        await db.SaveChangesAsync();
+    }
+
     private async Task LoadSubmittedReviewsAsync(MhMDbContext db)
     {
         helperReviewFromRequester = null;
@@ -726,6 +721,10 @@ public partial class AuftragDetail
                         ((x.ReviewerId == item.RequesterId && x.RevieweeId == helperId) ||
                          (x.ReviewerId == helperId && x.RevieweeId == item.RequesterId)))
             .ToListAsync();
+
+        var releaseReached = reviews.Count >= 2 || reviews.Any(x => x.CreatedUtc <= DateTime.UtcNow.AddDays(-14));
+        if (!releaseReached)
+            return;
 
         var helperReview = reviews.FirstOrDefault(x => x.ReviewerId == item.RequesterId && x.RevieweeId == helperId);
         if (helperReview is not null)

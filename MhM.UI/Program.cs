@@ -1,5 +1,6 @@
 using MhM.UI.Components;
 using MhM.UI.Data;
+using MhM.UI.Data.Models;
 using MhM.UI.Localization;
 using MhM.UI.Models;
 using MhM.UI.Services;
@@ -127,6 +128,8 @@ builder.Services.AddIdentity<ApplicationIdentityUser, IdentityRole>(options =>
     })
     .AddEntityFrameworkStores<MhMDbContext>()
     .AddDefaultTokenProviders();
+builder.Services.Configure<SecurityStampValidatorOptions>(options =>
+    options.ValidationInterval = TimeSpan.FromMinutes(2));
 
 // Configure Cookie Authentication
 builder.Services.ConfigureApplicationCookie(options =>
@@ -195,11 +198,14 @@ using (var scope = app.Services.CreateScope())
         if (!app.Environment.IsProduction())
         {
             await DbInitializer.InitializeAsync(context);
+            await AdminSeed.InitializeAsync(services);
         }
     }
     catch (Exception e)
     {
-        Console.WriteLine($"Fehler beim Migrieren/Seeding: {e.Message}");
+        services.GetRequiredService<ILoggerFactory>().CreateLogger("Startup")
+            .LogCritical(e, "Datenbankmigration oder Seeding fehlgeschlagen.");
+        throw;
     }
 }
 app.UseRequestLocalization(requestLocalizationOptions);
@@ -421,6 +427,10 @@ app.MapPost("/account/profile", async (
 app.MapGet("/api/profile-images/{userId:guid}", async (Guid userId, HttpContext context, IDbContextFactory<MhMDbContext> dbFactory) =>
 {
     await using var db = await dbFactory.CreateDbContextAsync();
+    var ownerIdentityId = await db.AppUsers.Where(x => x.Id == userId).Select(x => x.IdentityUserId).FirstOrDefaultAsync();
+    if (ownerIdentityId is not null && !await db.Users.AnyAsync(x => x.Id == ownerIdentityId && x.IsActive) &&
+        !context.User.IsInRole(PlatformRoles.Admin) && context.User.FindFirstValue(ClaimTypes.NameIdentifier) != ownerIdentityId)
+        return Results.NotFound();
     var image = await db.ProfileImages
         .AsNoTracking()
         .Where(x => x.UserId == userId)
@@ -434,32 +444,47 @@ app.MapGet("/api/profile-images/{userId:guid}", async (Guid userId, HttpContext 
     return Results.File(image.Data, image.ContentType);
 });
 
-app.MapGet("/api/listing-images/{id:guid}", async (Guid id, IDbContextFactory<MhMDbContext> dbFactory) =>
+app.MapGet("/api/listing-images/{id:guid}", async (Guid id, ClaimsPrincipal principal, HttpContext context, IDbContextFactory<MhMDbContext> dbFactory) =>
 {
     await using var db = await dbFactory.CreateDbContextAsync();
-    var image = await db.ListingImages.FindAsync(id);
+    var image = await db.ListingImages.AsNoTracking().Include(x => x.Listing).FirstOrDefaultAsync(x => x.Id == id);
     if (image is null) return Results.NotFound();
-    return Results.File(image.Data, image.ContentType, image.FileName);
-});//.RequireAuthorization();
+    if (image.Listing.Status == ListingStatus.Entwurf)
+    {
+        var identityId = principal.FindFirstValue(ClaimTypes.NameIdentifier);
+        var actorId = await db.AppUsers.Where(x => x.IdentityUserId == identityId).Select(x => (Guid?)x.Id).FirstOrDefaultAsync();
+        if (!principal.IsInRole(PlatformRoles.Admin) && actorId != image.Listing.RequesterId)
+            return Results.NotFound();
+    }
+    context.Response.Headers.CacheControl = "public,max-age=300";
+    context.Response.Headers.XContentTypeOptions = "nosniff";
+    context.Response.Headers.ContentSecurityPolicy = "default-src 'none'; sandbox";
+    return Results.File(image.Data, image.ContentType);
+});
 
-app.MapGet("/api/profile-images/user/{userId:guid}", async (Guid userId, IDbContextFactory<MhMDbContext> dbFactory) =>
+app.MapGet("/api/profile-images/user/{userId:guid}", async (Guid userId, ClaimsPrincipal principal, HttpContext context, IDbContextFactory<MhMDbContext> dbFactory) =>
 {
     await using var db = await dbFactory.CreateDbContextAsync();
     var user = await db.AppUsers
         .AsNoTracking()
         .Where(x => x.Id == userId)
-        .Select(x => new { x.ProfileImageData, x.ProfileImageContentType })
+        .Select(x => new { x.ProfileImageData, x.ProfileImageContentType, x.IdentityUserId })
         .FirstOrDefaultAsync();
 
     if (user?.ProfileImageData is not { Length: > 0 })
     {
         return Results.NotFound();
     }
+    if (user.IdentityUserId is not null && !await db.Users.AnyAsync(x => x.Id == user.IdentityUserId && x.IsActive) &&
+        !principal.IsInRole(PlatformRoles.Admin) && principal.FindFirstValue(ClaimTypes.NameIdentifier) != user.IdentityUserId)
+        return Results.NotFound();
 
     var contentType = string.IsNullOrWhiteSpace(user.ProfileImageContentType)
         ? "image/jpeg"
         : user.ProfileImageContentType;
 
+    context.Response.Headers.CacheControl = "public,max-age=300";
+    context.Response.Headers.XContentTypeOptions = "nosniff";
     return Results.File(user.ProfileImageData, contentType);
 });
 

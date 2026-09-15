@@ -1,6 +1,8 @@
 using MhM.UI.Data;
 using MhM.UI.Data.Models;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace MhM.UI.Services;
 
@@ -37,7 +39,9 @@ public sealed class MatchingService(
             .ToList();
 
         var ratingByUser = await db.Reviews
-            .Where(x => applicantIds.Contains(x.RevieweeId))
+            .Where(x => applicantIds.Contains(x.RevieweeId) &&
+                (x.CreatedUtc <= DateTime.UtcNow.AddDays(-14) || db.Reviews.Any(other =>
+                    other.ListingId == x.ListingId && other.ReviewerId == x.RevieweeId && other.RevieweeId == x.ReviewerId)))
             .GroupBy(x => x.RevieweeId)
             .Select(g => new { UserId = g.Key, AvgStars = g.Average(r => (double)r.Stars) })
             .ToDictionaryAsync(x => x.UserId, x => x.AvgStars, cancellationToken);
@@ -113,6 +117,8 @@ public sealed class MatchingService(
     public async Task AssignListingAsync(
         Guid listingId,
         Guid helperUserId,
+        Guid actingUserId,
+        bool isAdmin = false,
         CancellationToken cancellationToken = default)
     {
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
@@ -128,7 +134,10 @@ public sealed class MatchingService(
                 .FirstOrDefaultAsync(x => x.Id == listingId, cancellationToken)
                 ?? throw new InvalidOperationException("Auftrag nicht gefunden.");
 
-            if (listing.Status != ListingStatus.Offen && listing.Status != ListingStatus.InBearbeitung)
+            if (!isAdmin && listing.RequesterId != actingUserId)
+                throw new UnauthorizedAccessException("Nur der Auftraggeber kann diesen Auftrag vergeben.");
+
+            if (listing.Status != ListingStatus.Offen)
                 throw new InvalidOperationException("Auftrag kann nicht vergeben werden.");
 
             var selectedApplication = await retryDb.ListingApplications
@@ -141,8 +150,25 @@ public sealed class MatchingService(
             if (selectedApplication is null)
                 throw new InvalidOperationException("Keine eingereichte Bewerbung dieses Helfers vorhanden.");
 
-            listing.Status = ListingStatus.InBearbeitung;
+            listing.Status = ListingStatus.Vergeben;
             selectedApplication.Status = ListingApplicationStatus.Angenommen;
+
+            var agreementText = string.Join("|", listing.Id, listing.RequesterId, helperUserId, listing.Title,
+                listing.Description, selectedApplication.ProposedPrice, selectedApplication.CompensationType,
+                listing.PreferredDateUtc?.ToString("O"), listing.PostalCode, listing.City);
+            retryDb.AssignmentAgreements.Add(new AssignmentAgreement
+            {
+                ListingId = listing.Id,
+                RequesterId = listing.RequesterId,
+                HelperId = helperUserId,
+                Title = listing.Title,
+                Description = listing.Description,
+                AgreedPrice = selectedApplication.ProposedPrice,
+                CompensationType = selectedApplication.CompensationType,
+                PreferredDateUtc = listing.PreferredDateUtc,
+                LocationSummary = $"{listing.PostalCode} {listing.City}".Trim(),
+                AgreementHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(agreementText)))
+            });
 
             var otherPendingApplications = await retryDb.ListingApplications
                 .Where(x => x.ListingId == listingId &&
@@ -216,8 +242,8 @@ public sealed class MatchingService(
             if (listing.RequesterId != requesterUserId)
                 throw new InvalidOperationException("Nur der Auftraggeber kann den Auftrag abschließen.");
 
-            if (listing.Status != ListingStatus.InBearbeitung)
-                throw new InvalidOperationException("Nur Aufträge in Bearbeitung können abgeschlossen werden.");
+            if (listing.Status != ListingStatus.AbschlussGemeldet)
+                throw new InvalidOperationException("Der Helfer muss den Abschluss zuerst melden.");
 
             if (listing.PreferredDateUtc.HasValue && DateTime.UtcNow < listing.PreferredDateUtc.Value)
                 throw new InvalidOperationException(
@@ -234,6 +260,30 @@ public sealed class MatchingService(
             await retryDb.SaveChangesAsync(cancellationToken);
             await tx.CommitAsync(cancellationToken);
         });
+    }
+
+
+    public Task StartListingAsync(Guid listingId, Guid helperUserId, CancellationToken cancellationToken = default)
+        => TransitionForHelperAsync(listingId, helperUserId, ListingStatus.Vergeben, ListingStatus.InDurchfuehrung, cancellationToken);
+
+    public Task ReportCompletionAsync(Guid listingId, Guid helperUserId, CancellationToken cancellationToken = default)
+        => TransitionForHelperAsync(listingId, helperUserId, ListingStatus.InDurchfuehrung, ListingStatus.AbschlussGemeldet, cancellationToken);
+
+    public Task ConfirmCompletionAsync(Guid listingId, Guid requesterUserId, CancellationToken cancellationToken = default)
+        => CompleteListingByRequesterAsync(listingId, requesterUserId, cancellationToken);
+
+    private async Task TransitionForHelperAsync(Guid listingId, Guid helperUserId, ListingStatus expected, ListingStatus next, CancellationToken cancellationToken)
+    {
+        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        var listing = await db.Listings.FirstOrDefaultAsync(x => x.Id == listingId, cancellationToken)
+            ?? throw new InvalidOperationException("Auftrag nicht gefunden.");
+        var isAccepted = await db.ListingApplications.AnyAsync(x => x.ListingId == listingId && x.ApplicantId == helperUserId && x.Status == ListingApplicationStatus.Angenommen, cancellationToken);
+        if (!isAccepted)
+            throw new UnauthorizedAccessException("Nur der angenommene Helfer darf diesen Schritt ausführen.");
+        if (listing.Status != expected)
+            throw new InvalidOperationException("Dieser Statuswechsel ist nicht zulässig.");
+        listing.Status = next;
+        await db.SaveChangesAsync(cancellationToken);
     }
 
     private static bool IsCompensationCompatible(CompensationType listingType, CompensationType applicationType)

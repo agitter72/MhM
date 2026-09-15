@@ -22,11 +22,43 @@ else
         <section class="panel profile-header">
             <div class="profile-header-top">
                 <ProfileAvatar UserId="profile.Id" DisplayName="@profile.DisplayName" HasImage="profile.ProfileImageUpdatedUtc.HasValue" ImageVersion="profile.ProfileImageUpdatedUtc?.Ticks ?? 0" CssClass="profile-page-avatar" />
-                @if (isOwnProfile)
-                {
-                    <a class="btn btn-secondary profile-edit-button" href="/einstellungen?tab=personal"><Icon CustomIconName="bi bi-gear" /> Profil bearbeiten</a>
-                }
+                <div class="profile-header-actions">
+                    @if (isOwnProfile)
+                    {
+                        <a class="btn btn-secondary profile-edit-button" href="/einstellungen?tab=personal"><Icon CustomIconName="bi bi-gear" /> Profil bearbeiten</a>
+                    }
+                    else if (currentUserId.HasValue)
+                    {
+                        <button type="button" class="btn btn-danger" @onclick="() => showReportForm = !showReportForm">
+                            <Icon CustomIconName="bi bi-exclamation-triangle-fill fa-danger" /> Nutzer melden
+                        </button>
+                    }
+                </div>
             </div>
+            @if (showReportForm)
+            {
+                <div class="report-form">
+                    <div class="field">
+                        <label for="user-report-reason">Grund</label>
+                        <InputSelect id="user-report-reason" @bind-Value="selectedReportReason" class="field-input">
+                            <option value="">Bitte auswählen</option>
+                            @foreach (var reason in ReportReasons.User) { <option value="@reason">@reason</option> }
+                        </InputSelect>
+                    </div>
+                    @if (selectedReportReason == ReportReasons.Other)
+                    {
+                        <div class="field">
+                            <label for="user-report-details">Was ist das Problem?</label>
+                            <InputTextArea id="user-report-details" @bind-Value="reportDetails" class="field-input field-textarea" maxlength="2000" />
+                        </div>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(reportMessage)) { <p class="@(reportSucceeded ? "text-success" : "text-danger")">@reportMessage</p> }
+                    <div class="button-group">
+                        <button type="button" class="btn btn-danger" @onclick="ReportUserAsync">Meldung absenden</button>
+                        <button type="button" class="btn btn-secondary" @onclick="() => showReportForm = false">Abbrechen</button>
+                    </div>
+                </div>
+            }
             <div class="profile-identity-block">
                 <h1>@profile.DisplayName</h1>
                 <p class="profile-username">@@@profile.Username</p>
@@ -34,10 +66,11 @@ else
                 <div class="profile-meta">
                     <span><Icon CustomIconName="bi bi-geo-alt" /> @profile.City</span>
                     <span><Icon CustomIconName="bi bi-calendar3" /> Dabei seit @profile.CreatedUtc.ToLocalTime().ToString("MMMM yyyy")</span>
-                    @if (profile.IsVerified)
-                    {
-                        <span class="profile-verified"><Icon CustomIconName="bi bi-patch-check-fill" /> Verifiziert</span>
-                    }
+                    @if (profile.Verifications.HasFlag(VerificationLevel.Email)) { <span class="profile-verified"><Icon CustomIconName="bi bi-envelope-check" /> E-Mail bestätigt</span> }
+                    @if (profile.Verifications.HasFlag(VerificationLevel.Phone)) { <span class="profile-verified"><Icon CustomIconName="bi bi-phone" /> Telefon bestätigt</span> }
+                    @if (profile.Verifications.HasFlag(VerificationLevel.Identity)) { <span class="profile-verified"><Icon CustomIconName="bi bi-person-check-fill" /> Identität bestätigt</span> }
+                    @if (profile.Verifications.HasFlag(VerificationLevel.Business)) { <span class="profile-verified"><Icon CustomIconName="bi bi-building-check" /> Gewerbe geprüft</span> }
+                    @if (profile.Verifications.HasFlag(VerificationLevel.Qualification)) { <span class="profile-verified"><Icon CustomIconName="bi bi-award" /> Qualifikation geprüft</span> }
                 </div>
             </div>
         </section>

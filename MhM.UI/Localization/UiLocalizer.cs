@@ -149,7 +149,11 @@ public sealed class UiLocalizer
 
         ["ListingStatus.Entwurf"] = new("Entwurf", "Draft"),
         ["ListingStatus.Offen"] = new("Offen", "Open"),
-        ["ListingStatus.InBearbeitung"] = new("In Bearbeitung", "In progress"),
+        ["ListingStatus.Vergeben"] = new("Vergeben", "Assigned"),
+        ["ListingStatus.InDurchfuehrung"] = new("In Durchführung", "In progress"),
+        ["ListingStatus.AbschlussGemeldet"] = new("Abschluss gemeldet", "Completion reported"),
+        ["ListingStatus.ProblemGemeldet"] = new("Problem gemeldet", "Problem reported"),
+        ["ListingStatus.Abgebrochen"] = new("Abgebrochen", "Aborted"),
         ["ListingStatus.Abgeschlossen"] = new("Abgeschlossen", "Completed"),
         ["ListingStatus.Storniert"] = new("Storniert", "Cancelled")
     };

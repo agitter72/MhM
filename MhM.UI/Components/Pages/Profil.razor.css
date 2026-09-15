@@ -31,6 +31,23 @@
     gap: 1rem;
 }
 
+.profile-header-actions,
+.button-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .75rem;
+}
+
+.report-form {
+    display: grid;
+    gap: 1rem;
+    margin-top: 1.25rem;
+    padding: 1rem;
+    border: 1px solid var(--danger-line);
+    border-radius: var(--radius-md);
+    background: var(--danger-bg);
+}
+
 .profile-header-top ::deep .profile-page-avatar {
     width: 6.5rem;
     height: 6.5rem;

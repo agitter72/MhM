@@ -352,6 +352,15 @@ public partial class Auftraege : IAsyncDisposable
             var exists = await db.ListingApplications
                 .AnyAsync(x => x.ListingId == listingId && x.ApplicantId == currentUserId.Value);
 
+            var blocked = await db.UserBlocks.AnyAsync(x =>
+                (x.BlockingUserId == currentUserId.Value && x.BlockedUserId == listing.RequesterId) ||
+                (x.BlockingUserId == listing.RequesterId && x.BlockedUserId == currentUserId.Value));
+            if (blocked)
+            {
+                applyError = "Eine Blockierung verhindert neue Kontakte zwischen diesen Konten.";
+                return;
+            }
+
             if (exists)
             {
                 appliedListingIds.Add(listingId);

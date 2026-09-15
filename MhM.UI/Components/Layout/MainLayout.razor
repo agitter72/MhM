@@ -50,6 +50,12 @@
                         <span class="sidebar-link-icon"><Icon CustomIconName="bi bi-person-square" /></span>
                         <span class="sidebar-link-label">Mein Bereich</span>
                     </NavLink>
+                    <AuthorizeView Roles="Admin" Context="adminAuthState">
+                        <NavLink href="/admin" class="sidebar-link" @onclick="CloseMobileNav">
+                            <span class="sidebar-link-icon"><Icon CustomIconName="bi bi-shield-lock" /></span>
+                            <span class="sidebar-link-label">Administration</span>
+                        </NavLink>
+                    </AuthorizeView>
                 </Authorized>
                 <NotAuthorized>
                     <NavLink href="/account/login" class="sidebar-link" @onclick="CloseMobileNav">

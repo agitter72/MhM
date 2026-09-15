@@ -97,6 +97,7 @@ public partial class MainLayout : IAsyncDisposable
         {
             Data.Models.UserNotificationType.Auftragsvergabe => "Vergabe",
             Data.Models.UserNotificationType.ChatNachricht => "Chat",
+            Data.Models.UserNotificationType.Moderation => "Moderation",
             _ => "Info"
         };
 

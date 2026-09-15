@@ -3,6 +3,8 @@ using Microsoft.EntityFrameworkCore;
 using MhM.UI.Data;
 using MhM.UI.Data.Models;
 using MhM.UI.Services;
+using Microsoft.AspNetCore.Components.Authorization;
+using System.Security.Claims;
 
 namespace MhM.UI.Components.Pages;
 
@@ -16,6 +18,7 @@ public partial class AuftragVergabe
 
     [Inject]
     protected IMatchingService MatchingService { get; set; } = default!;
+    [Inject] protected AuthenticationStateProvider AuthenticationStateProvider { get; set; } = default!;
 
     protected readonly List<ApplicationRow> applicationRows = [];
     protected bool isLoading = true;
@@ -25,6 +28,8 @@ public partial class AuftragVergabe
     protected string? success;
     protected string listingTitle = string.Empty;
     protected string listingStatusText = string.Empty;
+    private Guid currentUserId;
+    private bool isAdmin;
 
     protected ListingApplicationStatus? selectedStatusFilter;
 
@@ -56,6 +61,10 @@ public partial class AuftragVergabe
         applicationRows.Clear();
 
         await using var db = await DbFactory.CreateDbContextAsync();
+        var principal = (await AuthenticationStateProvider.GetAuthenticationStateAsync()).User;
+        var identityId = principal.FindFirstValue(ClaimTypes.NameIdentifier);
+        isAdmin = principal.IsInRole(PlatformRoles.Admin);
+        currentUserId = await db.AppUsers.Where(x => x.IdentityUserId == identityId).Select(x => x.Id).FirstOrDefaultAsync();
 
         var listing = await db.Listings
             .AsNoTracking()
@@ -68,9 +77,16 @@ public partial class AuftragVergabe
             return;
         }
 
+        if (!isAdmin && (currentUserId == Guid.Empty || listing.RequesterId != currentUserId))
+        {
+            error = "Du darfst die Bewerbungen dieses Auftrags nicht einsehen.";
+            isLoading = false;
+            return;
+        }
+
         listingTitle = listing.Title;
         listingStatusText = listing.Status.ToString();
-        canAssign = listing.Status is ListingStatus.Offen or ListingStatus.InBearbeitung;
+        canAssign = listing.Status == ListingStatus.Offen;
 
         var applications = await db.ListingApplications
             .AsNoTracking()
@@ -124,13 +140,13 @@ public partial class AuftragVergabe
 
         try
         {
-            await MatchingService.AssignListingAsync(Id, helperUserId);
+            await MatchingService.AssignListingAsync(Id, helperUserId, currentUserId, isAdmin);
             success = "Auftrag wurde erfolgreich vergeben.";
             await ReloadAsync();
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            error = ex.Message;
+            error = "Die Vergabe konnte nicht durchgeführt werden. Bitte Status und Berechtigung prüfen.";
         }
         finally
         {
@@ -153,6 +169,17 @@ public partial class AuftragVergabe
         ListingApplicationStatus.Abgelehnt => "assignment-status-badge status-abgelehnt",
         _ => "assignment-status-badge"
     };
+
+    protected static string GetMatchReasons(ApplicationRow row)
+    {
+        var reasons = new List<string>();
+        if (row.DistanceKm is <= 5) reasons.Add("sehr nah");
+        else if (row.DistanceKm is <= 20) reasons.Add("in der Nähe");
+        if (row.PriceScore is >= 90) reasons.Add("im Budget");
+        if (row.RatingScore is >= 80) reasons.Add("gut bewertet");
+        if (row.VerificationScore is >= 100) reasons.Add("verifiziert");
+        return reasons.Count == 0 ? "neuer Kandidat" : string.Join(" · ", reasons);
+    }
 
     private static int GetSortWeight(ListingApplicationStatus status) => status switch
     {
