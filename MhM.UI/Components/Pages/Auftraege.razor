@@ -2,38 +2,140 @@
 
 <PageTitle>@T["Listings.PageTitle"]</PageTitle>
 
-<div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;">
-    <h1>@T["Listings.Headline"]</h1>
-    <a href="/auftraege/neu">@T["Listings.New"]</a>
-</div>
+<div class="auftraege-page">
+    <section class="panel auftraege-header">
+        <div>
+            <div class="eyebrow">@T["Listings.PageTitle"]</div>
+            <h1>@T["Listings.Headline"]</h1>
+        </div>
 
-@if (items is null)
-{
-    <p>@T["General.Loading"]</p>
-}
-else if (items.Count == 0)
-{
-    <p>@T["Listings.Empty"]</p>
-}
-else
-{
-    <div style="display:grid;gap:1rem;">
-        @foreach (var item in items)
-        {
-            <article style="border:1px solid #ddd;padding:1rem;border-radius:8px;">
-                <div style="display:flex;justify-content:space-between;align-items:start;gap:1rem;flex-wrap:wrap;">
-                    <h2>@item.Title</h2>
-                    <a href="@($"/auftraege/{item.Id}/bearbeiten")">@T["General.Edit"]</a>
+        <a class="btn btn-primary" href="/auftraege/neu">@T["Listings.New"]</a>
+    </section>
+
+    @if (items is not null && items.Count > 0)
+    {
+        <div class="listing-results-summary" aria-live="polite">
+            @items.Count von @totalItems @(totalItems == 1 ? "Auftrag" : "Aufträgen") angezeigt
+        </div>
+    }
+
+    <button type="button"
+            class="btn btn-secondary mobile-filter-toggle"
+            aria-expanded="@areFiltersOpen"
+            aria-controls="listing-filters"
+            @onclick="ToggleFilters">
+        <Icon CustomIconName="bi bi-funnel" />
+        Filter @(areFiltersOpen ? "ausblenden" : "anzeigen")
+        <Icon CustomIconName="@(areFiltersOpen ? "bi bi-chevron-up" : "bi bi-chevron-down")" />
+    </button>
+
+    <div class="auftraege-layout">
+        <aside id="listing-filters" class="panel auftraege-sidebar" hidden="@(!areFiltersOpen)">
+            <form method="get" action="/auftraege" class="auftraege-filter-form">
+                <div class="field">
+                    <label for="q">Suchbegriff</label>
+                    <input id="q" name="q" value="@Query" class="field-input" placeholder="Titel oder Beschreibung" />
                 </div>
 
-                <p>@item.Description</p>
-                <p><strong>@T["Listings.Category"]:</strong> @item.Category.Name</p>
-                <p><strong>@T["Listings.Requester"]:</strong> @item.Requester.DisplayName</p>
-                <p><strong>@T["Listings.Location"]:</strong> @item.PostalCode @item.City</p>
-                <p><strong>@T["Listings.Compensation"]:</strong> @T.Enum(item.CompensationType)</p>
-                <p><strong>@T["Listings.Status"]:</strong> @T.Enum(item.Status)</p>
-                <p><strong>@T["Listings.Budget"]:</strong> @(item.BudgetMin?.ToString("N2")) € - @(item.BudgetMax?.ToString("N2")) €</p>
-            </article>
-        }
+                <div class="field">
+                    <label for="city">Ort / PLZ</label>
+                    <input id="city" name="city" value="@City" class="field-input" placeholder="z.B. Würzburg oder 97070" />
+                </div>
+
+                <div class="field">
+                    <label for="comp">Vergütung</label>
+                    <select id="comp" name="comp" class="field-input">
+                        <option value="">Alle</option>
+                        @foreach (var compensationType in Enum.GetValues<CompensationType>())
+                        {
+                            <option value="@((int)compensationType)" selected="@(CompensationFilter == compensationType)">
+                                @T.Enum(compensationType)
+                            </option>
+                        }
+                    </select>
+                </div>
+
+                <div class="field budget-fields">
+                    <div>
+                        <label for="min">Budget min (€)</label>
+                        <input id="min" name="min" type="number" step="1" value="@BudgetMinFilter" class="field-input" />
+                    </div>
+                    <div>
+                        <label for="max">Budget max (€)</label>
+                        <input id="max" name="max" type="number" step="1" value="@BudgetMaxFilter" class="field-input" />
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label for="radiusKm">Radius (km): @((RadiusKm ?? EffectiveRadiusKm).ToString("N0"))</label>
+                    <input id="radiusKm"
+                           name="radiusKm"
+                           type="range"
+                           min="1"
+                           max="200"
+                           step="1"
+                           value="@(RadiusKm ?? EffectiveRadiusKm)"
+                           class="listing-range" />
+                </div>
+
+                <details class="field category-filter-dropdown">
+                    <summary>Kategorien auswählen</summary>
+                    <div class="category-checklist">
+                        @foreach (var category in categories)
+                        {
+                            var isChecked = selectedCategoryIds.Contains(category.Id);
+                            <label class="category-check-item">
+                                <input type="checkbox" name="k" value="@category.Id" checked="@isChecked" />
+                                <span>@category.Name</span>
+                            </label>
+                        }
+                    </div>
+                </details>
+
+                <div class="listing-filter-actions">
+                    <button type="submit" class="btn btn-primary">Suchen</button>
+                    <a class="btn btn-secondary" href="/auftraege">Reset</a>
+                </div>
+            </form>
+        </aside>
+
+        <section class="auftraege-results">
+            @if (!string.IsNullOrWhiteSpace(applyError))
+            {
+                <div class="listing-alert listing-alert-error">@applyError</div>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(applySuccess))
+            {
+                <div class="listing-alert listing-alert-success">@applySuccess</div>
+            }
+
+            @if (items is null)
+            {
+                <div class="panel">@T["General.Loading"]</div>
+            }
+            else if (items.Count == 0)
+            {
+                <div class="panel">@T["Listings.Empty"]</div>
+            }
+            else
+            {
+                <div class="listing-list">
+                    <AuftraegeKarten Items="items" />
+                </div>
+
+                @if (HasMoreItems)
+                {
+                    <div class="infinite-scroll-sentinel" @ref="loadMoreSentinel" role="status" aria-live="polite">
+                        <span class="loading-dot" aria-hidden="true"></span>
+                        Weitere Aufträge werden geladen …
+                    </div>
+                }
+                else if (totalItems > LoadBatchSize)
+                {
+                    <div class="listing-end-message">Alle Aufträge wurden geladen.</div>
+                }
+            }
+        </section>
     </div>
-}
+</div>

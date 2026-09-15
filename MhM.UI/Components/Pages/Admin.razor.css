@@ -1,0 +1,97 @@
+.admin-header,
+.admin-section {
+    margin-bottom: 1.5rem;
+}
+
+.admin-section {
+    display: grid;
+    gap: 1.25rem;
+}
+
+.admin-section-heading,
+.moderation-card-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1.25rem;
+}
+
+.admin-section-heading h3,
+.moderation-card-heading h4 {
+    margin: .35rem 0 0;
+}
+
+.admin-filter {
+    width: min(100%, 22rem);
+}
+
+.moderation-grid {
+    display: grid;
+    gap: 1rem;
+}
+
+.moderation-card {
+    display: grid;
+    gap: 1rem;
+    padding: 1.15rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+    background: var(--panel-2);
+}
+
+.moderation-card p,
+.moderation-card dl {
+    margin: 0;
+}
+
+.moderation-description {
+    line-height: 1.65;
+    white-space: pre-wrap;
+}
+
+.moderation-facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .75rem 1.5rem;
+}
+
+.moderation-facts div { display: flex; gap: .4rem; }
+.moderation-facts dt { color: var(--muted); }
+.moderation-facts dd { margin: 0; font-weight: 650; }
+
+.button-group,
+.admin-row-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .75rem;
+}
+
+.delete-reason-form,
+.admin-cell-stack,
+.admin-check-stack {
+    display: grid;
+    gap: .75rem;
+}
+
+.delete-reason-form {
+    padding: 1rem;
+    border: 1px solid var(--danger-line);
+    border-radius: var(--radius-md);
+    background: var(--danger-bg);
+}
+
+.admin-user-table th,
+.admin-user-table td {
+    min-width: 10rem;
+    padding: 1rem;
+    vertical-align: top;
+}
+
+.admin-user-table th:last-child,
+.admin-user-table td:last-child { min-width: 13rem; }
+
+@media (max-width: 700px) {
+    .admin-section-heading,
+    .moderation-card-heading { flex-direction: column; }
+    .admin-filter { width: 100%; }
+}

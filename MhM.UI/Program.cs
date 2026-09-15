@@ -1,17 +1,30 @@
 using MhM.UI.Components;
 using MhM.UI.Data;
+using MhM.UI.Data.Models;
 using MhM.UI.Localization;
+using MhM.UI.Models;
+using MhM.UI.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Localization;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using System.Globalization;
+using System.ComponentModel.DataAnnotations;
 using System.Net;
 using System.Security.Claims;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Console/debug logging works in local development, containers and App Service without
+// requiring write access to the Windows Event Log.
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
+builder.Logging.AddDebug();
 
 builder
     .Services.AddLocalization();
@@ -23,25 +36,74 @@ builder.Services.AddRazorComponents()
 
 builder.Services.AddAuthorization();
 builder.Services.AddCascadingAuthenticationState();
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy("account", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 10,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0,
+                AutoReplenishment = true
+            }));
+});
 
 //builder.Services.AddDbContext<MhMDbContext>(options =>
 //    options.UseSqlServer(
 //        builder.Configuration.GetConnectionString("MhM")
 //        ?? throw new InvalidOperationException("Connection string 'MhM' was not found.")));
 
-builder.Services.AddDbContext<MhMDbContext>(options =>
+// Local development and automated tests use LocalDB. Deployed environments use
+// Azure SQL with Managed Identity through the regular "MhM" connection string.
+var connectionStringName = builder.Environment.IsDevelopment() || builder.Environment.IsEnvironment("Test")
+    ? "MhM-dev"
+    : "MhM";
+var connectionString = builder.Configuration.GetConnectionString(connectionStringName)
+    ?? throw new InvalidOperationException($"Connection string '{connectionStringName}' was not found.");
+
+builder.Services.AddDbContextFactory<MhMDbContext>(options =>
 {
-    var connectionString = builder.Configuration.GetConnectionString("MhM")
-        ?? throw new InvalidOperationException("Connection string 'MhM' was not found.");
-
-    var sqlConnection = new Microsoft.Data.SqlClient.SqlConnection(connectionString)
+    if (connectionString.StartsWith("Server=tcp:"))
     {
-        AccessToken = new Azure.Identity.DefaultAzureCredential().GetToken(
-            new Azure.Core.TokenRequestContext(new[] { "https://database.windows.net/.default" })).Token
-    };
+        var credential = new Azure.Identity.DefaultAzureCredential();
 
-    options.UseSqlServer(sqlConnection);
-});
+        // Use Azure SQL with Managed Identity - set up token provider
+        options.UseSqlServer(connectionString, sqlOptions =>
+        {
+            sqlOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
+            // Add connection resiliency
+            sqlOptions.EnableRetryOnFailure(
+                maxRetryCount: 5,
+                maxRetryDelay: TimeSpan.FromSeconds(30),
+                errorNumbersToAdd: null);
+        });
+
+        // Configure Azure AD token provider for the connection
+        options.AddInterceptors(new AzureAdAuthenticationDbConnectionInterceptor(credential));
+    }
+    else
+    {
+        // Use standard SQL Server connection
+        options.UseSqlServer(connectionString, sqlOptions =>
+        {
+            sqlOptions.EnableRetryOnFailure(
+                maxRetryCount: 5,
+                maxRetryDelay: TimeSpan.FromSeconds(30),
+                errorNumbersToAdd: null);
+        });
+    }
+
+    options.LogTo(_ => { }, LogLevel.None)
+        .ConfigureWarnings(x =>
+        {
+            //x.Throw(CoreEventId.RowLimitingOperationWithoutOrderByWarning); //zum Erkennen von Skip/Take ohne OrderBy-Errors
+        });
+    //.LogTo(Console.WriteLine, new[] { DbLoggerCategory.Database.Command.Name }, LogLevel.Debug)
+    //.EnableSensitiveDataLogging()
+}, ServiceLifetime.Singleton);
 
 // Add ASP.NET Core Identity
 builder.Services.AddIdentity<ApplicationIdentityUser, IdentityRole>(options =>
@@ -66,6 +128,8 @@ builder.Services.AddIdentity<ApplicationIdentityUser, IdentityRole>(options =>
     })
     .AddEntityFrameworkStores<MhMDbContext>()
     .AddDefaultTokenProviders();
+builder.Services.Configure<SecurityStampValidatorOptions>(options =>
+    options.ValidationInterval = TimeSpan.FromMinutes(2));
 
 // Configure Cookie Authentication
 builder.Services.ConfigureApplicationCookie(options =>
@@ -77,6 +141,9 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.ExpireTimeSpan = TimeSpan.FromDays(7);
     options.Cookie.Name = "MhM.Auth";
     options.Cookie.IsEssential = true;
+    options.Cookie.HttpOnly = true;
+    options.Cookie.SameSite = SameSiteMode.Lax;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
 });
 
 var supportedCultures = new[]
@@ -91,6 +158,24 @@ var requestLocalizationOptions = new RequestLocalizationOptions
     SupportedCultures = supportedCultures,
     SupportedUICultures = supportedCultures
 };
+
+// Register HttpClient for geocoding service
+builder.Services.AddHttpClient<IGeocodingService, GoogleGeocodingService>(client =>
+{
+    client.BaseAddress = new Uri("https://maps.googleapis.com/maps/api/");
+});
+
+builder.Services.Configure<ListingImageSettings>(
+    builder.Configuration.GetSection("ListingImages"));
+builder.Services.AddScoped<IListingImageService, ListingImageService>(sp =>
+    new ListingImageService(
+        sp.GetRequiredService<IDbContextFactory<MhMDbContext>>(),
+        sp.GetRequiredService<IConfiguration>()
+          .GetSection("ListingImages")
+          .Get<ListingImageSettings>() ?? new ListingImageSettings()));
+
+builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<IMatchingService, MatchingService>();
 
 var app = builder.Build();
 
@@ -109,21 +194,25 @@ using (var scope = app.Services.CreateScope())
     try
     {
         var context = services.GetRequiredService<MhMDbContext>();
-        context.Database.Migrate();
+        await context.Database.MigrateAsync();
         if (!app.Environment.IsProduction())
         {
             await DbInitializer.InitializeAsync(context);
+            await AdminSeed.InitializeAsync(services);
         }
     }
     catch (Exception e)
     {
-        Console.WriteLine($"Fehler beim Migrieren/Seeding: {e.Message}");
+        services.GetRequiredService<ILoggerFactory>().CreateLogger("Startup")
+            .LogCritical(e, "Datenbankmigration oder Seeding fehlgeschlagen.");
+        throw;
     }
 }
 app.UseRequestLocalization(requestLocalizationOptions);
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 app.UseHttpsRedirection();
 app.UseAntiforgery();
+app.UseRateLimiter();
 
 // Add authentication and authorization middleware
 app.UseAuthentication();
@@ -170,23 +259,26 @@ app.MapPost("/account/logon", async (HttpContext context, UserManager<Applicatio
         return;
     }
 
-    var user = await userManager.FindByEmailAsync(form.Email);
+    var identifier = form.Email.Trim();
+    var user = identifier.Contains('@')
+        ? await userManager.FindByEmailAsync(identifier)
+        : await userManager.FindByNameAsync(identifier.ToLowerInvariant());
 
-    if (user == null )
+    if (user == null)
     {
         context.Response.StatusCode = 401;
-        await context.Response.WriteAsync("User not found");
+        await context.Response.WriteAsync("Invalid credentials");
         return;
     }
 
     if (user.IsActive == false)
     {
-        context.Response.StatusCode = 403;
-        await context.Response.WriteAsync("User not active");
+        context.Response.StatusCode = 401;
+        await context.Response.WriteAsync("Invalid credentials");
         return;
     }
 
-    var result = await signInManager.PasswordSignInAsync(user, form.Password, form.RememberMe, lockoutOnFailure: false);
+    var result = await signInManager.PasswordSignInAsync(user, form.Password, form.RememberMe, lockoutOnFailure: true);
     if (result.Succeeded)
     {
         await context.Response.WriteAsync("OK");
@@ -196,23 +288,208 @@ app.MapPost("/account/logon", async (HttpContext context, UserManager<Applicatio
         context.Response.StatusCode = 401;
         await context.Response.WriteAsync("Invalid credentials");
     }
+}).RequireRateLimiting("account");
+
+app.MapPost("account/logoff", async (HttpContext context, SignInManager<ApplicationIdentityUser> signInManager, IAntiforgery antiforgery) =>
+{
+    await antiforgery.ValidateRequestAsync(context);
+    await signInManager.SignOutAsync();
+    return Results.LocalRedirect("/");
+}).RequireAuthorization();
+
+app.MapPost("/account/profile", async (
+    PersonalProfileUpdate profile,
+    ClaimsPrincipal principal,
+    IDbContextFactory<MhMDbContext> dbFactory,
+    ILookupNormalizer normalizer,
+    SignInManager<ApplicationIdentityUser> signInManager) =>
+{
+    var validationResults = new List<ValidationResult>();
+    if (!Validator.TryValidateObject(profile, new ValidationContext(profile), validationResults, validateAllProperties: true))
+    {
+        return Results.Json(
+            new ProfileUpdateResult(false, validationResults[0].ErrorMessage ?? "Bitte die Eingaben prüfen."),
+            statusCode: StatusCodes.Status400BadRequest);
+    }
+
+    var identityUserId = principal.FindFirstValue(ClaimTypes.NameIdentifier);
+    if (string.IsNullOrWhiteSpace(identityUserId))
+    {
+        return Results.Json(
+            new ProfileUpdateResult(false, "Die Anmeldung ist abgelaufen. Bitte erneut anmelden."),
+            statusCode: StatusCodes.Status401Unauthorized);
+    }
+
+    if (!InternationalPhone.TryNormalize(profile.Phone, out var normalizedPhone))
+    {
+        return Results.Json(
+            new ProfileUpdateResult(false, "Bitte eine gültige internationale Telefonnummer eingeben."),
+            statusCode: StatusCodes.Status400BadRequest);
+    }
+
+    await using var db = await dbFactory.CreateDbContextAsync();
+    var identityUser = await db.Users.FirstOrDefaultAsync(x => x.Id == identityUserId);
+    if (identityUser is null)
+    {
+        return Results.Json(new ProfileUpdateResult(false, "Benutzerkonto nicht gefunden."), statusCode: 404);
+    }
+
+    var originalEmail = identityUser.Email;
+    var appUser = await db.AppUsers.FirstOrDefaultAsync(x => x.IdentityUserId == identityUserId)
+        ?? await db.AppUsers.FirstOrDefaultAsync(x => x.Email == originalEmail);
+    if (appUser is null)
+    {
+        return Results.Json(new ProfileUpdateResult(false, "AppUser-Profil nicht gefunden."), statusCode: 404);
+    }
+
+    if (!UsernameRules.TryNormalize(profile.Username, out var username))
+    {
+        return Results.Json(
+            new ProfileUpdateResult(false, "Der Nutzername ist ungültig."),
+            statusCode: StatusCodes.Status400BadRequest);
+    }
+
+    var usernameChanged = !string.Equals(appUser.NormalizedUsername, username.ToUpperInvariant(), StringComparison.Ordinal);
+    if (usernameChanged && appUser.UsernameChangedUtc is { } changedUtc && changedUtc.AddDays(30) > DateTime.UtcNow)
+    {
+        var availableUtc = changedUtc.AddDays(30);
+        return Results.Json(
+            new ProfileUpdateResult(false, $"Der Nutzername kann erst ab {availableUtc.ToLocalTime():dd.MM.yyyy} wieder geändert werden."),
+            statusCode: StatusCodes.Status409Conflict);
+    }
+
+    var normalizedUsername = normalizer.NormalizeName(username) ?? username.ToUpperInvariant();
+    var usernameInUse = await db.Users.AnyAsync(x => x.Id != identityUserId && x.NormalizedUserName == normalizedUsername)
+        || await db.AppUsers.AnyAsync(x => x.Id != appUser.Id && x.NormalizedUsername == normalizedUsername);
+    if (usernameInUse)
+    {
+        return Results.Json(
+            new ProfileUpdateResult(false, "Dieser Nutzername ist bereits vergeben."),
+            statusCode: StatusCodes.Status409Conflict);
+    }
+
+    var email = profile.Email.Trim();
+    var normalizedEmail = normalizer.NormalizeEmail(email);
+    var emailInUse = await db.Users.AnyAsync(x => x.Id != identityUserId && x.NormalizedEmail == normalizedEmail)
+        || await db.AppUsers.AnyAsync(x => x.Id != appUser.Id && x.Email == email);
+    if (emailInUse)
+    {
+        return Results.Json(
+            new ProfileUpdateResult(false, "Diese E-Mail-Adresse wird bereits verwendet."),
+            statusCode: StatusCodes.Status409Conflict);
+    }
+
+    var firstName = profile.FirstName.Trim();
+    var lastName = profile.LastName.Trim();
+    var displayName = $"{firstName} {lastName}".Trim();
+
+    identityUser.FirstName = firstName;
+    identityUser.LastName = lastName;
+    identityUser.Email = email;
+    identityUser.NormalizedEmail = normalizedEmail;
+    identityUser.UserName = username;
+    identityUser.NormalizedUserName = normalizedUsername;
+    identityUser.PhoneNumber = normalizedPhone;
+    identityUser.SecurityStamp = Guid.NewGuid().ToString();
+    identityUser.ConcurrencyStamp = Guid.NewGuid().ToString();
+
+    appUser.DisplayName = string.IsNullOrWhiteSpace(displayName) ? email : displayName;
+    appUser.IdentityUserId = identityUserId;
+    appUser.Username = username;
+    appUser.NormalizedUsername = normalizedUsername;
+    appUser.Description = profile.Description.Trim();
+    if (usernameChanged)
+    {
+        appUser.UsernameChangedUtc = DateTime.UtcNow;
+    }
+    appUser.Email = email;
+    appUser.Phone = normalizedPhone;
+    appUser.PostalCode = profile.PostalCode.Trim();
+    appUser.City = profile.City.Trim();
+
+    try
+    {
+        // SaveChanges uses a transaction for all tracked changes. Keeping the identity
+        // and app profile update in this single call also works with SQL retry strategies.
+        await db.SaveChangesAsync();
+    }
+    catch (DbUpdateException)
+    {
+        return Results.Json(
+            new ProfileUpdateResult(false, "Nutzername oder E-Mail-Adresse werden bereits verwendet."),
+            statusCode: StatusCodes.Status409Conflict);
+    }
+    await signInManager.RefreshSignInAsync(identityUser);
+
+    return Results.Json(new ProfileUpdateResult(true, "Persönliche Daten wurden gespeichert.", normalizedPhone, username));
+}).RequireAuthorization();
+
+app.MapGet("/api/profile-images/{userId:guid}", async (Guid userId, HttpContext context, IDbContextFactory<MhMDbContext> dbFactory) =>
+{
+    await using var db = await dbFactory.CreateDbContextAsync();
+    var ownerIdentityId = await db.AppUsers.Where(x => x.Id == userId).Select(x => x.IdentityUserId).FirstOrDefaultAsync();
+    if (ownerIdentityId is not null && !await db.Users.AnyAsync(x => x.Id == ownerIdentityId && x.IsActive) &&
+        !context.User.IsInRole(PlatformRoles.Admin) && context.User.FindFirstValue(ClaimTypes.NameIdentifier) != ownerIdentityId)
+        return Results.NotFound();
+    var image = await db.ProfileImages
+        .AsNoTracking()
+        .Where(x => x.UserId == userId)
+        .Select(x => new { x.Data, x.ContentType, x.UploadedUtc })
+        .FirstOrDefaultAsync();
+    if (image is null)
+        return Results.NotFound();
+
+    context.Response.Headers.CacheControl = "public,max-age=300";
+    context.Response.Headers.XContentTypeOptions = "nosniff";
+    return Results.File(image.Data, image.ContentType);
 });
 
-app.MapGet("account/logoff", async (HttpContext context, SignInManager<ApplicationIdentityUser> signInManager) =>
+app.MapGet("/api/listing-images/{id:guid}", async (Guid id, ClaimsPrincipal principal, HttpContext context, IDbContextFactory<MhMDbContext> dbFactory) =>
 {
-    await signInManager.SignOutAsync();
-    //await context.Response.WriteAsync("OK");
-    context.Response.Redirect("/");
+    await using var db = await dbFactory.CreateDbContextAsync();
+    var image = await db.ListingImages.AsNoTracking().Include(x => x.Listing).FirstOrDefaultAsync(x => x.Id == id);
+    if (image is null) return Results.NotFound();
+    if (image.Listing.Status == ListingStatus.Entwurf)
+    {
+        var identityId = principal.FindFirstValue(ClaimTypes.NameIdentifier);
+        var actorId = await db.AppUsers.Where(x => x.IdentityUserId == identityId).Select(x => (Guid?)x.Id).FirstOrDefaultAsync();
+        if (!principal.IsInRole(PlatformRoles.Admin) && actorId != image.Listing.RequesterId)
+            return Results.NotFound();
+    }
+    context.Response.Headers.CacheControl = "public,max-age=300";
+    context.Response.Headers.XContentTypeOptions = "nosniff";
+    context.Response.Headers.ContentSecurityPolicy = "default-src 'none'; sandbox";
+    return Results.File(image.Data, image.ContentType);
+});
+
+app.MapGet("/api/profile-images/user/{userId:guid}", async (Guid userId, ClaimsPrincipal principal, HttpContext context, IDbContextFactory<MhMDbContext> dbFactory) =>
+{
+    await using var db = await dbFactory.CreateDbContextAsync();
+    var user = await db.AppUsers
+        .AsNoTracking()
+        .Where(x => x.Id == userId)
+        .Select(x => new { x.ProfileImageData, x.ProfileImageContentType, x.IdentityUserId })
+        .FirstOrDefaultAsync();
+
+    if (user?.ProfileImageData is not { Length: > 0 })
+    {
+        return Results.NotFound();
+    }
+    if (user.IdentityUserId is not null && !await db.Users.AnyAsync(x => x.Id == user.IdentityUserId && x.IsActive) &&
+        !principal.IsInRole(PlatformRoles.Admin) && principal.FindFirstValue(ClaimTypes.NameIdentifier) != user.IdentityUserId)
+        return Results.NotFound();
+
+    var contentType = string.IsNullOrWhiteSpace(user.ProfileImageContentType)
+        ? "image/jpeg"
+        : user.ProfileImageContentType;
+
+    context.Response.Headers.CacheControl = "public,max-age=300";
+    context.Response.Headers.XContentTypeOptions = "nosniff";
+    return Results.File(user.ProfileImageData, contentType);
 });
 
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
-
-using (var scope = app.Services.CreateScope())
-{
-    var db = scope.ServiceProvider.GetRequiredService<MhMDbContext>();
-    await DbInitializer.InitializeAsync(db);
-}
 
 app.Run();

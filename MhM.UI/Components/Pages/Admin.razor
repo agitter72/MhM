@@ -1,0 +1,89 @@
+@page "/admin"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = PlatformRoles.Admin)]
+
+<PageTitle>Administration</PageTitle>
+
+<section class="editor-header admin-header">
+    <div><div class="eyebrow">Geschützter Bereich</div><h2>Administration</h2><p class="muted">Nutzer, Rollen, Sperren und Meldungen verwalten. Jede Änderung wird protokolliert.</p></div>
+</section>
+
+@if (!string.IsNullOrWhiteSpace(message)) { <div class="listing-alert @(isError ? "listing-alert-error" : "listing-alert-success")">@message</div> }
+
+<section class="panel admin-section">
+    <div class="admin-section-heading">
+        <div><div class="eyebrow">Moderation</div><h3>Gemeldete Aufträge (@listingReports.Count)</h3></div>
+        <div class="field admin-filter"><label for="listing-reason-filter">Nach Grund filtern</label><InputSelect id="listing-reason-filter" @bind-Value="selectedListingReason" class="field-input"><option value="">Alle Gründe</option>@foreach (var reason in listingReasonOptions) { <option value="@reason">@reason</option> }</InputSelect></div>
+    </div>
+    @if (!FilteredListingReports.Any()) { <p class="muted">Keine passenden offenen Auftragsmeldungen.</p> }
+    <div class="moderation-grid">
+        @foreach (var row in FilteredListingReports)
+        {
+            <article class="moderation-card">
+                <div class="moderation-card-heading"><div><span class="badge-soft">@row.Report.Reason</span><h4>@(row.Listing?.Title ?? "Gelöschter Auftrag")</h4></div><small>@row.Report.CreatedUtc.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</small></div>
+                @if (row.Listing is not null)
+                {
+                    <p class="moderation-description">@row.Listing.Description</p>
+                    <dl class="moderation-facts"><div><dt>Auftraggeber</dt><dd>@row.Listing.Requester.DisplayName</dd></div><div><dt>Ort</dt><dd>@row.Listing.PostalCode @row.Listing.City</dd></div><div><dt>Status</dt><dd>@row.Listing.Status</dd></div></dl>
+                }
+                @if (!string.IsNullOrWhiteSpace(row.Report.Details)) { <p><strong>Zusatzangabe:</strong> @row.Report.Details</p> }
+                <p class="muted">Gemeldet von @row.Report.ReporterUser.DisplayName</p>
+                <div class="button-group">
+                    @if (row.Listing is not null)
+                    {
+                        <a class="btn btn-primary" href="@($"/auftraege/{row.Listing.Id}")"><Icon CustomIconName="bi bi-box-arrow-up-right" /> Auftrag öffnen</a>
+                        <a class="btn btn-secondary" href="@($"/auftraege/{row.Listing.Id}/bearbeiten")"><Icon CustomIconName="bi bi-pencil" /> Bearbeiten</a>
+                        <button type="button" class="btn btn-danger" @onclick="() => row.ShowDeleteForm = !row.ShowDeleteForm"><Icon CustomIconName="bi bi-trash3" /> Löschen</button>
+                    }
+                    <button type="button" class="btn btn-secondary" @onclick="() => ResolveReportAsync(row.Report)">Als erledigt markieren</button>
+                </div>
+                @if (row.ShowDeleteForm)
+                {
+                    <div class="delete-reason-form"><div class="field"><label>Begründung an den Auftraggeber (Pflichtfeld)</label><InputTextArea @bind-Value="row.DeleteReason" class="field-input field-textarea" maxlength="2000" /></div><button type="button" class="btn btn-danger" @onclick="() => DeleteListingAsync(row)">Auftrag entfernen</button></div>
+                }
+            </article>
+        }
+    </div>
+</section>
+
+<section class="panel admin-section">
+    <div class="admin-section-heading">
+        <div><div class="eyebrow">Moderation</div><h3>Gemeldete Nutzer (@userReports.Count)</h3></div>
+        <div class="field admin-filter"><label for="user-reason-filter">Nach Grund filtern</label><InputSelect id="user-reason-filter" @bind-Value="selectedUserReason" class="field-input"><option value="">Alle Gründe</option>@foreach (var reason in userReasonOptions) { <option value="@reason">@reason</option> }</InputSelect></div>
+    </div>
+    @if (!FilteredUserReports.Any()) { <p class="muted">Keine passenden offenen Nutzermeldungen.</p> }
+    <div class="moderation-grid">
+        @foreach (var row in FilteredUserReports)
+        {
+            <article class="moderation-card">
+                <div class="moderation-card-heading"><div><span class="badge-soft">@row.Report.Reason</span><h4>@(row.User?.DisplayName ?? "Gelöschter Nutzer")</h4></div><small>@row.Report.CreatedUtc.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</small></div>
+                @if (row.User is not null) { <p>@@@row.User.Username · @row.User.City</p> }
+                @if (!string.IsNullOrWhiteSpace(row.Report.Details)) { <p><strong>Zusatzangabe:</strong> @row.Report.Details</p> }
+                <p class="muted">Gemeldet von @row.Report.ReporterUser.DisplayName</p>
+                <div class="button-group">@if (row.User is not null) { <a class="btn btn-primary" href="@($"/profil/{row.User.Username}")">Profil öffnen</a> }<button type="button" class="btn btn-secondary" @onclick="() => ResolveReportAsync(row.Report)">Als erledigt markieren</button></div>
+            </article>
+        }
+    </div>
+</section>
+
+<section class="panel admin-section">
+    <div class="admin-section-heading"><div><div class="eyebrow">Verwaltung</div><h3>Nutzer (@users.Count)</h3></div></div>
+    <div class="table-responsive">
+        <table class="assignment-table admin-user-table">
+            <thead><tr><th>Nutzer</th><th>E-Mail / Ort</th><th>Nutzerart</th><th>Vertrauen</th><th>Admin</th><th>Status</th><th>Aktionen</th></tr></thead>
+            <tbody>
+            @foreach (var row in users)
+            {
+                <tr>
+                    <td><div class="admin-cell-stack"><InputText @bind-Value="row.DisplayName" class="field-input" /><InputText @bind-Value="row.Username" class="field-input" /></div></td>
+                    <td><div class="admin-cell-stack"><InputText @bind-Value="row.Email" class="field-input" /><InputText @bind-Value="row.City" class="field-input" /></div></td>
+                    <td><InputSelect @bind-Value="row.ProfileRole" class="field-input">@foreach (var role in Enum.GetValues<UserRole>()) { <option value="@role">@role</option> }</InputSelect></td>
+                    <td><div class="admin-check-stack"><label><InputCheckbox @bind-Value="row.EmailVerified" /> E-Mail</label><label><InputCheckbox @bind-Value="row.PhoneVerified" /> Telefon</label><label><InputCheckbox @bind-Value="row.IdentityVerified" /> Identität</label></div></td>
+                    <td><InputCheckbox @bind-Value="row.IsAdmin" disabled="@(row.IdentityId == currentIdentityId)" /></td>
+                    <td>@(row.IsActive ? "Aktiv" : "Gesperrt")</td>
+                    <td><div class="admin-row-actions"><button class="btn btn-primary" @onclick="() => SaveUserAsync(row)">Speichern</button><button class="btn btn-secondary" disabled="@(row.IdentityId == currentIdentityId)" @onclick="() => SetBanAsync(row, row.IsActive)">@(row.IsActive ? "Bannen" : "Entbannen")</button><button class="btn btn-danger" disabled="@(row.IdentityId == currentIdentityId)" @onclick="() => DeleteUserAsync(row)">Löschen</button></div></td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</section>

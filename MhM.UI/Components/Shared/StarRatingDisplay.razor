@@ -1,0 +1,10 @@
+<span class="star-rating-display" aria-label="@($"{Value} von 5 Sternen")">
+    @for (var index = 1; index <= 5; index++)
+    {
+        <Icon CustomIconName="@(index <= Value ? "bi bi-star-fill" : "bi bi-star")" />
+    }
+</span>
+
+@code {
+    [Parameter] public int Value { get; set; }
+}

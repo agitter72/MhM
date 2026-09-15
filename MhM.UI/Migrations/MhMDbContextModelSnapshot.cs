@@ -105,6 +105,47 @@ namespace MhM.UI.Migrations
                     b.ToTable("AspNetUsers", (string)null);
                 });
 
+            modelBuilder.Entity("MhM.UI.Data.Models.AdminAuditLog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("ActorIdentityUserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("CreatedUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Details")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<string>("TargetId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("TargetType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedUtc");
+
+                    b.ToTable("AdminAuditLogs", (string)null);
+                });
+
             modelBuilder.Entity("MhM.UI.Data.Models.AppUser", b =>
                 {
                     b.Property<Guid>("Id")
@@ -119,6 +160,11 @@ namespace MhM.UI.Migrations
                     b.Property<DateTime>("CreatedUtc")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
                     b.Property<string>("DisplayName")
                         .IsRequired()
                         .HasMaxLength(120)
@@ -129,6 +175,10 @@ namespace MhM.UI.Migrations
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
 
+                    b.Property<string>("IdentityUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
                     b.Property<bool>("IsVerified")
                         .HasColumnType("bit");
 
@@ -137,6 +187,11 @@ namespace MhM.UI.Migrations
 
                     b.Property<double?>("Longitude")
                         .HasColumnType("float");
+
+                    b.Property<string>("NormalizedUsername")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
 
                     b.Property<string>("Phone")
                         .HasMaxLength(50)
@@ -147,7 +202,28 @@ namespace MhM.UI.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
+                    b.Property<string>("ProfileImageContentType")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<byte[]>("ProfileImageData")
+                        .HasColumnType("varbinary(max)");
+
+                    b.Property<DateTime?>("ProfileImageUpdatedUtc")
+                        .HasColumnType("datetime2");
+
                     b.Property<int>("Role")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Username")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<DateTime?>("UsernameChangedUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Verifications")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
@@ -155,7 +231,70 @@ namespace MhM.UI.Migrations
                     b.HasIndex("Email")
                         .IsUnique();
 
+                    b.HasIndex("IdentityUserId")
+                        .IsUnique()
+                        .HasFilter("[IdentityUserId] IS NOT NULL");
+
+                    b.HasIndex("NormalizedUsername")
+                        .IsUnique();
+
                     b.ToTable("Users", (string)null);
+                });
+
+            modelBuilder.Entity("MhM.UI.Data.Models.AssignmentAgreement", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal?>("AgreedPrice")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<string>("AgreementHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<int>("CompensationType")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(3000)
+                        .HasColumnType("nvarchar(3000)");
+
+                    b.Property<Guid>("HelperId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ListingId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("LocationSummary")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("nvarchar(160)");
+
+                    b.Property<DateTime?>("PreferredDateUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("RequesterId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("nvarchar(160)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ListingId")
+                        .IsUnique();
+
+                    b.ToTable("AssignmentAgreements", (string)null);
                 });
 
             modelBuilder.Entity("MhM.UI.Data.Models.Category", b =>
@@ -184,6 +323,53 @@ namespace MhM.UI.Migrations
                     b.ToTable("Categories", (string)null);
                 });
 
+            modelBuilder.Entity("MhM.UI.Data.Models.ContentReport", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Details")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<Guid>("ReporterUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ResolvedByIdentityUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime?>("ResolvedUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("TargetId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("TargetType")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReporterUserId");
+
+                    b.HasIndex("Status", "CreatedUtc");
+
+                    b.ToTable("ContentReports", (string)null);
+                });
+
             modelBuilder.Entity("MhM.UI.Data.Models.Conversation", b =>
                 {
                     b.Property<Guid>("Id")
@@ -206,9 +392,10 @@ namespace MhM.UI.Migrations
 
                     b.HasIndex("HelperId");
 
-                    b.HasIndex("ListingId");
-
                     b.HasIndex("RequesterId");
+
+                    b.HasIndex("ListingId", "RequesterId", "HelperId")
+                        .IsUnique();
 
                     b.ToTable("Conversations", (string)null);
                 });
@@ -349,13 +536,52 @@ namespace MhM.UI.Migrations
                         .HasPrecision(10, 2)
                         .HasColumnType("decimal(10,2)");
 
+                    b.Property<int>("Status")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1);
+
                     b.HasKey("Id");
 
                     b.HasIndex("ApplicantId");
 
-                    b.HasIndex("ListingId");
+                    b.HasIndex("ListingId", "ApplicantId")
+                        .IsUnique();
 
                     b.ToTable("ListingApplications", (string)null);
+                });
+
+            modelBuilder.Entity("MhM.UI.Data.Models.ListingImage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<byte[]>("Data")
+                        .IsRequired()
+                        .HasColumnType("varbinary(max)");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(260)
+                        .HasColumnType("nvarchar(260)");
+
+                    b.Property<Guid>("ListingId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("UploadedUtc")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ListingId");
+
+                    b.ToTable("ListingImages", (string)null);
                 });
 
             modelBuilder.Entity("MhM.UI.Data.Models.Message", b =>
@@ -372,6 +598,15 @@ namespace MhM.UI.Migrations
                     b.Property<Guid>("ConversationId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<DateTime?>("DeliveredUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("ReadUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("RecipientUserId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<Guid>("SenderUserId")
                         .HasColumnType("uniqueidentifier");
 
@@ -380,11 +615,42 @@ namespace MhM.UI.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ConversationId");
-
                     b.HasIndex("SenderUserId");
 
+                    b.HasIndex("ConversationId", "SentUtc");
+
+                    b.HasIndex("RecipientUserId", "ReadUtc", "DeliveredUtc");
+
                     b.ToTable("Messages", (string)null);
+                });
+
+            modelBuilder.Entity("MhM.UI.Data.Models.ProfileImage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<byte[]>("Data")
+                        .IsRequired()
+                        .HasColumnType("varbinary(max)");
+
+                    b.Property<DateTime>("UploadedUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
+
+                    b.ToTable("ProfileImages", (string)null);
                 });
 
             modelBuilder.Entity("MhM.UI.Data.Models.Review", b =>
@@ -392,11 +658,6 @@ namespace MhM.UI.Migrations
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Comment")
-                        .IsRequired()
-                        .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)");
 
                     b.Property<DateTime>("CreatedUtc")
                         .HasColumnType("datetime2");
@@ -415,16 +676,138 @@ namespace MhM.UI.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ListingId");
-
                     b.HasIndex("RevieweeId");
 
                     b.HasIndex("ReviewerId");
+
+                    b.HasIndex("ListingId", "ReviewerId", "RevieweeId")
+                        .IsUnique();
 
                     b.ToTable("Reviews", null, t =>
                         {
                             t.HasCheckConstraint("CK_Reviews_Stars", "[Stars] >= 1 AND [Stars] <= 5");
                         });
+                });
+
+            modelBuilder.Entity("MhM.UI.Data.Models.ReviewCategoryRating", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CategoryKey")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<Guid>("ReviewId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Stars")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReviewId", "CategoryKey")
+                        .IsUnique();
+
+                    b.ToTable("ReviewCategoryRatings", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_ReviewCategoryRatings_Stars", "[Stars] >= 1 AND [Stars] <= 5");
+                        });
+                });
+
+            modelBuilder.Entity("MhM.UI.Data.Models.UserBlock", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("BlockedUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("BlockingUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedUtc")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BlockedUserId");
+
+                    b.HasIndex("BlockingUserId", "BlockedUserId")
+                        .IsUnique();
+
+                    b.ToTable("UserBlocks", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_UserBlocks_NotSelf", "[BlockingUserId] <> [BlockedUserId]");
+                        });
+                });
+
+            modelBuilder.Entity("MhM.UI.Data.Models.UserNotification", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<Guid?>("ConversationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DeliveredUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("LinkUrl")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("nvarchar(512)");
+
+                    b.Property<Guid>("ListingId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("MessageId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("ReadUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("RecipientUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("SenderUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("nvarchar(160)");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ConversationId");
+
+                    b.HasIndex("ListingId");
+
+                    b.HasIndex("MessageId")
+                        .IsUnique()
+                        .HasFilter("[MessageId] IS NOT NULL");
+
+                    b.HasIndex("SenderUserId");
+
+                    b.HasIndex("RecipientUserId", "ReadUtc", "DeliveredUtc", "CreatedUtc");
+
+                    b.ToTable("UserNotifications", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -560,6 +943,28 @@ namespace MhM.UI.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("MhM.UI.Data.Models.AssignmentAgreement", b =>
+                {
+                    b.HasOne("MhM.UI.Data.Models.Listing", "Listing")
+                        .WithOne()
+                        .HasForeignKey("MhM.UI.Data.Models.AssignmentAgreement", "ListingId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Listing");
+                });
+
+            modelBuilder.Entity("MhM.UI.Data.Models.ContentReport", b =>
+                {
+                    b.HasOne("MhM.UI.Data.Models.AppUser", "ReporterUser")
+                        .WithMany()
+                        .HasForeignKey("ReporterUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ReporterUser");
+                });
+
             modelBuilder.Entity("MhM.UI.Data.Models.Conversation", b =>
                 {
                     b.HasOne("MhM.UI.Data.Models.AppUser", "Helper")
@@ -636,12 +1041,29 @@ namespace MhM.UI.Migrations
                     b.Navigation("Listing");
                 });
 
+            modelBuilder.Entity("MhM.UI.Data.Models.ListingImage", b =>
+                {
+                    b.HasOne("MhM.UI.Data.Models.Listing", "Listing")
+                        .WithMany("Images")
+                        .HasForeignKey("ListingId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Listing");
+                });
+
             modelBuilder.Entity("MhM.UI.Data.Models.Message", b =>
                 {
                     b.HasOne("MhM.UI.Data.Models.Conversation", "Conversation")
                         .WithMany("Messages")
                         .HasForeignKey("ConversationId")
                         .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("MhM.UI.Data.Models.AppUser", "RecipientUser")
+                        .WithMany()
+                        .HasForeignKey("RecipientUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("MhM.UI.Data.Models.AppUser", "SenderUser")
@@ -652,7 +1074,20 @@ namespace MhM.UI.Migrations
 
                     b.Navigation("Conversation");
 
+                    b.Navigation("RecipientUser");
+
                     b.Navigation("SenderUser");
+                });
+
+            modelBuilder.Entity("MhM.UI.Data.Models.ProfileImage", b =>
+                {
+                    b.HasOne("MhM.UI.Data.Models.AppUser", "User")
+                        .WithOne("ProfileImage")
+                        .HasForeignKey("MhM.UI.Data.Models.ProfileImage", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("MhM.UI.Data.Models.Review", b =>
@@ -680,6 +1115,76 @@ namespace MhM.UI.Migrations
                     b.Navigation("Reviewee");
 
                     b.Navigation("Reviewer");
+                });
+
+            modelBuilder.Entity("MhM.UI.Data.Models.ReviewCategoryRating", b =>
+                {
+                    b.HasOne("MhM.UI.Data.Models.Review", "Review")
+                        .WithMany("CategoryRatings")
+                        .HasForeignKey("ReviewId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Review");
+                });
+
+            modelBuilder.Entity("MhM.UI.Data.Models.UserBlock", b =>
+                {
+                    b.HasOne("MhM.UI.Data.Models.AppUser", "BlockedUser")
+                        .WithMany()
+                        .HasForeignKey("BlockedUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MhM.UI.Data.Models.AppUser", "BlockingUser")
+                        .WithMany()
+                        .HasForeignKey("BlockingUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("BlockedUser");
+
+                    b.Navigation("BlockingUser");
+                });
+
+            modelBuilder.Entity("MhM.UI.Data.Models.UserNotification", b =>
+                {
+                    b.HasOne("MhM.UI.Data.Models.Conversation", "Conversation")
+                        .WithMany("Notifications")
+                        .HasForeignKey("ConversationId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("MhM.UI.Data.Models.Listing", "Listing")
+                        .WithMany()
+                        .HasForeignKey("ListingId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MhM.UI.Data.Models.Message", "Message")
+                        .WithMany("Notifications")
+                        .HasForeignKey("MessageId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("MhM.UI.Data.Models.AppUser", "RecipientUser")
+                        .WithMany()
+                        .HasForeignKey("RecipientUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MhM.UI.Data.Models.AppUser", "SenderUser")
+                        .WithMany()
+                        .HasForeignKey("SenderUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Conversation");
+
+                    b.Navigation("Listing");
+
+                    b.Navigation("Message");
+
+                    b.Navigation("RecipientUser");
+
+                    b.Navigation("SenderUser");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -738,6 +1243,8 @@ namespace MhM.UI.Migrations
                     b.Navigation("HelperProfile");
 
                     b.Navigation("Listings");
+
+                    b.Navigation("ProfileImage");
                 });
 
             modelBuilder.Entity("MhM.UI.Data.Models.Category", b =>
@@ -748,6 +1255,8 @@ namespace MhM.UI.Migrations
             modelBuilder.Entity("MhM.UI.Data.Models.Conversation", b =>
                 {
                     b.Navigation("Messages");
+
+                    b.Navigation("Notifications");
                 });
 
             modelBuilder.Entity("MhM.UI.Data.Models.Listing", b =>
@@ -755,6 +1264,18 @@ namespace MhM.UI.Migrations
                     b.Navigation("Applications");
 
                     b.Navigation("Conversations");
+
+                    b.Navigation("Images");
+                });
+
+            modelBuilder.Entity("MhM.UI.Data.Models.Message", b =>
+                {
+                    b.Navigation("Notifications");
+                });
+
+            modelBuilder.Entity("MhM.UI.Data.Models.Review", b =>
+                {
+                    b.Navigation("CategoryRatings");
                 });
 #pragma warning restore 612, 618
         }

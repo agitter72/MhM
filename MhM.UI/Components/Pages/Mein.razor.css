@@ -1,0 +1,164 @@
+.mein-header {
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.mein-header p {
+    margin-bottom: 0;
+}
+.mein-header-actions, .profile-image-actions { display: flex; flex-wrap: wrap; gap: .5rem; }
+.profile-image-editor { display: flex; align-items: center; gap: 1rem; margin: 1rem 0 1.5rem; padding: 1rem; border: 1px solid var(--line); border-radius: var(--radius-md); }
+.profile-image-editor ::deep .settings-avatar { width: 6rem; height: 6rem; font-size: 1.4rem; }
+.profile-image-editor p { margin: .25rem 0 .65rem; }
+.profile-image-upload { position: relative; overflow: hidden; cursor: pointer; }
+.profile-image-upload ::deep input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+
+@media (max-width: 560px) {
+    .mein-header {
+        flex-direction: column;
+    }
+
+    .mein-logout {
+        flex: 1;
+    }
+    .mein-header-actions { width: 100%; }
+    .profile-image-editor { align-items: flex-start; }
+}
+
+.mein-tabs-shell {
+    padding: 0.75rem;
+}
+
+.mein-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color, #d9d9d9);
+    padding-bottom: 0.75rem;
+}
+
+.mein-tab {
+    border: 1px solid var(--border-color, #d9d9d9);
+    background: var(--surface-1, #fff);
+    color: inherit;
+    padding: 0.5rem 0.85rem;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    font: inherit;
+}
+
+.mein-tab:hover {
+    background: var(--surface-2, #f5f5f5);
+}
+
+.mein-tab.is-active {
+    background: var(--primary, #0d6efd);
+    color: #fff;
+    border-color: var(--primary, #0d6efd);
+}
+
+.mein-tab-content {
+    padding-top: 0.25rem;
+}
+
+.mein-grid {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: 1fr;
+    margin-bottom: 1rem;
+}
+
+@media (min-width: 1100px) {
+    .mein-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+.mein-applications-list {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.mein-application-item h3 {
+    margin-bottom: 0.35rem;
+}
+
+.mein-application-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+.mein-status-badge {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    padding: 0.2rem 0.6rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.mein-status-badge.status-eingereicht {
+    background: var(--primary-soft);
+    color: var(--primary);
+}
+
+.mein-status-badge.status-angenommen {
+    background: color-mix(in srgb, var(--success) 16%, var(--panel));
+    color: var(--success);
+}
+
+.mein-status-badge.status-abgelehnt {
+    background: var(--danger-bg);
+    color: var(--danger-text);
+}
+
+.mein-application-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin: 0.75rem 0 1rem;
+}
+
+.mein-application-filters .btn.is-active {
+    border-color: var(--primary, #0d6efd);
+    background: var(--primary, #0d6efd);
+    color: #fff;
+}
+
+.mein-helper-avatar-editor {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    align-items: center;
+}
+
+.mein-helper-avatar-preview,
+.mein-helper-avatar-fallback {
+    width: 88px;
+    height: 88px;
+    border-radius: 50%;
+}
+
+.mein-helper-avatar-preview {
+    object-fit: cover;
+    border: 1px solid var(--line);
+}
+
+.mein-helper-avatar-fallback {
+    display: grid;
+    place-items: center;
+    background: var(--primary);
+    color: #fff;
+    font-size: 1.6rem;
+}
+
+.mein-helper-avatar-actions {
+    display: grid;
+    gap: 0.4rem;
+}

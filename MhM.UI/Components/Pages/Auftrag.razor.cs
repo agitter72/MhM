@@ -1,9 +1,13 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.EntityFrameworkCore;
 using MhM.UI.Data;
 using MhM.UI.Localization;
 using MhM.UI.Data.Models;
+using MhM.UI.Services;
+using Microsoft.AspNetCore.Components.Authorization;
+using System.Security.Claims;
 
 namespace MhM.UI.Components.Pages;
 
@@ -13,7 +17,7 @@ public partial class Auftrag
     public Guid? Id { get; set; }
 
     [Inject]
-    protected MhMDbContext Db { get; set; } = default!;
+    protected IDbContextFactory<MhMDbContext> DbFactory { get; set; } = default!;
 
     [Inject]
     protected NavigationManager Navigation { get; set; } = default!;
@@ -21,37 +25,75 @@ public partial class Auftrag
     [Inject]
     protected UiLocalizer T { get; set; } = default!;
 
+    [Inject]
+    protected IGeocodingService Geocoding { get; set; } = default!;
+
+    [Inject]
+    protected IListingImageService ImageService { get; set; } = default!;
+
+    [Inject]
+    protected IConfiguration Configuration { get; set; } = default!;
+    [Inject] protected AuthenticationStateProvider AuthenticationStateProvider { get; set; } = default!;
+
     protected readonly ListingFormModel model = new();
     protected List<Category> categories = [];
     protected List<AppUser> requesters = [];
+    protected List<ListingImage> existingImages = [];
+    protected List<PendingListingImage> pendingImages = [];
     protected bool isLoading = true;
     protected string? loadError;
     protected string? saveError;
+    protected string? imageUploadError;
+    private Guid currentUserId;
+    protected bool isAdmin;
+
+    protected int maxImages =>
+        Configuration.GetSection("ListingImages").GetValue<int?>("MaxCount") ?? 20;
 
     protected bool IsEditMode => Id.HasValue;
     protected string CurrentFormName => IsEditMode ? "edit-listing-form" : "create-listing-form";
+    protected IEnumerable<ListingStatus> EditableStatuses => model.Status is ListingStatus.Entwurf or ListingStatus.Offen
+        ? [ListingStatus.Entwurf, ListingStatus.Offen]
+        : [model.Status];
 
     protected override async Task OnParametersSetAsync()
     {
         isLoading = true;
         loadError = null;
         saveError = null;
+        imageUploadError = null;
+        pendingImages = [];
 
-        categories = await Db.Categories
+        await using var db = await DbFactory.CreateDbContextAsync();
+        var principal = (await AuthenticationStateProvider.GetAuthenticationStateAsync()).User;
+        var identityId = principal.FindFirstValue(ClaimTypes.NameIdentifier);
+        isAdmin = principal.IsInRole(PlatformRoles.Admin);
+        var currentUser = await db.AppUsers.AsNoTracking().FirstOrDefaultAsync(x => x.IdentityUserId == identityId);
+        if (currentUser is null)
+        {
+            loadError = "Dein Plattformprofil konnte nicht geladen werden.";
+            isLoading = false;
+            return;
+        }
+        currentUserId = currentUser.Id;
+
+        categories = await db.Categories
             .OrderBy(x => x.Name)
-            .ToListAsync();
-
-        requesters = await Db.Users
-            .OrderBy(x => x.DisplayName)
             .ToListAsync();
 
         if (IsEditMode)
         {
-            var listing = await Db.Listings.FirstOrDefaultAsync(x => x.Id == Id!.Value);
+            var listing = await db.Listings.FirstOrDefaultAsync(x => x.Id == Id!.Value);
 
             if (listing is null)
             {
                 loadError = T["TaskEdit.LoadError"];
+                isLoading = false;
+                return;
+            }
+            if (!isAdmin && listing.RequesterId != currentUserId)
+            {
+                loadError = "Du darfst diesen Auftrag nicht bearbeiten.";
                 isLoading = false;
                 return;
             }
@@ -68,11 +110,13 @@ public partial class Auftrag
             model.City = listing.City;
             model.Status = listing.Status;
             model.PreferredDateLocal = listing.PreferredDateUtc?.ToLocalTime();
+
+            existingImages = await ImageService.GetImagesAsync(Id!.Value);
         }
         else
         {
             model.Id = null;
-            model.RequesterId = requesters.FirstOrDefault()?.Id;
+            model.RequesterId = currentUserId;
             model.CategoryId = categories.FirstOrDefault()?.Id ?? 0;
             model.Title = string.Empty;
             model.Description = string.Empty;
@@ -81,11 +125,67 @@ public partial class Auftrag
             model.CompensationType = CompensationType.Beides;
             model.PostalCode = string.Empty;
             model.City = string.Empty;
-            model.Status = ListingStatus.Offen;
+            model.Status = ListingStatus.Entwurf;
             model.PreferredDateLocal = DateTime.Today.AddDays(3);
+            existingImages = [];
         }
 
         isLoading = false;
+    }
+
+    protected async Task OnImagesSelectedAsync(InputFileChangeEventArgs e)
+    {
+        imageUploadError = null;
+        var remaining = maxImages - existingImages.Count - pendingImages.Count;
+        var selectedFiles = e.GetMultipleFiles(maxImages);
+        if (selectedFiles.Count > remaining)
+        {
+            imageUploadError = $"Du kannst noch höchstens {remaining} Bild(er) hinzufügen.";
+            return;
+        }
+        var files = selectedFiles;
+
+        foreach (var file in files)
+        {
+            if (file.Size > 5 * 1024 * 1024 || file.ContentType is not ("image/jpeg" or "image/png"))
+            {
+                imageUploadError = "Erlaubt sind ausschließlich JPEG- und PNG-Bilder mit maximal 5 MB.";
+                break;
+            }
+
+            if (IsEditMode)
+            {
+                using var stream = file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024);
+                var (success, error) = await ImageService.AddImageAsync(
+                    Id!.Value, currentUserId, isAdmin, file.Name, file.ContentType, stream);
+                if (!success) { imageUploadError = error; break; }
+            }
+            else
+            {
+                await using var stream = file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024);
+                using var memory = new MemoryStream();
+                await stream.CopyToAsync(memory);
+                var bytes = memory.ToArray();
+                if (!ProfileImageSecurity.TryValidate(bytes, out var detectedContentType, out var validationError) ||
+                    !ProfileImageSecurity.TryRemoveMetadata(bytes, detectedContentType, out var sanitized))
+                {
+                    imageUploadError = string.IsNullOrWhiteSpace(validationError) ? "Das Bild konnte nicht sicher verarbeitet werden." : validationError;
+                    break;
+                }
+                pendingImages.Add(new PendingListingImage(Guid.NewGuid(), file.Name, detectedContentType, sanitized));
+            }
+        }
+
+        if (IsEditMode)
+            existingImages = await ImageService.GetImagesAsync(Id!.Value);
+    }
+
+    protected void RemovePendingImage(Guid id) => pendingImages.RemoveAll(x => x.Id == id);
+
+    protected async Task DeleteImageAsync(Guid imageId)
+    {
+        await ImageService.DeleteImageAsync(imageId, currentUserId, isAdmin);
+        existingImages = await ImageService.GetImagesAsync(Id!.Value);
     }
 
     protected async Task SaveAsync()
@@ -98,23 +198,39 @@ public partial class Auftrag
             return;
         }
 
-        Listing entity;
+        double? latitude = null;
+        double? longitude = null;
+        var maybeCoords = await Geocoding.TryGeocodeAsync(model.PostalCode.Trim(), model.City.Trim());
+        if (maybeCoords.HasValue)
+        {
+            latitude = Math.Round(maybeCoords.Value.Latitude, 6);
+            longitude = Math.Round(maybeCoords.Value.Longitude, 6);
+        }
 
+        await using var db = await DbFactory.CreateDbContextAsync();
+
+        Listing entity;
         if (IsEditMode)
         {
-            entity = await Db.Listings.FirstAsync(x => x.Id == Id!.Value);
+            entity = await db.Listings.FirstAsync(x => x.Id == Id!.Value);
+            if (!isAdmin && entity.RequesterId != currentUserId)
+            {
+                saveError = "Du darfst diesen Auftrag nicht bearbeiten.";
+                return;
+            }
+            if (!isAdmin && entity.Status is not ListingStatus.Entwurf and not ListingStatus.Offen)
+            {
+                saveError = "Ein vergebener Auftrag kann nicht mehr einseitig geändert werden.";
+                return;
+            }
         }
         else
         {
-            entity = new Listing
-            {
-                CreatedUtc = DateTime.UtcNow
-            };
-
-            await Db.Listings.AddAsync(entity);
+            entity = new Listing { CreatedUtc = DateTime.UtcNow };
+            await db.Listings.AddAsync(entity);
         }
 
-        entity.RequesterId = model.RequesterId!.Value;
+        entity.RequesterId = IsEditMode ? entity.RequesterId : currentUserId;
         entity.CategoryId = model.CategoryId;
         entity.Title = model.Title.Trim();
         entity.Description = model.Description.Trim();
@@ -123,13 +239,30 @@ public partial class Auftrag
         entity.CompensationType = model.CompensationType;
         entity.PostalCode = model.PostalCode.Trim();
         entity.City = model.City.Trim();
-        entity.Status = model.Status;
+        if (!IsEditMode || !isAdmin || entity.Status is ListingStatus.Entwurf or ListingStatus.Offen)
+            entity.Status = model.Status is ListingStatus.Entwurf or ListingStatus.Offen ? model.Status : ListingStatus.Entwurf;
         entity.PreferredDateUtc = model.PreferredDateLocal?.ToUniversalTime();
+        entity.Latitude = latitude;
+        entity.Longitude = longitude;
 
-        await Db.SaveChangesAsync();
+        await db.SaveChangesAsync();
 
-        Navigation.NavigateTo("/auftraege");
+        foreach (var pending in pendingImages)
+        {
+            using var stream = new MemoryStream(pending.Data, writable: false);
+            var (success, error) = await ImageService.AddImageAsync(
+                entity.Id, currentUserId, isAdmin, pending.FileName, pending.ContentType, stream);
+            if (!success)
+            {
+                saveError = $"Der Auftrag wurde gespeichert, aber ein Bild konnte nicht hinzugefügt werden: {error}";
+                return;
+            }
+        }
+
+        Navigation.NavigateTo($"/auftraege/{entity.Id}");
     }
+
+    protected sealed record PendingListingImage(Guid Id, string FileName, string ContentType, byte[] Data);
 
     protected sealed class ListingFormModel
     {

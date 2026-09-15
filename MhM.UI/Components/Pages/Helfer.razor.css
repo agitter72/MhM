@@ -1,0 +1,55 @@
+.helpers-editor-grid,
+.helpers-login-panel {
+    margin-bottom: 1.5rem;
+}
+
+.helpers-list {
+    display: grid;
+    gap: 1rem;
+}
+
+.helper-card-header {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    margin-bottom: 0.75rem;
+}
+
+.helper-card-avatar {
+    width: 88px;
+    height: 88px;
+    border-radius: 50%;
+    background: var(--primary);
+    color: #fff;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    flex-shrink: 0;
+    font-size: 2rem;
+}
+
+.helper-card-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.helper-card h2 {
+    margin: 0 0 0.25rem;
+}
+
+.helper-card-header p {
+    margin: 0;
+}
+
+@media (max-width: 560px) {
+    .helper-card-header {
+        align-items: flex-start;
+    }
+
+    .helper-card-avatar {
+        width: 72px;
+        height: 72px;
+    }
+}

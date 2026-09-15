@@ -1,0 +1,44 @@
+@using MhM.UI.Data.Models
+
+<div class="carousel">
+    <div class="carousel-frame">
+        <button type="button"
+                class="carousel-arrow carousel-arrow-prev"
+                @onclick="Prev"
+                disabled="@(Images.Count <= 1)"
+                aria-label="Vorheriges Bild"><Icon CustomIconName="bi bi-chevron-left" /></button>
+
+        <div class="carousel-image-wrapper">
+            <img src="/api/listing-images/@Images[_index].Id"
+                 alt="@Images[_index].FileName"
+                 title="@Images[_index].FileName"
+                 class="carousel-image" />
+        </div>
+
+        <button type="button"
+                class="carousel-arrow carousel-arrow-next"
+                @onclick="Next"
+                disabled="@(Images.Count <= 1)"
+                aria-label="Nächstes Bild"><Icon CustomIconName="bi bi-chevron-right" /></button>
+
+        <p class="carousel-counter muted">@(_index + 1) / @Images.Count</p>
+
+        @if (OnDelete.HasDelegate)
+        {
+            <button type="button"
+                    class="btn-icon btn-danger carousel-delete"
+                    title="Bild löschen"
+                    @onclick="DeleteCurrentAsync"><Icon CustomIconName="bi bi-trash3" /></button>
+        }
+    </div>
+
+    <div class="carousel-dots">
+        @for (int i = 0; i < Images.Count; i++)
+        {
+            var idx = i;
+            <button type="button"
+                    class="carousel-dot @(idx == _index ? "active" : "")"
+                    @onclick="() => GoTo(idx)"></button>
+        }
+    </div>
+</div>

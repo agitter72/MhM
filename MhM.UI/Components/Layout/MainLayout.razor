@@ -2,10 +2,16 @@
 @inject UiLocalizer T
 
 <div class="app-shell">
-    <aside class="sidebar">
+    <button class="mobile-nav-backdrop @(IsMobileNavOpen ? "is-visible" : null)"
+            type="button"
+            aria-label="Menü schließen"
+            @onclick="CloseMobileNav">
+    </button>
+
+    <aside class="sidebar @(IsMobileNavOpen ? "is-open" : null)">
         <div class="sidebar-brand">
             <div class="sidebar-brand-icon">MhM</div>
-            <div>
+            <div class="sidebar-brand-copy">
                 <div class="sidebar-brand-title">@T["App.Title"]</div>
                 <div class="sidebar-brand-subtitle">@T["Layout.SidebarSubtitle"]</div>
             </div>
@@ -14,60 +20,155 @@
         <nav class="sidebar-nav">
             <div class="sidebar-nav-title">@T["Nav.Platform"]</div>
 
-            <NavLink href="/" Match="NavLinkMatch.All" class="sidebar-link">
-                <span class="sidebar-link-icon">⌂</span>
-                <span>@T["Nav.Home"]</span>
+            <NavLink href="/" Match="NavLinkMatch.All" class="sidebar-link" @onclick="CloseMobileNav">
+                <span class="sidebar-link-icon"><Icon CustomIconName="bi bi-house-door" /></span>
+                <span class="sidebar-link-label">@T["Nav.Home"]</span>
             </NavLink>
 
-            <NavLink href="/auftraege" class="sidebar-link">
-                <span class="sidebar-link-icon">▣</span>
-                <span>@T["Nav.Listings"]</span>
+            <NavLink href="/auftraege" class="sidebar-link" @onclick="CloseMobileNav">
+                <span class="sidebar-link-icon"><Icon CustomIconName="bi bi-card-checklist" /></span>
+                <span class="sidebar-link-label">@T["Nav.Listings"]</span>
             </NavLink>
 
-            <NavLink href="/auftraege/neu" class="sidebar-link">
-                <span class="sidebar-link-icon">＋</span>
-                <span>@T["Nav.NewListing"]</span>
+            <NavLink href="/auftraege/neu" class="sidebar-link" @onclick="CloseMobileNav">
+                <span class="sidebar-link-icon"><Icon CustomIconName="bi bi-plus-circle" /></span>
+                <span class="sidebar-link-label">@T["Nav.NewListing"]</span>
             </NavLink>
 
-            <NavLink href="/helfer" class="sidebar-link">
-                <span class="sidebar-link-icon">◌</span>
-                <span>@T["Nav.Helpers"]</span>
+            <NavLink href="/helfer" class="sidebar-link" @onclick="CloseMobileNav">
+                <span class="sidebar-link-icon"><Icon CustomIconName="bi bi-people" /></span>
+                <span class="sidebar-link-label">@T["Nav.Helpers"]</span>
             </NavLink>
+
+            <AuthorizeView>
+                <Authorized>
+                    <NavLink href="/profil" class="sidebar-link" @onclick="CloseMobileNav">
+                        <span class="sidebar-link-icon"><Icon CustomIconName="bi bi-person" /></span>
+                        <span class="sidebar-link-label">Profil</span>
+                    </NavLink>
+                    <NavLink href="/einstellungen" class="sidebar-link" @onclick="CloseMobileNav">
+                        <span class="sidebar-link-icon"><Icon CustomIconName="bi bi-person-square" /></span>
+                        <span class="sidebar-link-label">Mein Bereich</span>
+                    </NavLink>
+                    <AuthorizeView Roles="Admin" Context="adminAuthState">
+                        <NavLink href="/admin" class="sidebar-link" @onclick="CloseMobileNav">
+                            <span class="sidebar-link-icon"><Icon CustomIconName="bi bi-shield-lock" /></span>
+                            <span class="sidebar-link-label">Administration</span>
+                        </NavLink>
+                    </AuthorizeView>
+                </Authorized>
+                <NotAuthorized>
+                    <NavLink href="/account/login" class="sidebar-link" @onclick="CloseMobileNav">
+                        <span class="sidebar-link-icon"><Icon CustomIconName="bi bi-box-arrow-in-right" /></span>
+                        <span class="sidebar-link-label">Anmelden</span>
+                    </NavLink>
+
+                    <NavLink href="/account/register" class="sidebar-link" @onclick="CloseMobileNav">
+                        <span class="sidebar-link-icon"><Icon CustomIconName="bi bi-person-plus" /></span>
+                        <span class="sidebar-link-label">Registrieren</span>
+                    </NavLink>
+                </NotAuthorized>
+            </AuthorizeView>
         </nav>
 
-        <div class="sidebar-card">
-            <div class="sidebar-card-label">MVP</div>
-            <h3>@T["Layout.SidebarCardTitle"]</h3>
-            <p>@T["Layout.SidebarCardText"]</p>
-            <a class="btn btn-light" href="/auftraege/neu">@T["Layout.CreateListing"]</a>
-        </div>
     </aside>
 
     <div class="content-area">
         <header class="topbar">
-            <div>
+            <div class="topbar-summary">
+                <button class="mobile-nav-toggle btn btn-light"
+                        type="button"
+                        aria-label="Menü öffnen"
+                        aria-expanded="@IsMobileNavOpen"
+                        @onclick="ToggleMobileNav">
+                    <Icon CustomIconName="bi bi-list" />
+                </button>
+
                 <div class="eyebrow">@T["Layout.TopbarEyebrow"]</div>
                 <h1 class="topbar-title">@T["Layout.TopbarTitle"]</h1>
             </div>
 
             <div class="topbar-actions">
+                <button class="theme-toggle btn btn-light"
+                        type="button"
+                        aria-label="Farbschema wechseln"
+                        title="Hell-/Dunkelmodus wechseln"
+                        onclick="window.theme.toggle()">
+                    <span class="theme-icon theme-icon-moon" aria-hidden="true"><Icon CustomIconName="bi bi-moon-stars" /></span>
+                    <span class="theme-icon theme-icon-sun" aria-hidden="true"><Icon CustomIconName="bi bi-sun" /></span>
+                </button>
                 <CultureSwitcher />
-                <a class="btn btn-primary" href="/auftraege/neu">+ @T["Nav.NewListing"]</a>
+                <a class="btn btn-primary topbar-create" href="/auftraege/neu"><Icon CustomIconName="bi bi-plus-lg" /> @T["Nav.NewListing"]</a>
 
                 <AuthorizeView>
-                    <Authorized>
-                        <a class="btn btn-secondary" href="/account/logoff">Abmelden</a>
-                        <div class="user-pill">
-                            <div class="user-pill-avatar">👤</div>
-                            <div>
-                                <strong>@context.User.Identity?.Name</strong>
-                                <div class="muted">Angemeldet</div>
-                            </div>
+                    <Authorized Context="authState">
+                        <div class="notification-center" @ref="notificationCenterElement">
+                            <button class="notification-toggle btn btn-light"
+                                    type="button"
+                                    aria-label="Benachrichtigungen"
+                                    aria-expanded="@isNotificationCenterOpen"
+                                    @onclick="ToggleNotificationCenterAsync">
+                                <Icon CustomIconName="bi bi-bell" />
+                                @if (unreadNotificationCount > 0)
+                                {
+                                    <span class="notification-badge">@(unreadNotificationCount > 99 ? "99+" : unreadNotificationCount)</span>
+                                }
+                            </button>
+
+                            @if (isNotificationCenterOpen)
+                            {
+                                <div class="notification-popover">
+                                    <div class="notification-popover-header">
+                                        <strong>Benachrichtigungen</strong>
+                                        <span class="muted">@unreadNotificationCount ungelesen</span>
+                                    </div>
+
+                                    @if (notificationItems.Count == 0)
+                                    {
+                                        <div class="notification-empty">Keine Benachrichtigungen vorhanden.</div>
+                                    }
+                                    else
+                                    {
+                                        <div class="notification-list">
+                                            @foreach (var notification in notificationItems)
+                                            {
+                                                <a class="notification-item @(notification.ReadUtc is null ? "notification-item--unread" : null)"
+                                                   href="@notification.LinkUrl"
+                                                   @onclick="CloseNotificationCenterAsync">
+                                                    <div class="notification-item-head">
+                                                        <span class="notification-pill">@GetNotificationTypeLabel(notification)</span>
+                                                        <time datetime="@notification.CreatedUtc.ToString("O")">@FormatNotificationTimestamp(notification.CreatedUtc)</time>
+                                                    </div>
+                                                    <div class="notification-item-title">@notification.Title</div>
+                                                    <div class="notification-item-text">@notification.Content</div>
+                                                </a>
+                                            }
+                                        </div>
+                                    }
+                                </div>
+                            }
                         </div>
+
+                        <a class="user-pill" href="/mein" aria-label="Mein Profil öffnen">
+                            <div class="user-pill-avatar">
+                                @if (currentUserProfileImageUrl is not null)
+                                {
+                                    <img src="@currentUserProfileImageUrl" alt="Profilbild" />
+                                }
+                                else
+                                {
+                                    <Icon CustomIconName="bi bi-person-fill" />
+                                }
+                            </div>
+                            <div>
+                                <strong>@(string.IsNullOrWhiteSpace(currentDisplayName) ? authState.User.Identity?.Name : currentDisplayName)</strong>
+                                <div class="muted">@(string.IsNullOrWhiteSpace(currentUsername) ? "Angemeldet" : $"@{currentUsername}")</div>
+                            </div>
+                        </a>
                     </Authorized>
                     <NotAuthorized>
-                        <a class="btn btn-secondary" href="/account/login">Anmelden</a>
-                        <a class="btn btn-light" href="/account/register">Registrieren</a>
+                        <a class="btn btn-secondary topbar-login" href="/account/login">Anmelden</a>
+                        <a class="btn btn-primary topbar-register" href="/account/register">Registrieren</a>
                     </NotAuthorized>
                 </AuthorizeView>
             </div>
@@ -79,8 +180,24 @@
     </div>
 </div>
 
+<button class="return-to-top"
+        type="button"
+        aria-label="Zurück nach oben"
+        title="Zurück nach oben"
+        onclick="window.pageNavigation.scrollToTop()">
+    <Icon CustomIconName="bi bi-arrow-up" />
+</button>
+
 <div id="blazor-error-ui" data-nosnippet>
     An unhandled error has occurred.
     <a href="." class="reload">Reload</a>
-    <span class="dismiss">🗙</span>
+    <span class="dismiss"><Icon CustomIconName="bi bi-x-lg" /></span>
 </div>
+
+@code {
+    private bool IsMobileNavOpen;
+
+    private void ToggleMobileNav() => IsMobileNavOpen = !IsMobileNavOpen;
+
+    private void CloseMobileNav() => IsMobileNavOpen = false;
+}

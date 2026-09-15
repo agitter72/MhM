@@ -1,0 +1,49 @@
+<div class="profile-identity">
+    <a class="profile-identity-direct" href="@ProfileUrl" @onclick:stopPropagation="true">
+        <ProfileAvatar UserId="UserId" DisplayName="@DisplayName" HasImage="HasImage" ImageVersion="ImageVersion" />
+        <span class="profile-identity-copy">
+            <strong>@DisplayName</strong>
+            <span>@@@Username</span>
+        </span>
+    </a>
+
+    <button class="profile-identity-preview-trigger" type="button" aria-label="Profilvorschau von @DisplayName öffnen" @onclick="OpenPreview" @onclick:stopPropagation="true">
+        <ProfileAvatar UserId="UserId" DisplayName="@DisplayName" HasImage="HasImage" ImageVersion="ImageVersion" />
+        <span class="profile-identity-copy">
+            <strong>@DisplayName</strong>
+            <span>@@@Username</span>
+        </span>
+    </button>
+</div>
+
+@if (isPreviewOpen)
+{
+    <button class="profile-preview-backdrop" type="button" aria-label="Profilvorschau schließen" @onclick="ClosePreview"></button>
+    <section class="profile-preview-sheet" role="dialog" aria-modal="true" aria-label="Profilvorschau von @DisplayName">
+        <div class="profile-preview-handle" aria-hidden="true"></div>
+        <button class="profile-preview-close" type="button" aria-label="Profilvorschau schließen" @onclick="ClosePreview"><Icon CustomIconName="bi bi-x-lg" /></button>
+        <a class="profile-preview-content" href="@ProfileUrl">
+            <ProfileAvatar UserId="UserId" DisplayName="@DisplayName" HasImage="HasImage" ImageVersion="ImageVersion" CssClass="profile-preview-avatar" />
+            <div>
+                <h3>@DisplayName</h3>
+                <p class="profile-preview-username">@@@Username</p>
+            </div>
+            <p class="profile-preview-description">@(string.IsNullOrWhiteSpace(Description) ? "Noch keine Profilbeschreibung." : Description)</p>
+            <span class="profile-preview-action">Vollständiges Profil öffnen <Icon CustomIconName="bi bi-arrow-right" /></span>
+        </a>
+    </section>
+}
+
+@code {
+    [Parameter, EditorRequired] public Guid UserId { get; set; }
+    [Parameter, EditorRequired] public string DisplayName { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public string Username { get; set; } = string.Empty;
+    [Parameter] public string Description { get; set; } = string.Empty;
+    [Parameter] public bool HasImage { get; set; }
+    [Parameter] public long ImageVersion { get; set; }
+
+    private bool isPreviewOpen;
+    private string ProfileUrl => $"/profil/{Uri.EscapeDataString(Username)}";
+    private void OpenPreview() => isPreviewOpen = true;
+    private void ClosePreview() => isPreviewOpen = false;
+}

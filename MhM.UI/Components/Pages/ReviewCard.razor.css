@@ -1,0 +1,66 @@
+.review-card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+    padding: 1rem;
+    display: grid;
+    gap: 1rem;
+}
+
+.review-title {
+    margin: 0;
+    font-size: 1.2rem;
+}
+
+.review-row {
+    display: grid;
+    gap: 0.45rem;
+}
+
+.review-label {
+    font-weight: 600;
+}
+
+.star-group {
+    display: flex;
+    gap: 0.35rem;
+}
+
+.star-button {
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-size: 1.45rem;
+    color: #c8ceda;
+    transition: transform 0.12s ease, color 0.12s ease;
+    padding: 0;
+    line-height: 1;
+}
+
+.star-button:hover {
+    color: #f7b500;
+    transform: scale(1.05);
+}
+
+.star-button.active {
+    color: #f7b500;
+}
+
+.review-comment {
+    display: grid;
+    gap: 0.35rem;
+}
+
+.review-comment textarea {
+    width: 100%;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    padding: 0.65rem;
+    font-family: inherit;
+    resize: vertical;
+}
+
+.review-actions {
+    display: flex;
+    justify-content: flex-end;
+}

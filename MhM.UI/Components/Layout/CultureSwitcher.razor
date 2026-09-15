@@ -1,8 +1,12 @@
 @inject NavigationManager Navigation
 
 <div class="lang-switcher">
-    <a class="btn @(IsCurrent("de-DE") ? "btn-primary" : "btn-secondary")" href="@BuildHref("de-DE")">DE</a>
-    <a class="btn @(IsCurrent("en-US") ? "btn-primary" : "btn-secondary")" href="@BuildHref("en-US")">EN</a>
+    <Icon CustomIconName="bi bi-globe2" />
+    <label class="visually-hidden" for="culture-select">Sprache</label>
+    <select id="culture-select" class="lang-select" value="@CurrentCulture" @onchange="ChangeCulture">
+        <option value="de-DE">DE</option>
+        <option value="en-US">EN</option>
+    </select>
 </div>
 
 @code {
@@ -18,6 +22,14 @@
     private string BuildHref(string culture)
         => $"/culture/set?culture={Uri.EscapeDataString(culture)}&redirectUri={Uri.EscapeDataString(CurrentPath)}";
 
-    private bool IsCurrent(string culture)
-        => System.Globalization.CultureInfo.CurrentUICulture.Name.Equals(culture, StringComparison.OrdinalIgnoreCase);
+    private string CurrentCulture => System.Globalization.CultureInfo.CurrentUICulture.Name;
+
+    private void ChangeCulture(ChangeEventArgs args)
+    {
+        var culture = args.Value?.ToString();
+        if (culture is "de-DE" or "en-US")
+        {
+            Navigation.NavigateTo(BuildHref(culture), forceLoad: true);
+        }
+    }
 }

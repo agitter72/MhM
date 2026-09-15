@@ -1,0 +1,19 @@
+<span class="profile-avatar @CssClass" role="img" aria-label="Profilbild von @DisplayName">
+    @if (HasImage)
+    {
+        <img src="@($"/api/profile-images/{UserId}?v={ImageVersion}")" alt="Profilbild von @DisplayName" />
+    }
+    else
+    {
+        <Icon CustomIconName="bi bi-person-fill" />
+    }
+</span>
+
+@code {
+    [Parameter, EditorRequired] public Guid UserId { get; set; }
+    [Parameter, EditorRequired] public string DisplayName { get; set; } = string.Empty;
+    [Parameter] public bool HasImage { get; set; }
+    [Parameter] public long ImageVersion { get; set; }
+    [Parameter] public string? CssClass { get; set; }
+
+}
