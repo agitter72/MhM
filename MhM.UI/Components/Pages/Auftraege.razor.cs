@@ -7,6 +7,7 @@ using Microsoft.JSInterop;
 using MhM.UI.Data;
 using MhM.UI.Localization;
 using MhM.UI.Data.Models;
+using MhM.UI.Services;
 
 namespace MhM.UI.Components.Pages;
 
@@ -32,6 +33,9 @@ public partial class Auftraege : IAsyncDisposable
     [Inject]
     protected NavigationManager Navigation { get; set; } = default!;
 
+    [Inject]
+    protected INotificationService NotificationService { get; set; } = default!;
+
     public double? Latitude { get; set; }
     public double? Longitude { get; set; }
 
@@ -43,6 +47,9 @@ public partial class Auftraege : IAsyncDisposable
 
     [SupplyParameterFromQuery(Name = "city")]
     public string? City { get; set; }
+
+    [SupplyParameterFromQuery(Name = "user")]
+    public string? UserQuery { get; set; }
 
     [SupplyParameterFromQuery(Name = "min")]
     public decimal? BudgetMinFilter { get; set; }
@@ -61,6 +68,7 @@ public partial class Auftraege : IAsyncDisposable
     protected readonly Dictionary<Guid, ListingApplicationInputModel> applicationModels = [];
     protected readonly HashSet<Guid> appliedListingIds = [];
     protected Guid? currentUserId;
+    protected string currentUserDisplayName = string.Empty;
     protected bool currentUserCanApply;
     protected Guid? applyingListingId;
     protected string? applyError;
@@ -190,6 +198,12 @@ public partial class Auftraege : IAsyncDisposable
             listingQuery = listingQuery.Where(x =>
                 x.City.Contains(locationTerm) ||
                 x.PostalCode.Contains(locationTerm));
+        }
+
+        if (!string.IsNullOrWhiteSpace(UserQuery))
+        {
+            var userTerm = UserQuery.Trim();
+            listingQuery = listingQuery.Where(x => x.Requester.DisplayName.Contains(userTerm) || x.Requester.Username.Contains(userTerm));
         }
 
         if (CompensationFilter.HasValue)
@@ -403,6 +417,13 @@ public partial class Auftraege : IAsyncDisposable
 
             await db.SaveChangesAsync();
 
+            await NotificationService.CreateApplicationNotificationAsync(
+                listing.Id,
+                listing.RequesterId,
+                currentUserId.Value,
+                currentUserDisplayName,
+                listing.Title);
+
             appliedListingIds.Add(listingId);
             Navigation.NavigateTo("/einstellungen?tab=applications&status=eingereicht");
             return;
@@ -416,6 +437,7 @@ public partial class Auftraege : IAsyncDisposable
     private async Task LoadCurrentUserAsync(MhMDbContext db)
     {
         currentUserId = null;
+        currentUserDisplayName = string.Empty;
         currentUserCanApply = false;
         appliedListingIds.Clear();
 
@@ -437,6 +459,7 @@ public partial class Auftraege : IAsyncDisposable
             return;
 
         currentUserId = user.Id;
+        currentUserDisplayName = user.DisplayName;
         currentUserCanApply = user.Role == UserRole.Helfer;
 
         if (!currentUserCanApply)

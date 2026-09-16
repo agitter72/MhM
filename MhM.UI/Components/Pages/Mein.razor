@@ -125,64 +125,26 @@ else
                         <DataAnnotationsValidator />
                         <ValidationSummary />
 
+                        <div class="helper-activation-row">
+                            <div><strong>Als Helfer aktiv</strong><p class="muted">Lege fest, ob dein Helferprofil öffentlich ist und du dich auf Aufträge bewerben kannst.</p></div>
+                            <label class="switch" aria-label="Helferstatus"><input type="checkbox" checked="@helperData.IsHelper" @onchange="ToggleHelperStatusAsync" disabled="@savingHelper" /><span class="switch-slider"></span></label>
+                        </div>
+
+                        <fieldset disabled="@(!helperData.IsHelper)">
                         <div class="form-grid">
-                            <div class="field field-full">
-                                <label>Profilbild</label>
-                                <div class="mein-helper-avatar-editor">
-                                    @if (GetCurrentHelperImageUrl() is { } helperImageUrl)
-                                    {
-                                        <img class="mein-helper-avatar-preview" src="@helperImageUrl" alt="Profilbild" />
-                                    }
-                                    else
-                                    {
-                                        <div class="mein-helper-avatar-fallback" aria-hidden="true">
-                                            <Icon CustomIconName="bi bi-person-fill" />
-                                        </div>
-                                    }
-
-                                    <div class="mein-helper-avatar-actions">
-                                        <InputFile OnChange="OnHelperImageSelectedAsync"
-                                                   accept="image/jpeg,image/png,image/webp"
-                                                   disabled="@isUploadingHelperImage" />
-                                        <small class="muted">JPG, PNG oder WebP · max. @MaxHelperImageMegabytes MB</small>
-                                        @if (helperHasProfileImage)
-                                        {
-                                            <button type="button"
-                                                    class="btn btn-secondary"
-                                                    disabled="@isUploadingHelperImage"
-                                                    @onclick="RemoveHelperImageAsync">
-                                                Profilbild entfernen
-                                            </button>
-                                        }
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="field field-full">
-                                <label for="helperTitle">Titel</label>
-                                <InputText id="helperTitle" class="field-input" @bind-Value="helperData.Title" />
-                                <ValidationMessage For="() => helperData.Title" />
-                            </div>
-
-                            <div class="field field-full">
-                                <label for="helperDescription">Beschreibung</label>
-                                <InputTextArea id="helperDescription" class="field-input field-textarea" rows="4" @bind-Value="helperData.Description" />
-                                <ValidationMessage For="() => helperData.Description" />
-                            </div>
-
                             <div class="field field-full">
                                 <label for="helperSkills">Skills</label>
                                 <InputText id="helperSkills" class="field-input" @bind-Value="helperData.Skills" />
                             </div>
 
                             <div class="field">
-                                <label for="helperRate">Stundensatz (€)</label>
-                                <InputNumber id="helperRate" class="field-input" @bind-Value="helperData.HourlyRate" />
+                                <label for="helperRate">Stundensatz</label>
+                                <div class="money-input"><InputNumber id="helperRate" class="field-input" @bind-Value="helperData.HourlyRate" step="0.01" inputmode="decimal" /><span>€</span></div>
                             </div>
 
                             <div class="field">
                                 <label for="helperRadius">Radius (km)</label>
-                                <InputNumber id="helperRadius" class="field-input" @bind-Value="helperData.RadiusKm" />
+                                <InputNumber id="helperRadius" class="field-input" @bind-Value="helperData.RadiusKm" step="1" inputmode="numeric" />
                                 <ValidationMessage For="() => helperData.RadiusKm" />
                             </div>
 
@@ -193,9 +155,10 @@ else
                                 </label>
                             </div>
                         </div>
+                        </fieldset>
 
                         <div class="form-actions">
-                            <button type="submit" class="btn btn-primary" disabled="@savingHelper">
+                            <button type="submit" class="btn btn-primary" disabled="@(savingHelper || !helperData.IsHelper)">
                                 @(savingHelper ? "Speichert..." : "Helferdaten speichern")
                             </button>
                         </div>

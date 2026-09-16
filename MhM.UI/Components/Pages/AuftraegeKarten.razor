@@ -13,52 +13,21 @@
     {
         @foreach (var item in Items)
         {
-            <article class="auftrag-karte">
-                <a class="auftrag-karte-link" href="@($"/auftraege/{item.Id}")" aria-label="Auftrag „@item.Title“ öffnen"></a>
-
-                <div class="auftrag-karte-image">
-                    @if (item.Images.Count > 0)
-                    {
-                        <img src="/api/listing-images/@item.Images.First().Id"
-                             alt="@item.Images.First().FileName"
-                             title="@item.Images.First().FileName"
-                             class="auftrag-bild" />
-                    }
-                    else
-                    {
-                        <div class="auftrag-bild-placeholder">
-                            <Icon CustomIconName="bi bi-image" />
-                            <span>Kein Bild</span>
-                        </div>
-                    }
-                </div>
-
-                <div class="auftrag-karte-content">
-                    <h3 class="auftrag-karte-title">@item.Title</h3>
-                    <p class="auftrag-karte-location"><Icon CustomIconName="bi bi-geo-alt" /> @item.PostalCode @item.City</p>
-                    <div class="auftrag-karte-price">
-                            @if (item.BudgetMin.HasValue && item.BudgetMax.HasValue)
-                            {
-                                <span>@item.BudgetMin.Value.ToString("N2") € - @item.BudgetMax.Value.ToString("N2") €</span>
-                            }
-                            else if (item.BudgetMax.HasValue)
-                            {
-                                <span>bis @item.BudgetMax.Value.ToString("N2") €</span>
-                            }
-                    </div>
-                    @if (ShowRequester)
-                    {
-                        <div class="auftrag-karte-requester">
-                            <ProfileIdentityLink UserId="item.Requester.Id"
-                                                 DisplayName="@item.Requester.DisplayName"
-                                                 Username="@item.Requester.Username"
-                                                 Description="@item.Requester.Description"
-                                                 HasImage="item.Requester.ProfileImageUpdatedUtc.HasValue"
-                                                 ImageVersion="item.Requester.ProfileImageUpdatedUtc?.Ticks ?? 0" />
-                        </div>
-                    }
-                </div>
-            </article>
+            var image = item.Images.FirstOrDefault();
+            <AuftragKarte Href="@($"/auftraege/{item.Id}")"
+                          Title="@item.Title"
+                          PostalCode="@item.PostalCode"
+                          City="@item.City"
+                          BudgetMin="item.BudgetMin"
+                          BudgetMax="item.BudgetMax"
+                          ImageUrl="@(image is null ? null : $"/api/listing-images/{image.Id}")"
+                          ImageAlt="@(image?.FileName)"
+                          RequesterId="@(ShowRequester ? item.Requester.Id : null)"
+                          RequesterDisplayName="@item.Requester.DisplayName"
+                          RequesterUsername="@item.Requester.Username"
+                          RequesterDescription="@item.Requester.Description"
+                          RequesterHasImage="item.Requester.ProfileImageUpdatedUtc.HasValue"
+                          RequesterImageVersion="item.Requester.ProfileImageUpdatedUtc?.Ticks ?? 0" />
         }
     }
 </div>

@@ -41,6 +41,14 @@ public interface INotificationService
         string messageContent,
         CancellationToken cancellationToken = default);
 
+    Task CreateApplicationNotificationAsync(
+        Guid listingId,
+        Guid requesterUserId,
+        Guid applicantUserId,
+        string applicantName,
+        string listingTitle,
+        CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<UserNotificationListItem>> GetRecentNotificationsAsync(
         Guid recipientUserId,
         int take = 10,
@@ -69,10 +77,38 @@ public interface INotificationService
         Guid conversationId,
         Guid recipientUserId,
         CancellationToken cancellationToken = default);
+
+    Task DeleteNotificationAsync(
+        Guid notificationId,
+        Guid recipientUserId,
+        CancellationToken cancellationToken = default);
 }
 
 public sealed class NotificationService(IDbContextFactory<MhMDbContext> dbFactory) : INotificationService
 {
+    public async Task CreateApplicationNotificationAsync(
+        Guid listingId,
+        Guid requesterUserId,
+        Guid applicantUserId,
+        string applicantName,
+        string listingTitle,
+        CancellationToken cancellationToken = default)
+    {
+        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        db.UserNotifications.Add(new UserNotification
+        {
+            Type = UserNotificationType.Bewerbung,
+            RecipientUserId = requesterUserId,
+            SenderUserId = applicantUserId,
+            ListingId = listingId,
+            Title = "Neue Bewerbung",
+            Content = $"{applicantName} hat sich auf deinen Auftrag \"{listingTitle}\" beworben.",
+            LinkUrl = $"/auftraege/{listingId}",
+            CreatedUtc = DateTime.UtcNow
+        });
+        await db.SaveChangesAsync(cancellationToken);
+    }
+
     public async Task CreateAssignmentNotificationAsync(
         Guid listingId,
         Guid conversationId,
@@ -283,6 +319,23 @@ public sealed class NotificationService(IDbContextFactory<MhMDbContext> dbFactor
             notification.ReadUtc = now;
         }
 
+        await db.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task DeleteNotificationAsync(
+        Guid notificationId,
+        Guid recipientUserId,
+        CancellationToken cancellationToken = default)
+    {
+        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        var notification = await db.UserNotifications
+            .FirstOrDefaultAsync(x => x.Id == notificationId && x.RecipientUserId == recipientUserId, cancellationToken);
+        if (notification is null)
+        {
+            return;
+        }
+
+        db.UserNotifications.Remove(notification);
         await db.SaveChangesAsync(cancellationToken);
     }
 
