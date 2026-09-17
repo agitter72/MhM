@@ -57,7 +57,8 @@ public enum UserNotificationType
 {
     Auftragsvergabe = 1,
     ChatNachricht = 2,
-    Moderation = 3
+    Moderation = 3,
+    Bewerbung = 4
 }
 
 public static class ReportReasons

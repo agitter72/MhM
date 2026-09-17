@@ -16,15 +16,15 @@
         <div class="stat-grid">
             <div class="stat-card">
                 <span>@T["Home.OpenListings"]</span>
-                <strong>128</strong>
+                <strong>@openListings</strong>
             </div>
             <div class="stat-card">
                 <span>@T["Home.ActiveHelpers"]</span>
-                <strong>64</strong>
+                <strong>@activeHelpers</strong>
             </div>
             <div class="stat-card">
                 <span>@T["Home.BarterOffers"]</span>
-                <strong>37</strong>
+                <strong>@barterOffers</strong>
             </div>
         </div>
     </article>
@@ -33,88 +33,6 @@
         <div class="eyebrow">@T["Home.LiveFocus"]</div>
         <h3>@T["Home.TopCategories"]</h3>
 
-        <div class="mini-list">
-            <div class="mini-list-item">
-                <span>@T["Home.CategoryGarden"]</span>
-                <strong>34</strong>
-            </div>
-            <div class="mini-list-item">
-                <span>@T["Home.CategoryTech"]</span>
-                <strong>21</strong>
-            </div>
-            <div class="mini-list-item">
-                <span>@T["Home.CategoryHousehold"]</span>
-                <strong>18</strong>
-            </div>
-            <div class="mini-list-item">
-                <span>@T["Home.CategorySenior"]</span>
-                <strong>15</strong>
-            </div>
-        </div>
-    </article>
-</section>
-
-<section class="dashboard-grid">
-    <article class="panel">
-        <div class="panel-header">
-            <div>
-                <div class="eyebrow">@T["Home.CoreFeatures"]</div>
-                <h3>@T["Home.PlatformModules"]</h3>
-            </div>
-        </div>
-
-        <div class="feature-grid">
-            <div class="feature-card">
-                <div class="feature-icon"><Icon CustomIconName="bi bi-person" /></div>
-                <h4>@T["Home.Profiles"]</h4>
-                <p>@T["Home.ProfilesText"]</p>
-            </div>
-
-            <div class="feature-card">
-                <div class="feature-icon"><Icon CustomIconName="bi bi-card-checklist" /></div>
-                <h4>@T["Home.Listings"]</h4>
-                <p>@T["Home.ListingsText"]</p>
-            </div>
-
-            <div class="feature-card">
-                <div class="feature-icon"><Icon CustomIconName="bi bi-chat-dots" /></div>
-                <h4>@T["Home.Chat"]</h4>
-                <p>@T["Home.ChatText"]</p>
-            </div>
-
-            <div class="feature-card">
-                <div class="feature-icon"><Icon CustomIconName="bi bi-star" /></div>
-                <h4>@T["Home.Reviews"]</h4>
-                <p>@T["Home.ReviewsText"]</p>
-            </div>
-        </div>
-    </article>
-
-    <article class="panel">
-        <div class="panel-header">
-            <div>
-                <div class="eyebrow">@T["Home.BusinessModel"]</div>
-                <h3>@T["Home.RevenueStreams"]</h3>
-            </div>
-        </div>
-
-        <div class="timeline-list">
-            <div class="timeline-item">
-                <strong>@T["Home.PremiumProfiles"]</strong>
-                <span>@T["Home.PremiumProfilesText"]</span>
-            </div>
-            <div class="timeline-item">
-                <strong>@T["Home.FeaturedAds"]</strong>
-                <span>@T["Home.FeaturedAdsText"]</span>
-            </div>
-            <div class="timeline-item">
-                <strong>@T["Home.Fees"]</strong>
-                <span>@T["Home.FeesText"]</span>
-            </div>
-            <div class="timeline-item">
-                <strong>@T["Home.VerificationAds"]</strong>
-                <span>@T["Home.VerificationAdsText"]</span>
-            </div>
-        </div>
+        <div class="mini-list">@if (topCategories.Count == 0) { <p class="muted">Noch keine offenen Aufträge.</p> } else { @foreach (var category in topCategories) { <div class="mini-list-item"><span>@category.Name</span><strong>@category.Count</strong></div> } }</div>
     </article>
 </section>

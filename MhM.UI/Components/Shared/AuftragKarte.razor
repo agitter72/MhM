@@ -1,0 +1,68 @@
+<article class="auftrag-karte">
+    @if (!string.IsNullOrWhiteSpace(Href))
+    {
+        <a class="auftrag-karte-link" href="@Href" aria-label="Auftrag „@Title“ öffnen"></a>
+    }
+
+    <div class="auftrag-karte-image">
+        @if (!string.IsNullOrWhiteSpace(ImageUrl))
+        {
+            <img src="@ImageUrl" alt="@ImageAlt" title="@ImageAlt" class="auftrag-bild" />
+        }
+        else
+        {
+            <div class="auftrag-bild-placeholder">
+                <Icon CustomIconName="bi bi-image" />
+                <span>Kein Bild</span>
+            </div>
+        }
+    </div>
+
+    <div class="auftrag-karte-content">
+        <h3 class="auftrag-karte-title">@Title</h3>
+        <p class="auftrag-karte-location"><Icon CustomIconName="bi bi-geo-alt" /> @($"{PostalCode} {City}".Trim())</p>
+        <div class="auftrag-karte-price">
+            @if (BudgetMin.HasValue && BudgetMax.HasValue)
+            {
+                <span>@BudgetMin.Value.ToString("N2") € - @BudgetMax.Value.ToString("N2") €</span>
+            }
+            else if (BudgetMax.HasValue)
+            {
+                <span>bis @BudgetMax.Value.ToString("N2") €</span>
+            }
+            else if (!string.IsNullOrWhiteSpace(PriceText))
+            {
+                <span>@PriceText</span>
+            }
+        </div>
+        @if (RequesterId.HasValue)
+        {
+            <div class="auftrag-karte-requester">
+                <ProfileIdentityLink UserId="RequesterId.Value"
+                                     DisplayName="@RequesterDisplayName"
+                                     Username="@RequesterUsername"
+                                     Description="@RequesterDescription"
+                                     HasImage="RequesterHasImage"
+                                     ImageVersion="RequesterImageVersion" />
+            </div>
+        }
+    </div>
+</article>
+
+@code {
+    [Parameter] public string? Href { get; set; }
+    [Parameter] public string Title { get; set; } = string.Empty;
+    [Parameter] public string? PostalCode { get; set; }
+    [Parameter] public string? City { get; set; }
+    [Parameter] public decimal? BudgetMin { get; set; }
+    [Parameter] public decimal? BudgetMax { get; set; }
+    [Parameter] public string? PriceText { get; set; }
+    [Parameter] public string? ImageUrl { get; set; }
+    [Parameter] public string? ImageAlt { get; set; }
+    [Parameter] public Guid? RequesterId { get; set; }
+    [Parameter] public string RequesterDisplayName { get; set; } = string.Empty;
+    [Parameter] public string RequesterUsername { get; set; } = string.Empty;
+    [Parameter] public string RequesterDescription { get; set; } = string.Empty;
+    [Parameter] public bool RequesterHasImage { get; set; }
+    [Parameter] public long RequesterImageVersion { get; set; }
+}

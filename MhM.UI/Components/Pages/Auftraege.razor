@@ -43,6 +43,11 @@
                 </div>
 
                 <div class="field">
+                    <label for="user">Auftraggeber</label>
+                    <input id="user" name="user" value="@UserQuery" class="field-input" placeholder="Nutzername oder voller Name" />
+                </div>
+
+                <div class="field">
                     <label for="comp">Vergütung</label>
                     <select id="comp" name="comp" class="field-input">
                         <option value="">Alle</option>
@@ -57,12 +62,12 @@
 
                 <div class="field budget-fields">
                     <div>
-                        <label for="min">Budget min (€)</label>
-                        <input id="min" name="min" type="number" step="1" value="@BudgetMinFilter" class="field-input" />
+                        <label for="min">Budget min</label>
+                        <div class="money-input"><input id="min" name="min" type="number" step="0.01" inputmode="decimal" value="@BudgetMinFilter" class="field-input" /><span>€</span></div>
                     </div>
                     <div>
-                        <label for="max">Budget max (€)</label>
-                        <input id="max" name="max" type="number" step="1" value="@BudgetMaxFilter" class="field-input" />
+                        <label for="max">Budget max</label>
+                        <div class="money-input"><input id="max" name="max" type="number" step="0.01" inputmode="decimal" value="@BudgetMaxFilter" class="field-input" /><span>€</span></div>
                     </div>
                 </div>
 

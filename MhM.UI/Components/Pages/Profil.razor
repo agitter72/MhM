@@ -18,7 +18,7 @@ else if (profile is null)
 else
 {
     <div class="profile-page">
-        <div class="profile-overview @(profile.HelperProfile is null ? "profile-overview--single" : null)">
+        <div class="profile-overview @(profile.HelperProfile is null || profile.Role != UserRole.Helfer ? "profile-overview--single" : null)">
         <section class="panel profile-header">
             <div class="profile-header-top">
                 <ProfileAvatar UserId="profile.Id" DisplayName="@profile.DisplayName" HasImage="profile.ProfileImageUpdatedUtc.HasValue" ImageVersion="profile.ProfileImageUpdatedUtc?.Ticks ?? 0" CssClass="profile-page-avatar" />
@@ -75,12 +75,12 @@ else
             </div>
         </section>
 
-        @if (profile.HelperProfile is not null)
+        @if (profile.HelperProfile is not null && profile.Role == UserRole.Helfer)
         {
             <section class="panel profile-helper">
                 <div class="profile-helper-heading">
                     <span class="profile-helper-icon" aria-hidden="true"><Icon CustomIconName="bi bi-tools" /></span>
-                    <div><span class="eyebrow">Helferprofil</span><h2>@profile.HelperProfile.Title</h2></div>
+                    <div><span class="eyebrow">Helferprofil</span><h2>@profile.DisplayName</h2></div>
                     <span class="profile-rating" title="@helperReviewCount Bewertung@(helperReviewCount == 1 ? string.Empty : "en")">
                         <Icon CustomIconName="bi bi-star-fill" />
                         <strong>@(helperRating?.ToString("0.0") ?? "Neu")</strong>
@@ -90,7 +90,7 @@ else
                         }
                     </span>
                 </div>
-                <p class="profile-helper-description">@profile.HelperProfile.Description</p>
+                <p class="profile-helper-description">@(string.IsNullOrWhiteSpace(profile.Description) ? "Noch keine Profilbeschreibung." : profile.Description)</p>
                 @if (GetHelperSkills(profile.HelperProfile).Count > 0)
                 {
                     <div class="profile-skill-list" aria-label="Fähigkeiten">
@@ -112,8 +112,7 @@ else
 
         <section class="profile-listings">
             <div class="profile-section-heading">
-                <div><span class="eyebrow">Aufträge</span><h2>Aufträge von @profile.DisplayName</h2></div>
-                <span class="badge-soft">@listings.Count</span>
+                <div><span class="eyebrow">Aufträge (@listings.Count)</span></div>
             </div>
             @if (listings.Count == 0)
             {

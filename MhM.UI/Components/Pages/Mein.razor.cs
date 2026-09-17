@@ -161,8 +161,7 @@ public partial class Mein
 
         helperData = new HelperDataModel
         {
-            Title = appUser.HelperProfile?.Title ?? $"{appUser.DisplayName} hilft vor Ort",
-            Description = appUser.HelperProfile?.Description ?? string.Empty,
+            IsHelper = appUser.Role == UserRole.Helfer,
             Skills = appUser.HelperProfile?.Skills ?? string.Empty,
             HourlyRate = appUser.HelperProfile?.HourlyRate,
             RadiusKm = appUser.HelperProfile?.RadiusKm ?? 15,
@@ -338,7 +337,7 @@ public partial class Mein
 
     protected async Task SaveHelperDataAsync()
     {
-        if (savingHelper || !currentAppUserId.HasValue)
+        if (savingHelper || !currentAppUserId.HasValue || !helperData.IsHelper)
             return;
 
         savingHelper = true;
@@ -369,8 +368,8 @@ public partial class Mein
                 db.HelperProfiles.Add(profile);
             }
 
-            profile.Title = helperData.Title.Trim();
-            profile.Description = helperData.Description.Trim();
+            profile.Title = appUser.DisplayName;
+            profile.Description = appUser.Description;
             profile.Skills = helperData.Skills.Trim();
             profile.HourlyRate = helperData.HourlyRate;
             profile.RadiusKm = helperData.RadiusKm;
@@ -389,6 +388,29 @@ public partial class Mein
         {
             savingHelper = false;
         }
+    }
+
+    protected async Task ToggleHelperStatusAsync(ChangeEventArgs args)
+    {
+        if (savingHelper || !currentAppUserId.HasValue) return;
+        var enabled = args.Value is bool value && value;
+        savingHelper = true; helperError = null; helperSuccess = null;
+        try
+        {
+            await using var db = await DbFactory.CreateDbContextAsync();
+            var appUser = await db.AppUsers.Include(x => x.HelperProfile).FirstOrDefaultAsync(x => x.Id == currentAppUserId.Value);
+            if (appUser is null) { helperError = "AppUser-Profil nicht gefunden."; return; }
+            if (enabled && appUser.HelperProfile is null)
+            {
+                db.HelperProfiles.Add(new HelperProfile { UserId = appUser.Id, Title = appUser.DisplayName, Description = appUser.Description, RadiusKm = helperData.RadiusKm, OffersBarter = helperData.OffersBarter });
+            }
+            appUser.Role = enabled ? UserRole.Helfer : UserRole.Privatperson;
+            await db.SaveChangesAsync();
+            helperData.IsHelper = enabled;
+            helperSuccess = enabled ? "Dein Helferprofil ist jetzt aktiv." : "Dein Helferprofil wurde deaktiviert. Deine Angaben bleiben gespeichert.";
+        }
+        catch { helperError = "Der Helferstatus konnte nicht geändert werden."; }
+        finally { savingHelper = false; }
     }
 
     protected async Task OnHelperImageSelectedAsync(InputFileChangeEventArgs e)
@@ -745,11 +767,7 @@ public partial class Mein
 
     protected sealed class HelperDataModel
     {
-        [Required, MaxLength(160)]
-        public string Title { get; set; } = string.Empty;
-
-        [Required, MaxLength(2000)]
-        public string Description { get; set; } = string.Empty;
+        public bool IsHelper { get; set; }
 
         [MaxLength(1000)]
         public string Skills { get; set; } = string.Empty;

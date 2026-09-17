@@ -162,3 +162,18 @@
     display: grid;
     gap: 0.4rem;
 }
+
+.helper-activation-row { display:flex; align-items:center; justify-content:space-between; gap:1rem; margin-bottom:1.25rem; padding:1rem; border:1px solid var(--line); border-radius:var(--radius-md); background:var(--panel-2); }
+.helper-activation-row p { margin:.25rem 0 0; }
+.switch { position:relative; width:3.25rem; height:1.8rem; flex:0 0 3.25rem; }
+.switch input { position:absolute; opacity:0; }
+.switch-slider { position:absolute; inset:0; border-radius:999px; background:var(--line); cursor:pointer; transition:.2s; }
+.switch-slider::after { content:""; position:absolute; top:.2rem; left:.2rem; width:1.4rem; height:1.4rem; border-radius:50%; background:#fff; box-shadow:0 2px 6px rgba(0,0,0,.2); transition:.2s; }
+.switch input:checked + .switch-slider { background:var(--primary); }
+.switch input:checked + .switch-slider::after { transform:translateX(1.45rem); }
+.switch input:focus-visible + .switch-slider { outline:3px solid color-mix(in srgb,var(--primary) 40%,transparent); outline-offset:2px; }
+fieldset { min-width:0; margin:0; padding:0; border:0; }
+fieldset:disabled { opacity:.55; }
+.money-input { position:relative; }
+.money-input .field-input { padding-right:2.5rem; }
+.money-input>span { position:absolute; right:.9rem; top:50%; transform:translateY(-50%); color:var(--muted); font-weight:700; pointer-events:none; }

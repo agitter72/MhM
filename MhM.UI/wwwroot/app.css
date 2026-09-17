@@ -133,8 +133,7 @@ h1, h2, h3, h4, p {
     transition: width 0.34s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.34s ease;
 }
 
-.sidebar:hover,
-.sidebar:focus-within {
+.sidebar:hover {
     width: 310px;
     box-shadow: 18px 0 38px rgba(17, 24, 39, 0.24);
 }
@@ -173,9 +172,7 @@ h1, h2, h3, h4, p {
 }
 
 .sidebar:hover .sidebar-brand-copy,
-.sidebar:hover .sidebar-link-label,
-.sidebar:focus-within .sidebar-brand-copy,
-.sidebar:focus-within .sidebar-link-label {
+.sidebar:hover .sidebar-link-label {
     max-width: 210px;
     opacity: 1;
     visibility: visible;
@@ -219,8 +216,7 @@ h1, h2, h3, h4, p {
     transition: max-height 0.28s ease, opacity 0.18s ease, transform 0.28s ease, visibility 0s linear 0.28s;
 }
 
-.sidebar:hover .sidebar-nav-title,
-.sidebar:focus-within .sidebar-nav-title {
+.sidebar:hover .sidebar-nav-title {
     max-height: 24px;
     opacity: 1;
     visibility: visible;
@@ -267,8 +263,7 @@ h1, h2, h3, h4, p {
     transition: opacity 0.2s ease, transform 0.3s cubic-bezier(0.22, 1, 0.36, 1), visibility 0s linear 0.3s;
 }
 
-.sidebar:hover .sidebar-card,
-.sidebar:focus-within .sidebar-card {
+.sidebar:hover .sidebar-card {
     opacity: 1;
     visibility: visible;
     transform: translateY(0);
@@ -594,6 +589,17 @@ h1, h2, h3, h4, p {
     transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
 
+.money-input input[type="number"] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+
+.money-input input[type="number"]::-webkit-outer-spin-button,
+.money-input input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
 .field-textarea {
     min-height: 140px;
     resize: vertical;
@@ -730,7 +736,7 @@ h1, h2, h3, h4, p {
 
 .return-to-top {
     position: fixed;
-    left: 96px;
+    right: 1rem;
     bottom: 1rem;
     z-index: 18;
     display: grid;
@@ -858,6 +864,9 @@ h1, h2, h3, h4, p {
 }
 
 .lang-select {
+    appearance: none;
+    -webkit-appearance: none;
+    text-align: center;
     border: 0;
     background: transparent;
     color: var(--text);
@@ -1205,7 +1214,7 @@ h1, h2, h3, h4, p {
     .topbar-actions .lang-switcher {
         flex: 0 0 auto;
         flex-wrap: nowrap;
-        gap: 0.2rem;
+        gap: 0.35rem;
     }
 
     .topbar-register {
@@ -1213,14 +1222,20 @@ h1, h2, h3, h4, p {
     }
 
     .topbar-actions {
-        max-width: calc(100% - 48px);
+        max-width: calc(100% - 46px);
     }
 
     .topbar .btn,
     .topbar .lang-switcher .btn {
-        padding-inline: 0.55rem;
+        width: 40px;
+        height: 40px;
+        padding: 0;
         font-size: 0.88rem;
     }
+
+    .topbar .lang-switcher { width: auto; height: 40px; min-height: 40px; padding: 0 0.5rem; gap: 0.25rem; justify-content: center; }
+    .topbar .lang-switcher > i { display: inline-flex; font-size: 0.95rem; }
+    .topbar .lang-select { width: auto; text-align: center; font-size: 0.82rem; }
 
     .page-content .btn:not(.theme-toggle) {
         width: 100%;
@@ -1285,6 +1300,6 @@ textarea:focus-visible {
 
 @media (max-width: 1100px) {
     .return-to-top {
-        left: 1rem;
+        right: 1rem;
     }
 }

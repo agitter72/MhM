@@ -372,3 +372,6 @@
     margin: 0;
     white-space: pre-wrap;
 }
+.money-input { position:relative; }
+.money-input .field-input { padding-right:2.5rem; }
+.money-input>span { position:absolute;right:.9rem;top:50%;transform:translateY(-50%);color:var(--muted);font-weight:700;pointer-events:none; }

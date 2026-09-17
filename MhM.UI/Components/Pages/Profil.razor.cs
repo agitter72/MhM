@@ -89,11 +89,11 @@ public partial class Profil
                 .Include(x => x.Category)
                 .Include(x => x.Requester)
                 .Include(x => x.Images)
-                .Where(x => x.RequesterId == profile.Id && x.Status != ListingStatus.Entwurf && x.Status != ListingStatus.Storniert)
+                .Where(x => x.RequesterId == profile.Id && x.Status == ListingStatus.Offen)
                 .OrderByDescending(x => x.CreatedUtc)
                 .ToListAsync();
 
-            if (profile.HelperProfile is not null)
+            if (profile.HelperProfile is not null && profile.Role == UserRole.Helfer)
             {
                 var ratings = await db.Reviews
                     .AsNoTracking()

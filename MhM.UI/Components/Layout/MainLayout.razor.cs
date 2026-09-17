@@ -98,8 +98,21 @@ public partial class MainLayout : IAsyncDisposable
             Data.Models.UserNotificationType.Auftragsvergabe => "Vergabe",
             Data.Models.UserNotificationType.ChatNachricht => "Chat",
             Data.Models.UserNotificationType.Moderation => "Moderation",
+            Data.Models.UserNotificationType.Bewerbung => "Bewerbung",
             _ => "Info"
         };
+
+    protected async Task DeleteNotificationAsync(Guid notificationId)
+    {
+        if (!currentAppUserId.HasValue)
+        {
+            return;
+        }
+
+        await NotificationService.DeleteNotificationAsync(notificationId, currentAppUserId.Value);
+        notificationItems.RemoveAll(x => x.Id == notificationId);
+        unreadNotificationCount = await NotificationService.GetUnreadCountAsync(currentAppUserId.Value);
+    }
 
     protected static string FormatNotificationTimestamp(DateTime createdUtc)
         => createdUtc.ToLocalTime().ToString("dd.MM.yyyy HH:mm");

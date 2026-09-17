@@ -1,6 +1,6 @@
 .auftraege-page {
     display: grid;
-    gap: 1.25rem;
+    gap: .85rem;
 }
 
 .auftraege-header {
@@ -10,6 +10,11 @@
     gap: 1rem;
     flex-wrap: wrap;
 }
+
+.auftraege-header h1 { margin-bottom: 0; }
+.money-input { position:relative; }
+.money-input .field-input { padding-right:2.25rem; }
+.money-input>span { position:absolute;right:.8rem;top:50%;transform:translateY(-50%);color:var(--muted);font-weight:700;pointer-events:none; }
 
 .auftraege-filter {
     display: grid;

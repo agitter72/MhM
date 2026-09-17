@@ -527,6 +527,13 @@ public partial class AuftragDetail
 
             await db.SaveChangesAsync();
 
+            await NotificationService.CreateApplicationNotificationAsync(
+                listing.Id,
+                listing.RequesterId,
+                currentUserId.Value,
+                currentUserDisplayName ?? "Ein Helfer",
+                listing.Title);
+
             appliedListingIds.Add(item.Id);
             applicationCount++;
             Navigation.NavigateTo("/einstellungen?tab=applications&status=eingereicht");

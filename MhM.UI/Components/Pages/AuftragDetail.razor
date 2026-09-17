@@ -134,7 +134,6 @@ else
 
             <section class="panel auftrag-description">
                 <span class="detail-kicker">Beschreibung</span>
-                <h2>Worum geht es?</h2>
                 <p>@item.Description</p>
             </section>
 
@@ -151,8 +150,8 @@ else
 
                             <div class="listing-application-grid auftrag-detail-apply-grid">
                                 <div class="field">
-                                    <label>Preisvorschlag (€)</label>
-                                    <InputNumber @bind-Value="applyModel.ProposedPrice" class="field-input" />
+                                    <label>Preisvorschlag</label>
+                                    <div class="money-input"><InputNumber @bind-Value="applyModel.ProposedPrice" class="field-input" step="0.01" inputmode="decimal" /><span>€</span></div>
                                     <ValidationMessage For="() => applyModel.ProposedPrice" />
                                 </div>
 

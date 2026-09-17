@@ -98,7 +98,7 @@
 .profile-helper {
     display: flex;
     flex-direction: column;
-    background: linear-gradient(145deg, color-mix(in srgb, var(--primary) 7%, var(--panel)), var(--panel) 48%);
+    background: color-mix(in srgb, var(--primary) 5%, var(--panel));
 }
 
 .profile-helper-heading {
@@ -136,7 +136,7 @@
     font-size: .85rem;
 }
 
-.profile-rating > i {
+.profile-rating > ::deep i {
     color: #f59e0b;
 }
 
@@ -207,6 +207,8 @@
 }
 
 .profile-listings {
+    display: grid;
+    gap: 1rem;
     min-width: 0;
 }
 
@@ -215,7 +217,7 @@
     text-align: center;
 }
 
-.profile-not-found > i {
+.profile-not-found > ::deep i {
     font-size: 2rem;
     color: var(--muted);
 }

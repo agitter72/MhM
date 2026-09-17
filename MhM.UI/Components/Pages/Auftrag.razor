@@ -82,13 +82,13 @@ else
                     <div class="form-grid">
                         <div class="field">
                             <label for="budgetMin">@T["TaskEdit.BudgetFrom"]</label>
-                            <InputNumber id="budgetMin" @bind-Value="model.BudgetMin" class="field-input" />
+                            <div class="money-input"><InputNumber id="budgetMin" @bind-Value="model.BudgetMin" class="field-input" step="0.01" inputmode="decimal" /><span>€</span></div>
                             <ValidationMessage For="() => model.BudgetMin" />
                         </div>
 
                         <div class="field">
                             <label for="budgetMax">@T["TaskEdit.BudgetTo"]</label>
-                            <InputNumber id="budgetMax" @bind-Value="model.BudgetMax" class="field-input" />
+                            <div class="money-input"><InputNumber id="budgetMax" @bind-Value="model.BudgetMax" class="field-input" step="0.01" inputmode="decimal" /><span>€</span></div>
                             <ValidationMessage For="() => model.BudgetMax" />
                         </div>
 
@@ -195,42 +195,25 @@ else
             </EditForm>
         </article>
 
-        <aside class="panel panel-side">
+        <aside class="panel panel-side listing-preview-panel">
             <div class="section-heading">
                 <div class="eyebrow">@T["TaskEdit.Preview"]</div>
                 <h3>@T["TaskEdit.PreviewTitle"]</h3>
             </div>
 
-            <div class="preview-card">
-                <div class="preview-title">
-                    @(string.IsNullOrWhiteSpace(model.Title) ? T["TaskEdit.NoTitle"] : model.Title)
-                </div>
-
-                <div class="preview-tags">
-                    <span class="badge-soft">@T.Enum(model.CompensationType)</span>
-                    <span class="badge-soft">@T.Enum(model.Status)</span>
-                </div>
-
-                <p class="preview-text">
-                    @(string.IsNullOrWhiteSpace(model.Description)
-                        ? T["TaskEdit.NoDescription"]
-                        : model.Description)
-                </p>
-
-                <div class="preview-meta">
-                    <div>
-                        <span>@T["General.Location"]</span>
-                        <strong>@($"{model.PostalCode} {model.City}".Trim())</strong>
-                    </div>
-                    <div>
-                        <span>@T["General.Budget"]</span>
-                        <strong>@($"{model.BudgetMin?.ToString("0")} - {model.BudgetMax?.ToString("0")} €")</strong>
-                    </div>
-                    <div>
-                        <span>@T["General.Date"]</span>
-                        <strong>@(model.PreferredDateLocal?.ToString("d") ?? T["General.Open"])</strong>
-                    </div>
-                </div>
+            <div class="listing-form-preview">
+                <AuftragKarte Title="@(string.IsNullOrWhiteSpace(model.Title) ? T["TaskEdit.NoTitle"] : model.Title)"
+                              PostalCode="@model.PostalCode"
+                              City="@model.City"
+                              PriceText="@FormatPreviewBudget()"
+                              ImageUrl="@PreviewImageUrl"
+                              ImageAlt="Vorschaubild des Auftrags"
+                              RequesterId="currentUserProfile?.Id"
+                              RequesterDisplayName="@(currentUserProfile?.DisplayName ?? string.Empty)"
+                              RequesterUsername="@(currentUserProfile?.Username ?? string.Empty)"
+                              RequesterDescription="@(currentUserProfile?.Description ?? string.Empty)"
+                              RequesterHasImage="currentUserProfile?.ProfileImageUpdatedUtc.HasValue == true"
+                              RequesterImageVersion="currentUserProfile?.ProfileImageUpdatedUtc?.Ticks ?? 0" />
             </div>
         </aside>
     </section>

@@ -45,6 +45,7 @@ public partial class Auftrag
     protected string? saveError;
     protected string? imageUploadError;
     private Guid currentUserId;
+    protected AppUser? currentUserProfile;
     protected bool isAdmin;
 
     protected int maxImages =>
@@ -55,6 +56,25 @@ public partial class Auftrag
     protected IEnumerable<ListingStatus> EditableStatuses => model.Status is ListingStatus.Entwurf or ListingStatus.Offen
         ? [ListingStatus.Entwurf, ListingStatus.Offen]
         : [model.Status];
+
+    protected string? PreviewImageUrl
+    {
+        get
+        {
+            var existing = existingImages.FirstOrDefault();
+            if (existing is not null) return $"/api/listing-images/{existing.Id}";
+            var pending = pendingImages.FirstOrDefault();
+            return pending is null ? null : $"data:{pending.ContentType};base64,{Convert.ToBase64String(pending.Data)}";
+        }
+    }
+
+    protected string FormatPreviewBudget()
+    {
+        if (model.BudgetMin.HasValue && model.BudgetMax.HasValue) return $"{model.BudgetMin:N2} € - {model.BudgetMax:N2} €";
+        if (model.BudgetMin.HasValue) return $"ab {model.BudgetMin:N2} €";
+        if (model.BudgetMax.HasValue) return $"bis {model.BudgetMax:N2} €";
+        return "Nach Absprache";
+    }
 
     protected override async Task OnParametersSetAsync()
     {
@@ -76,6 +96,7 @@ public partial class Auftrag
             return;
         }
         currentUserId = currentUser.Id;
+        currentUserProfile = currentUser;
 
         categories = await db.Categories
             .OrderBy(x => x.Name)

@@ -1,20 +1,24 @@
 .profile-avatar {
+    container-type: size;
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    box-sizing: border-box;
     width: 2.75rem;
     height: 2.75rem;
     flex: 0 0 auto;
     overflow: hidden;
+    border: 2px solid var(--panel);
     border-radius: 50%;
+    box-shadow: 0 0 0 1px var(--line);
     background: var(--primary-soft);
     color: var(--primary);
     font-weight: 800;
     letter-spacing: .02em;
 }
 
-.profile-avatar > i {
-    font-size: 48%;
+.profile-avatar > ::deep i {
+    font-size: 55cqw;
     line-height: 1;
 }
 

@@ -55,6 +55,10 @@
                             <span class="sidebar-link-icon"><Icon CustomIconName="bi bi-shield-lock" /></span>
                             <span class="sidebar-link-label">Administration</span>
                         </NavLink>
+                        <NavLink href="/moderation" class="sidebar-link" @onclick="CloseMobileNav">
+                            <span class="sidebar-link-icon"><Icon CustomIconName="bi bi-flag" /></span>
+                            <span class="sidebar-link-label">Moderation</span>
+                        </NavLink>
                     </AuthorizeView>
                 </Authorized>
                 <NotAuthorized>
@@ -132,16 +136,19 @@
                                         <div class="notification-list">
                                             @foreach (var notification in notificationItems)
                                             {
-                                                <a class="notification-item @(notification.ReadUtc is null ? "notification-item--unread" : null)"
-                                                   href="@notification.LinkUrl"
-                                                   @onclick="CloseNotificationCenterAsync">
-                                                    <div class="notification-item-head">
-                                                        <span class="notification-pill">@GetNotificationTypeLabel(notification)</span>
-                                                        <time datetime="@notification.CreatedUtc.ToString("O")">@FormatNotificationTimestamp(notification.CreatedUtc)</time>
-                                                    </div>
-                                                    <div class="notification-item-title">@notification.Title</div>
-                                                    <div class="notification-item-text">@notification.Content</div>
-                                                </a>
+                                                <div class="notification-item @(notification.ReadUtc is null ? "notification-item--unread" : null)">
+                                                    <a class="notification-item-link" href="@notification.LinkUrl" @onclick="CloseNotificationCenterAsync">
+                                                        <div class="notification-item-head">
+                                                            <span class="notification-pill">@GetNotificationTypeLabel(notification)</span>
+                                                            <time datetime="@notification.CreatedUtc.ToString("O")">@FormatNotificationTimestamp(notification.CreatedUtc)</time>
+                                                        </div>
+                                                        <div class="notification-item-title">@notification.Title</div>
+                                                        <div class="notification-item-text">@notification.Content</div>
+                                                    </a>
+                                                    <button type="button" class="notification-delete" title="Benachrichtigung löschen" aria-label="Benachrichtigung löschen" @onclick="() => DeleteNotificationAsync(notification.Id)">
+                                                        <Icon CustomIconName="bi bi-trash3" />
+                                                    </button>
+                                                </div>
                                             }
                                         </div>
                                     }
@@ -149,7 +156,7 @@
                             }
                         </div>
 
-                        <a class="user-pill" href="/mein" aria-label="Mein Profil öffnen">
+                        <a class="user-pill" href="/profil" aria-label="Mein Profil öffnen">
                             <div class="user-pill-avatar">
                                 @if (currentUserProfileImageUrl is not null)
                                 {
