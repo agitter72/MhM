@@ -239,20 +239,24 @@ public partial class Auftraege : IAsyncDisposable
         {
             var centerLat = Latitude!.Value;
             var centerLon = Longitude!.Value;
-            var radius = EffectiveRadiusKm;
+            // Only an explicit radius filters; the automatic browser location just sorts by distance,
+            // otherwise granting the location prompt wipes the list (no coordinates / farther than 50 km).
+            var radius = RadiusKm is > 0 ? RadiusKm.Value : double.MaxValue;
 
             filteredItems = filteredListings
-                .Where(x => x.Latitude.HasValue && x.Longitude.HasValue)
                 .Select(x => new
                 {
                     Listing = x,
-                    DistanceKm = CalculateDistanceKm(centerLat, centerLon, x.Latitude!.Value, x.Longitude!.Value)
+                    DistanceKm = x.Latitude.HasValue && x.Longitude.HasValue
+                        ? CalculateDistanceKm(centerLat, centerLon, x.Latitude.Value, x.Longitude.Value)
+                        : (double?)null
                 })
-                .Where(x => x.DistanceKm <= radius)
-                .OrderBy(x => x.DistanceKm)
+                .Where(x => x.DistanceKm <= radius || (x.DistanceKm is null && radius == double.MaxValue))
+                .OrderBy(x => x.DistanceKm ?? double.MaxValue)
                 .Select(x =>
                 {
-                    distancesKmByListingId[x.Listing.Id] = x.DistanceKm;
+                    if (x.DistanceKm.HasValue)
+                        distancesKmByListingId[x.Listing.Id] = x.DistanceKm.Value;
                     return x.Listing;
                 })
                 .ToList();

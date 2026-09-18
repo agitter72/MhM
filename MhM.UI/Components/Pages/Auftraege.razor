@@ -72,7 +72,7 @@
                 </div>
 
                 <div class="field">
-                    <label for="radiusKm">Radius (km): @((RadiusKm ?? EffectiveRadiusKm).ToString("N0"))</label>
+                    <label for="radiusKm">Radius (km): <output id="radiusKmValue" for="radiusKm">@((RadiusKm ?? EffectiveRadiusKm).ToString("N0"))</output></label>
                     <input id="radiusKm"
                            name="radiusKm"
                            type="range"
@@ -80,6 +80,7 @@
                            max="200"
                            step="1"
                            value="@(RadiusKm ?? EffectiveRadiusKm)"
+                           oninput="document.getElementById('radiusKmValue').value = this.value"
                            class="listing-range" />
                 </div>
 
